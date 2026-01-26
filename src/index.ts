@@ -48,10 +48,17 @@ app.doc('/doc', {
 app.get(
   '/reference',
   Scalar({
-    url: '/doc',
+    url: './doc',  // 相対パスにすることでnginxのプロキシ経由でも正しく動作
     theme: 'purple',
     pageTitle: 'Lydos API Reference',
   })
 )
 
-export default app
+// サーバーの起動
+const port = process.env.PORT || 3001
+console.log(`🚀 Server is running on http://localhost:${port}`)
+
+export default {
+  port,
+  fetch: app.fetch,
+}
