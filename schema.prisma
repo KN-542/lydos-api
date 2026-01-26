@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 媒体
+model MSite {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+
+  @@map("m_site")
+}
+
+/// 法人
+model TCompany {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(50)
+  createdAt DateTime @default(now())
+  tusers    TUser[]
+
+  @@map("t_company")
+}
+
+/// ユーザー
+model TUser {
+  id           Int      @id @default(autoincrement())
+  companyId    Int
+  name         String   @db.VarChar(25)
+  email        String   @unique
+  password     String   @db.VarChar(255)
+  initPassword String   @db.VarChar(255)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company TCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("t_user")
+}

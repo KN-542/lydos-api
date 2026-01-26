@@ -10,14 +10,47 @@ LydosのバックエンドAPIサーバー
 - **Zod** - スキーマバリデーション
 - **TypeScript** - 型安全な開発
 - **Biome** - フォーマッター & リンター
+- **Prisma** - ORMとデータベース管理
+- **PostgreSQL** - データベース
 
 ## セットアップ
 
-```bash
-# 依存関係のインストール
-bun install
+### 1. 依存関係のインストール
 
-# 開発サーバーの起動
+```bash
+bun install
+```
+
+### 2. 環境変数の設定
+
+```bash
+# .env.exampleをコピー
+cp .env.example .env
+
+# 必要に応じて.envを編集
+```
+
+### 3. データベースのセットアップ
+
+```bash
+# PostgreSQL & Redisを起動（lydos-setupディレクトリで）
+cd ../lydos-setup
+docker compose up -d
+
+# Prisma Clientを生成
+cd ../lydos-api
+bun run db:generate
+
+# マイグレーションを実行してテーブルを作成
+bun run db:migrate
+
+# マスタデータを投入
+bun run db:seed
+```
+
+### 4. 開発サーバーの起動
+
+```bash
 bun run dev
 ```
 
@@ -25,6 +58,8 @@ bun run dev
 Nginx経由で `https://local.api.lydos` からアクセス可能です。
 
 ## スクリプト
+
+### 開発
 
 ```bash
 # 開発サーバー起動（ホットリロード）
@@ -41,6 +76,25 @@ bun run lint
 
 # Format確認のみ
 bun run format:check
+```
+
+### データベース（Prisma）
+
+```bash
+# スキーマ変更後、マイグレーションファイルを生成してDBに反映
+bun run db:migrate
+
+# スキーマをDBに直接反映（マイグレーションファイルなし）
+bun run db:push
+
+# Prisma Clientを再生成
+bun run db:generate
+
+# マスタデータを投入
+bun run db:seed
+
+# Prisma Studio（GUIツール）を起動
+bun run db:studio
 ```
 
 ## APIエンドポイント
@@ -77,12 +131,33 @@ cd ../lydos-view
 bun run generate:api
 ```
 
+## データベース
+
+### スキーマ
+
+Prismaスキーマは `schema.prisma` に定義されています。
+
+**モデル:**
+- `MSite` - 媒体マスタ
+- `TCompany` - 法人
+- `TUser` - ユーザー
+
+### Seedデータ
+
+`seed.ts` でマスタデータを管理しています。
+
+現在のマスタデータ:
+- 媒体マスタ（MSite）: リクナビNEXT、マイナビ、DODA、その他
+
 ## ディレクトリ構造
 
 ```
-src/
-├── index.ts         # アプリケーションエントリーポイント
-└── (routes/)        # 今後のルート定義
+.
+├── schema.prisma    # Prismaスキーマ定義
+├── seed.ts          # マスタデータSeed
+├── src/
+│   └── index.ts     # アプリケーションエントリーポイント
+└── dist/            # ビルド出力
 ```
 
 ## CORS設定

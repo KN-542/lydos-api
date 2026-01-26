@@ -1,6 +1,8 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
+import { Scalar } from '@scalar/hono-api-reference'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
+import { redis } from './lib/redis'
 
 const app = new OpenAPIHono()
 
@@ -55,9 +57,14 @@ app.openapi(
   }
 )
 
-// POST: メッセージエコーAPI
+// POST: メッセージ保存API
 const messageRequestSchema = z.object({
   message: z.string().openapi({ example: 'Hello, Lydos!' }),
+})
+
+const successResponseSchema = z.object({
+  success: z.boolean().openapi({ example: true }),
+  message: z.string().openapi({ example: 'メッセージを保存しました' }),
 })
 
 app.openapi(
@@ -65,8 +72,8 @@ app.openapi(
     method: 'post',
     path: '/api/message',
     tags: ['Message'],
-    summary: 'メッセージエコー',
-    description: '送信されたメッセージをそのまま返します',
+    summary: 'メッセージ保存',
+    description: '送信されたメッセージをRedisに保存します',
     request: {
       body: {
         content: {
@@ -81,17 +88,24 @@ app.openapi(
         description: 'Success',
         content: {
           'application/json': {
-            schema: messageResponseSchema,
+            schema: successResponseSchema,
           },
         },
       },
     },
   },
-  (c) => {
+  async (c) => {
     const body = c.req.valid('json')
+    const timestamp = new Date().toISOString()
+    const key = `message:${timestamp}`
+
+    // Redisに保存
+    await redis.set(key, JSON.stringify({ message: body.message, timestamp }))
+    await redis.expire(key, 3600) // 1時間後に自動削除
+
     return c.json({
-      message: body.message,
-      timestamp: new Date().toISOString(),
+      success: true,
+      message: 'メッセージを保存しました',
     })
   }
 )
@@ -104,6 +118,16 @@ app.doc('/doc', {
     title: 'Lydos API',
   },
 })
+
+// Scalar UIでAPIリファレンスを表示
+app.get(
+  '/reference',
+  Scalar({
+    url: '/doc', // 相対パスにすることでnginxのプロキシ経由でも正しく動作
+    theme: 'purple',
+    pageTitle: 'Lydos API Reference',
+  })
+)
 
 // サーバーの起動
 const port = process.env.PORT || 3001
