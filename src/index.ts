@@ -8,8 +8,9 @@ const app = new OpenAPIHono()
 app.use(
   '*',
   cors({
-    origin: '*',
+    origin: process.env.CORS_ORIGIN as string,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
   })
 )
 
