@@ -48,7 +48,7 @@ app.doc('/doc', {
 app.get(
   '/reference',
   Scalar({
-    url: './doc',  // 相対パスにすることでnginxのプロキシ経由でも正しく動作
+    url: './doc', // 相対パスにすることでnginxのプロキシ経由でも正しく動作
     theme: 'purple',
     pageTitle: 'Lydos API Reference',
   })
