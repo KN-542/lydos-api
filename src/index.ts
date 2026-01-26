@@ -1,8 +1,11 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
+import { PrismaClient } from '@prisma/client'
 import { Scalar } from '@scalar/hono-api-reference'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
 import { redis } from './lib/redis'
+
+const prisma = new PrismaClient()
 
 const app = new OpenAPIHono()
 
@@ -53,6 +56,50 @@ app.openapi(
     return c.json({
       message: message || 'メッセージが指定されていません（GET）',
       timestamp: new Date().toISOString(),
+    })
+  }
+)
+
+// GET: 媒体マスタ全取得API
+const siteResponseSchema = z.object({
+  id: z.number().openapi({ example: 1 }),
+  name: z.string().openapi({ example: 'リクナビNEXT' }),
+  createdAt: z.string().openapi({ example: '2026-01-27T12:00:00.000Z' }),
+})
+
+const sitesResponseSchema = z.object({
+  sites: z.array(siteResponseSchema).openapi({ example: [] }),
+})
+
+app.openapi(
+  {
+    method: 'get',
+    path: '/api/sites',
+    tags: ['Site'],
+    summary: '媒体マスタ全取得',
+    description: '媒体マスタ（m_site）の全データを取得します',
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: sitesResponseSchema,
+          },
+        },
+      },
+    },
+  },
+  async (c) => {
+    const sites = await prisma.mSite.findMany({
+      orderBy: { id: 'asc' },
+    })
+
+    return c.json({
+      sites: sites.map((site) => ({
+        id: site.id,
+        name: site.name,
+        createdAt: site.createdAt.toISOString(),
+      })),
     })
   }
 )
