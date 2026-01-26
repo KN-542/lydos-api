@@ -1,34 +1,95 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { Scalar } from '@scalar/hono-api-reference'
+import { cors } from 'hono/cors'
 import { z } from 'zod'
 
 const app = new OpenAPIHono()
 
-// ルートエンドポイント（サンプル）
+// CORSを有効にする
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  })
+)
+
+// メッセージレスポンススキーマ
+const messageResponseSchema = z.object({
+  message: z.string().openapi({ example: 'Hello, Lydos!' }),
+  timestamp: z.string().openapi({ example: '2026-01-27T12:00:00.000Z' }),
+})
+
+// GET: メッセージ取得API
+const messageQuerySchema = z.object({
+  message: z.string().optional().openapi({ example: 'こんにちは' }),
+})
+
 app.openapi(
   {
     method: 'get',
-    path: '/',
-    tags: ['General'],
-    summary: 'Hello API',
-    description: 'APIの動作確認用エンドポイント',
+    path: '/api/message',
+    tags: ['Message'],
+    summary: 'メッセージ取得',
+    description: 'クエリパラメータのメッセージをエコーします',
+    request: {
+      query: messageQuerySchema,
+    },
     responses: {
       200: {
-        description: 'Success response',
+        description: 'Success',
         content: {
           'application/json': {
-            schema: z.object({
-              message: z.string(),
-              timestamp: z.string(),
-            }),
+            schema: messageResponseSchema,
           },
         },
       },
     },
   },
   (c) => {
+    const { message } = c.req.valid('query')
     return c.json({
-      message: 'Hello Hono!',
+      message: message || 'メッセージが指定されていません（GET）',
+      timestamp: new Date().toISOString(),
+    })
+  }
+)
+
+// POST: メッセージエコーAPI
+const messageRequestSchema = z.object({
+  message: z.string().openapi({ example: 'Hello, Lydos!' }),
+})
+
+app.openapi(
+  {
+    method: 'post',
+    path: '/api/message',
+    tags: ['Message'],
+    summary: 'メッセージエコー',
+    description: '送信されたメッセージをそのまま返します',
+    request: {
+      body: {
+        content: {
+          'application/json': {
+            schema: messageRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: messageResponseSchema,
+          },
+        },
+      },
+    },
+  },
+  (c) => {
+    const body = c.req.valid('json')
+    return c.json({
+      message: body.message,
       timestamp: new Date().toISOString(),
     })
   }
@@ -40,25 +101,13 @@ app.doc('/doc', {
   info: {
     version: '1.0.0',
     title: 'Lydos API',
-    description: 'Lydos API のドキュメント',
   },
 })
-
-// Scalar UIでAPIリファレンスを表示
-app.get(
-  '/reference',
-  Scalar({
-    url: './doc', // 相対パスにすることでnginxのプロキシ経由でも正しく動作
-    theme: 'purple',
-    pageTitle: 'Lydos API Reference',
-  })
-)
 
 // サーバーの起動
 const port = process.env.PORT || 3001
 const hostname = process.env.HOSTNAME || '127.0.0.1'
-
-console.log(`🚀 Server is running on http://127.0.0.1:${port}`)
+console.log(`🚀 Server is running on http://${hostname}:${port}`)
 
 export default {
   port,

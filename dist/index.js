@@ -17845,200 +17845,109 @@ function isFormContentType(contentType) {
   )
 }
 
-// node_modules/@scalar/core/dist/libs/html-rendering/html-rendering.js
-var addIndent = (str, spaces = 2, initialIndent = false) => {
-  const indent = ' '.repeat(spaces)
-  const lines = str.split(`
-`)
-  return lines
-    .map((line, index) => {
-      if (index === 0 && !initialIndent) {
-        return line
+// node_modules/hono/dist/middleware/cors/index.js
+var cors = (options) => {
+  const defaults = {
+    origin: '*',
+    allowMethods: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH'],
+    allowHeaders: [],
+    exposeHeaders: [],
+  }
+  const opts = {
+    ...defaults,
+    ...options,
+  }
+  const findAllowOrigin = ((optsOrigin) => {
+    if (typeof optsOrigin === 'string') {
+      if (optsOrigin === '*') {
+        return () => optsOrigin
+      } else {
+        return (origin) => (optsOrigin === origin ? origin : null)
       }
-      return `${indent}${line}`
-    })
-    .join(`
-`)
-}
-var getStyles = (configuration, customTheme) => {
-  const styles = []
-  if (configuration.customCss) {
-    styles.push('/* Custom CSS */')
-    styles.push(configuration.customCss)
-  }
-  if (!configuration.theme && customTheme) {
-    styles.push('/* Custom Theme */')
-    styles.push(customTheme)
-  }
-  if (styles.length === 0) {
-    return ''
-  }
-  return `
-    <style type="text/css">
-      ${addIndent(
-        styles.join(`
-
-`),
-        6
-      )}
-    </style>`
-}
-var getHtmlDocument = (givenConfiguration, customTheme = '') => {
-  const { cdn, pageTitle, customCss, theme, ...rest } = givenConfiguration
-  const configuration = getConfiguration({
-    ...rest,
-    ...(theme ? { theme } : {}),
-    customCss,
-  })
-  const content = `<!doctype html>
-<html>
-  <head>
-    <title>${pageTitle ?? 'Scalar API Reference'}</title>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1" />${getStyles(configuration, customTheme)}
-  </head>
-  <body>
-    <div id="app"></div>${getScriptTags(configuration, cdn)}
-  </body>
-</html>`
-  return content
-}
-var serializeArrayWithFunctions = (arr) => {
-  return `[${arr.map((item) => (typeof item === 'function' ? item.toString() : JSON.stringify(item))).join(', ')}]`
-}
-function getScriptTags(configuration, cdn) {
-  const restConfig = { ...configuration }
-  const functionProps = []
-  for (const [key, value] of Object.entries(configuration)) {
-    if (typeof value === 'function') {
-      functionProps.push(`"${key}": ${value.toString()}`)
-      delete restConfig[key]
-    } else if (Array.isArray(value) && value.some((item) => typeof item === 'function')) {
-      functionProps.push(`"${key}": ${serializeArrayWithFunctions(value)}`)
-      delete restConfig[key]
-    }
-  }
-  const configString = JSON.stringify(restConfig, null, 2)
-    .split(`
-`)
-    .map((line, index) => (index === 0 ? line : '      ' + line))
-    .join(`
-`)
-    .replace(/\s*}$/, '')
-  const functionPropsString = functionProps.length
-    ? `,
-        ${functionProps.join(`,
-        `)}
-      }`
-    : '}'
-  return `
-    <!-- Load the Script -->
-    <script src="${cdn ?? 'https://cdn.jsdelivr.net/npm/@scalar/api-reference'}"></script>
-
-    <!-- Initialize the Scalar API Reference -->
-    <script type="text/javascript">
-      Scalar.createApiReference('#app', ${configString}${functionPropsString})
-    </script>`
-}
-var getConfiguration = (givenConfiguration) => {
-  const configuration = {
-    ...givenConfiguration,
-  }
-  if (typeof configuration.content === 'function') {
-    configuration.content = configuration.content()
-  }
-  if (configuration.content && configuration.url) {
-    delete configuration.content
-  }
-  return configuration
-}
-
-// node_modules/@scalar/hono-api-reference/dist/scalar.js
-var DEFAULT_CONFIGURATION = {
-  _integration: 'hono',
-}
-var customTheme = `
-.dark-mode {
-  color-scheme: dark;
-  --scalar-color-1: rgba(255, 255, 245, .86);
-  --scalar-color-2: rgba(255, 255, 245, .6);
-  --scalar-color-3: rgba(255, 255, 245, .38);
-  --scalar-color-disabled: rgba(255, 255, 245, .25);
-  --scalar-color-ghost: rgba(255, 255, 245, .25);
-  --scalar-color-accent: #e36002;
-  --scalar-background-1: #1e1e20;
-  --scalar-background-2: #2a2a2a;
-  --scalar-background-3: #505053;
-  --scalar-background-4: rgba(255, 255, 255, 0.06);
-  --scalar-background-accent: #e360021f;
-
-  --scalar-border-color: rgba(255, 255, 255, 0.1);
-  --scalar-scrollbar-color: rgba(255, 255, 255, 0.24);
-  --scalar-scrollbar-color-active: rgba(255, 255, 255, 0.48);
-  --scalar-lifted-brightness: 1.45;
-  --scalar-backdrop-brightness: 0.5;
-
-  --scalar-shadow-1: 0 1px 3px 0 rgb(0, 0, 0, 0.1);
-  --scalar-shadow-2: rgba(15, 15, 15, 0.2) 0px 3px 6px,
-    rgba(15, 15, 15, 0.4) 0px 9px 24px, 0 0 0 1px rgba(255, 255, 255, 0.1);
-
-  --scalar-button-1: #f6f6f6;
-  --scalar-button-1-color: #000;
-  --scalar-button-1-hover: #e7e7e7;
-
-  --scalar-color-green: #3dd68c;
-  --scalar-color-red: #f66f81;
-  --scalar-color-yellow: #f9b44e;
-  --scalar-color-blue: #5c73e7;
-  --scalar-color-orange: #ff8d4d;
-  --scalar-color-purple: #b191f9;
-}
-/* Sidebar */
-.dark-mode .sidebar {
-  --scalar-sidebar-background-1: #161618;
-  --scalar-sidebar-item-hover-color: var(--scalar-color-accent);
-  --scalar-sidebar-item-hover-background: transparent;
-  --scalar-sidebar-item-active-background: transparent;
-  --scalar-sidebar-border-color: transparent;
-  --scalar-sidebar-color-1: var(--scalar-color-1);
-  --scalar-sidebar-color-2: var(--scalar-color-2);
-  --scalar-sidebar-color-active: var(--scalar-color-accent);
-  --scalar-sidebar-search-background: #252529;
-  --scalar-sidebar-search-border-color: transparent;
-  --scalar-sidebar-search-color: var(--scalar-color-3);
-}
-`
-var Scalar = (configOrResolver) => {
-  return async (c) => {
-    let resolvedConfig = {}
-    if (typeof configOrResolver === 'function') {
-      resolvedConfig = await configOrResolver(c)
+    } else if (typeof optsOrigin === 'function') {
+      return optsOrigin
     } else {
-      resolvedConfig = configOrResolver
+      return (origin) => (optsOrigin.includes(origin) ? origin : null)
     }
-    const configuration = {
-      ...DEFAULT_CONFIGURATION,
-      ...resolvedConfig,
+  })(opts.origin)
+  const findAllowMethods = ((optsAllowMethods) => {
+    if (typeof optsAllowMethods === 'function') {
+      return optsAllowMethods
+    } else if (Array.isArray(optsAllowMethods)) {
+      return () => optsAllowMethods
+    } else {
+      return () => []
     }
-    return c.html(getHtmlDocument(configuration, customTheme))
+  })(opts.allowMethods)
+  return async function cors2(c, next) {
+    function set2(key, value) {
+      c.res.headers.set(key, value)
+    }
+    const allowOrigin = await findAllowOrigin(c.req.header('origin') || '', c)
+    if (allowOrigin) {
+      set2('Access-Control-Allow-Origin', allowOrigin)
+    }
+    if (opts.credentials) {
+      set2('Access-Control-Allow-Credentials', 'true')
+    }
+    if (opts.exposeHeaders?.length) {
+      set2('Access-Control-Expose-Headers', opts.exposeHeaders.join(','))
+    }
+    if (c.req.method === 'OPTIONS') {
+      if (opts.origin !== '*') {
+        set2('Vary', 'Origin')
+      }
+      if (opts.maxAge != null) {
+        set2('Access-Control-Max-Age', opts.maxAge.toString())
+      }
+      const allowMethods = await findAllowMethods(c.req.header('origin') || '', c)
+      if (allowMethods.length) {
+        set2('Access-Control-Allow-Methods', allowMethods.join(','))
+      }
+      let headers = opts.allowHeaders
+      if (!headers?.length) {
+        const requestHeaders = c.req.header('Access-Control-Request-Headers')
+        if (requestHeaders) {
+          headers = requestHeaders.split(/\s*,\s*/)
+        }
+      }
+      if (headers?.length) {
+        set2('Access-Control-Allow-Headers', headers.join(','))
+        c.res.headers.append('Vary', 'Access-Control-Request-Headers')
+      }
+      c.res.headers.delete('Content-Length')
+      c.res.headers.delete('Content-Type')
+      return new Response(null, {
+        headers: c.res.headers,
+        status: 204,
+        statusText: 'No Content',
+      })
+    }
+    await next()
+    if (opts.origin !== '*') {
+      c.header('Vary', 'Origin', { append: true })
+    }
   }
 }
 
 // src/index.ts
 var app = new OpenAPIHono()
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  })
+)
 app.openapi(
   {
     method: 'get',
-    path: '/',
-    tags: ['General'],
-    summary: 'Hello API',
-    description:
-      'API\u306E\u52D5\u4F5C\u78BA\u8A8D\u7528\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8',
+    path: '/api/message',
+    tags: ['Message'],
+    summary: '\u30E1\u30C3\u30BB\u30FC\u30B8\u53D6\u5F97',
     responses: {
       200: {
-        description: 'Success response',
+        description: 'Success',
         content: {
           'application/json': {
             schema: exports_external.object({
@@ -18052,7 +17961,7 @@ app.openapi(
   },
   (c) => {
     return c.json({
-      message: 'Hello Hono!',
+      message: 'Lydos API\u304B\u3089\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u3067\u3059',
       timestamp: new Date().toISOString(),
     })
   }
@@ -18062,20 +17971,11 @@ app.doc('/doc', {
   info: {
     version: '1.0.0',
     title: 'Lydos API',
-    description: 'Lydos API \u306E\u30C9\u30AD\u30E5\u30E1\u30F3\u30C8',
   },
 })
-app.get(
-  '/reference',
-  Scalar({
-    url: './doc',
-    theme: 'purple',
-    pageTitle: 'Lydos API Reference',
-  })
-)
 var port = process.env.PORT || 3001
 var hostname3 = process.env.HOSTNAME || '127.0.0.1'
-console.log(`\uD83D\uDE80 Server is running on http://127.0.0.1:${port}`)
+console.log(`\uD83D\uDE80 Server is running on http://${hostname3}:${port}`)
 var src_default = {
   port,
   hostname: hostname3,
