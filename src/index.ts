@@ -56,9 +56,12 @@ app.get(
 
 // サーバーの起動
 const port = process.env.PORT || 3001
-console.log(`🚀 Server is running on http://localhost:${port}`)
+const hostname = process.env.HOSTNAME || '127.0.0.1'
+
+console.log(`🚀 Server is running on http://127.0.0.1:${port}`)
 
 export default {
   port,
+  hostname,
   fetch: app.fetch,
 }
