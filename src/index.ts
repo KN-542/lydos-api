@@ -4,6 +4,7 @@ import { Scalar } from '@scalar/hono-api-reference'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
 import { redis } from './lib/redis'
+import { middleware } from './middleware'
 
 const prisma = new PrismaClient()
 
@@ -18,6 +19,9 @@ app.use(
     credentials: true,
   })
 )
+
+// 認証ミドルウェア
+app.use('/api/*', middleware)
 
 // メッセージレスポンススキーマ
 const messageResponseSchema = z.object({

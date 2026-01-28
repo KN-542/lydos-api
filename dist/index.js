@@ -33247,6 +33247,1556 @@ redis.on("error", (err) => {
   console.error("\u274C Redis error:", err);
 });
 
+// node_modules/@clerk/shared/dist/runtime/constants-ByUssRbE.mjs
+var DEV_OR_STAGING_SUFFIXES = [
+  ".lcl.dev",
+  ".stg.dev",
+  ".lclstage.dev",
+  ".stgstage.dev",
+  ".dev.lclclerk.com",
+  ".stg.lclclerk.com",
+  ".accounts.lclclerk.com",
+  "accountsstage.dev",
+  "accounts.dev"
+];
+
+// node_modules/@clerk/shared/dist/runtime/isomorphicAtob-DybBXGFR.mjs
+var isomorphicAtob = (data) => {
+  if (typeof atob !== "undefined" && typeof atob === "function")
+    return atob(data);
+  else if (typeof global !== "undefined" && global.Buffer)
+    return new global.Buffer(data, "base64").toString();
+  return data;
+};
+
+// node_modules/@clerk/shared/dist/runtime/keys-YNv6yjKk.mjs
+var PUBLISHABLE_KEY_LIVE_PREFIX = "pk_live_";
+var PUBLISHABLE_KEY_TEST_PREFIX = "pk_test_";
+function isValidDecodedPublishableKey(decoded) {
+  if (!decoded.endsWith("$"))
+    return false;
+  const withoutTrailing = decoded.slice(0, -1);
+  if (withoutTrailing.includes("$"))
+    return false;
+  return withoutTrailing.includes(".");
+}
+function parsePublishableKey(key, options = {}) {
+  key = key || "";
+  if (!key || !isPublishableKey(key)) {
+    if (options.fatal && !key)
+      throw new Error("Publishable key is missing. Ensure that your publishable key is correctly configured. Double-check your environment configuration for your keys, or access them here: https://dashboard.clerk.com/last-active?path=api-keys");
+    if (options.fatal && !isPublishableKey(key))
+      throw new Error("Publishable key not valid.");
+    return null;
+  }
+  const instanceType = key.startsWith(PUBLISHABLE_KEY_LIVE_PREFIX) ? "production" : "development";
+  let decodedFrontendApi;
+  try {
+    decodedFrontendApi = isomorphicAtob(key.split("_")[2]);
+  } catch {
+    if (options.fatal)
+      throw new Error("Publishable key not valid: Failed to decode key.");
+    return null;
+  }
+  if (!isValidDecodedPublishableKey(decodedFrontendApi)) {
+    if (options.fatal)
+      throw new Error("Publishable key not valid: Decoded key has invalid format.");
+    return null;
+  }
+  let frontendApi = decodedFrontendApi.slice(0, -1);
+  if (options.proxyUrl)
+    frontendApi = options.proxyUrl;
+  else if (instanceType !== "development" && options.domain && options.isSatellite)
+    frontendApi = `clerk.${options.domain}`;
+  return {
+    instanceType,
+    frontendApi
+  };
+}
+function isPublishableKey(key = "") {
+  try {
+    if (!(key.startsWith(PUBLISHABLE_KEY_LIVE_PREFIX) || key.startsWith(PUBLISHABLE_KEY_TEST_PREFIX)))
+      return false;
+    const parts = key.split("_");
+    if (parts.length !== 3)
+      return false;
+    const encodedPart = parts[2];
+    if (!encodedPart)
+      return false;
+    return isValidDecodedPublishableKey(isomorphicAtob(encodedPart));
+  } catch {
+    return false;
+  }
+}
+function createDevOrStagingUrlCache() {
+  const devOrStagingUrlCache = /* @__PURE__ */ new Map;
+  return { isDevOrStagingUrl: (url2) => {
+    if (!url2)
+      return false;
+    const hostname3 = typeof url2 === "string" ? url2 : url2.hostname;
+    let res = devOrStagingUrlCache.get(hostname3);
+    if (res === undefined) {
+      res = DEV_OR_STAGING_SUFFIXES.some((s) => hostname3.endsWith(s));
+      devOrStagingUrlCache.set(hostname3, res);
+    }
+    return res;
+  } };
+}
+
+// node_modules/@clerk/shared/dist/runtime/retry-DAlTROH9.mjs
+var defaultOptions = {
+  initialDelay: 125,
+  maxDelayBetweenRetries: 0,
+  factor: 2,
+  shouldRetry: (_, iteration) => iteration < 5,
+  retryImmediately: false,
+  jitter: true
+};
+var RETRY_IMMEDIATELY_DELAY = 100;
+var sleep = async (ms) => new Promise((s) => setTimeout(s, ms));
+var applyJitter = (delay, jitter) => {
+  return jitter ? delay * (1 + Math.random()) : delay;
+};
+var createExponentialDelayAsyncFn = (opts) => {
+  let timesCalled = 0;
+  const calculateDelayInMs = () => {
+    const constant = opts.initialDelay;
+    const base = opts.factor;
+    let delay = constant * Math.pow(base, timesCalled);
+    delay = applyJitter(delay, opts.jitter);
+    return Math.min(opts.maxDelayBetweenRetries || delay, delay);
+  };
+  return async () => {
+    await sleep(calculateDelayInMs());
+    timesCalled++;
+  };
+};
+var retry = async (callback, options = {}) => {
+  let iterations = 0;
+  const { shouldRetry, initialDelay, maxDelayBetweenRetries, factor, retryImmediately, jitter, onBeforeRetry } = {
+    ...defaultOptions,
+    ...options
+  };
+  const delay = createExponentialDelayAsyncFn({
+    initialDelay,
+    maxDelayBetweenRetries,
+    factor,
+    jitter
+  });
+  while (true)
+    try {
+      return await callback();
+    } catch (e) {
+      iterations++;
+      if (!shouldRetry(e, iterations))
+        throw e;
+      if (onBeforeRetry)
+        await onBeforeRetry(iterations);
+      if (retryImmediately && iterations === 1)
+        await sleep(applyJitter(RETRY_IMMEDIATELY_DELAY, jitter));
+      else
+        await delay();
+    }
+};
+
+// node_modules/@clerk/shared/dist/runtime/error-Dl9xmUf3.mjs
+function createErrorTypeGuard(ErrorClass) {
+  function typeGuard(error48) {
+    const target = error48 ?? this;
+    if (!target)
+      throw new TypeError(`${ErrorClass.kind || ErrorClass.name} type guard requires an error object`);
+    if (ErrorClass.kind && typeof target === "object" && target !== null && "constructor" in target) {
+      if (target.constructor?.kind === ErrorClass.kind)
+        return true;
+    }
+    return target instanceof ErrorClass;
+  }
+  return typeGuard;
+}
+var ClerkAPIError = class {
+  static kind = "ClerkApiError";
+  code;
+  message;
+  longMessage;
+  meta;
+  constructor(json2) {
+    const parsedError = {
+      code: json2.code,
+      message: json2.message,
+      longMessage: json2.long_message,
+      meta: {
+        paramName: json2.meta?.param_name,
+        sessionId: json2.meta?.session_id,
+        emailAddresses: json2.meta?.email_addresses,
+        identifiers: json2.meta?.identifiers,
+        zxcvbn: json2.meta?.zxcvbn,
+        plan: json2.meta?.plan,
+        isPlanUpgradePossible: json2.meta?.is_plan_upgrade_possible
+      }
+    };
+    this.code = parsedError.code;
+    this.message = parsedError.message;
+    this.longMessage = parsedError.longMessage;
+    this.meta = parsedError.meta;
+  }
+};
+var isClerkAPIError = createErrorTypeGuard(ClerkAPIError);
+var ClerkError = class ClerkError2 extends Error {
+  static kind = "ClerkError";
+  clerkError = true;
+  code;
+  longMessage;
+  docsUrl;
+  cause;
+  get name() {
+    return this.constructor.name;
+  }
+  constructor(opts) {
+    super(new.target.formatMessage(new.target.kind, opts.message, opts.code, opts.docsUrl), { cause: opts.cause });
+    Object.setPrototypeOf(this, ClerkError2.prototype);
+    this.code = opts.code;
+    this.docsUrl = opts.docsUrl;
+    this.longMessage = opts.longMessage;
+    this.cause = opts.cause;
+  }
+  toString() {
+    return `[${this.name}]
+Message:${this.message}`;
+  }
+  static formatMessage(name, msg, code, docsUrl) {
+    const prefix = "Clerk:";
+    const regex = new RegExp(prefix.replace(" ", "\\s*"), "i");
+    msg = msg.replace(regex, "");
+    msg = `${prefix} ${msg.trim()}
+
+(code="${code}")
+
+`;
+    if (docsUrl)
+      msg += `
+
+Docs: ${docsUrl}`;
+    return msg;
+  }
+};
+var ClerkAPIResponseError = class ClerkAPIResponseError2 extends ClerkError {
+  static kind = "ClerkAPIResponseError";
+  status;
+  clerkTraceId;
+  retryAfter;
+  errors;
+  constructor(message, options) {
+    const { data: errorsJson, status, clerkTraceId, retryAfter } = options;
+    super({
+      ...options,
+      message,
+      code: "api_response_error"
+    });
+    Object.setPrototypeOf(this, ClerkAPIResponseError2.prototype);
+    this.status = status;
+    this.clerkTraceId = clerkTraceId;
+    this.retryAfter = retryAfter;
+    this.errors = (errorsJson || []).map((e) => new ClerkAPIError(e));
+  }
+  toString() {
+    let message = `[${this.name}]
+Message:${this.message}
+Status:${this.status}
+Serialized errors: ${this.errors.map((e) => JSON.stringify(e))}`;
+    if (this.clerkTraceId)
+      message += `
+Clerk Trace ID: ${this.clerkTraceId}`;
+    return message;
+  }
+  static formatMessage(name, msg, _, __) {
+    return msg;
+  }
+};
+var isClerkAPIResponseError = createErrorTypeGuard(ClerkAPIResponseError);
+var DefaultMessages = Object.freeze({
+  InvalidProxyUrlErrorMessage: `The proxyUrl passed to Clerk is invalid. The expected value for proxyUrl is an absolute URL or a relative path with a leading '/'. (key={{url}})`,
+  InvalidPublishableKeyErrorMessage: `The publishableKey passed to Clerk is invalid. You can get your Publishable key at https://dashboard.clerk.com/last-active?path=api-keys. (key={{key}})`,
+  MissingPublishableKeyErrorMessage: `Missing publishableKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
+  MissingSecretKeyErrorMessage: `Missing secretKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
+  MissingClerkProvider: `{{source}} can only be used within the <ClerkProvider /> component. Learn more: https://clerk.com/docs/components/clerk-provider`
+});
+function buildErrorThrower({ packageName, customMessages }) {
+  let pkg = packageName;
+  function buildMessage(rawMessage, replacements) {
+    if (!replacements)
+      return `${pkg}: ${rawMessage}`;
+    let msg = rawMessage;
+    const matches = rawMessage.matchAll(/{{([a-zA-Z0-9-_]+)}}/g);
+    for (const match2 of matches) {
+      const replacement = (replacements[match2[1]] || "").toString();
+      msg = msg.replace(`{{${match2[1]}}}`, replacement);
+    }
+    return `${pkg}: ${msg}`;
+  }
+  const messages = {
+    ...DefaultMessages,
+    ...customMessages
+  };
+  return {
+    setPackageName({ packageName: packageName$1 }) {
+      if (typeof packageName$1 === "string")
+        pkg = packageName$1;
+      return this;
+    },
+    setMessages({ customMessages: customMessages$1 }) {
+      Object.assign(messages, customMessages$1 || {});
+      return this;
+    },
+    throwInvalidPublishableKeyError(params) {
+      throw new Error(buildMessage(messages.InvalidPublishableKeyErrorMessage, params));
+    },
+    throwInvalidProxyUrl(params) {
+      throw new Error(buildMessage(messages.InvalidProxyUrlErrorMessage, params));
+    },
+    throwMissingPublishableKeyError() {
+      throw new Error(buildMessage(messages.MissingPublishableKeyErrorMessage));
+    },
+    throwMissingSecretKeyError() {
+      throw new Error(buildMessage(messages.MissingSecretKeyErrorMessage));
+    },
+    throwMissingClerkProviderError(params) {
+      throw new Error(buildMessage(messages.MissingClerkProvider, params));
+    },
+    throw(message) {
+      throw new Error(buildMessage(message));
+    }
+  };
+}
+var ClerkRuntimeError = class ClerkRuntimeError2 extends ClerkError {
+  static kind = "ClerkRuntimeError";
+  clerkRuntimeError = true;
+  constructor(message, options) {
+    super({
+      ...options,
+      message
+    });
+    Object.setPrototypeOf(this, ClerkRuntimeError2.prototype);
+  }
+};
+var isClerkRuntimeError = createErrorTypeGuard(ClerkRuntimeError);
+
+// node_modules/@clerk/backend/dist/chunk-YBVFDYDR.mjs
+var errorThrower = buildErrorThrower({ packageName: "@clerk/backend" });
+var { isDevOrStagingUrl } = createDevOrStagingUrlCache();
+
+// node_modules/@clerk/backend/dist/chunk-TCIXZLLW.mjs
+var TokenVerificationErrorCode = {
+  InvalidSecretKey: "clerk_key_invalid"
+};
+var TokenVerificationErrorReason = {
+  TokenExpired: "token-expired",
+  TokenInvalid: "token-invalid",
+  TokenInvalidAlgorithm: "token-invalid-algorithm",
+  TokenInvalidAuthorizedParties: "token-invalid-authorized-parties",
+  TokenInvalidSignature: "token-invalid-signature",
+  TokenNotActiveYet: "token-not-active-yet",
+  TokenIatInTheFuture: "token-iat-in-the-future",
+  TokenVerificationFailed: "token-verification-failed",
+  InvalidSecretKey: "secret-key-invalid",
+  LocalJWKMissing: "jwk-local-missing",
+  RemoteJWKFailedToLoad: "jwk-remote-failed-to-load",
+  RemoteJWKInvalid: "jwk-remote-invalid",
+  RemoteJWKMissing: "jwk-remote-missing",
+  JWKFailedToResolve: "jwk-failed-to-resolve",
+  JWKKidMismatch: "jwk-kid-mismatch"
+};
+var TokenVerificationErrorAction = {
+  ContactSupport: "Contact support@clerk.com",
+  EnsureClerkJWT: "Make sure that this is a valid Clerk-generated JWT.",
+  SetClerkJWTKey: "Set the CLERK_JWT_KEY environment variable.",
+  SetClerkSecretKey: "Set the CLERK_SECRET_KEY environment variable.",
+  EnsureClockSync: "Make sure your system clock is in sync (e.g. turn off and on automatic time synchronization)."
+};
+var TokenVerificationError = class _TokenVerificationError extends Error {
+  constructor({
+    action,
+    message,
+    reason
+  }) {
+    super(message);
+    Object.setPrototypeOf(this, _TokenVerificationError.prototype);
+    this.reason = reason;
+    this.message = message;
+    this.action = action;
+  }
+  getFullMessage() {
+    return `${[this.message, this.action].filter((m) => m).join(" ")} (reason=${this.reason}, token-carrier=${this.tokenCarrier})`;
+  }
+};
+
+// node_modules/@clerk/backend/dist/runtime/node/crypto.mjs
+import { webcrypto } from "crypto";
+
+// node_modules/@clerk/backend/dist/chunk-7X3P2E3X.mjs
+var globalFetch = fetch.bind(globalThis);
+var runtime = {
+  crypto: webcrypto,
+  get fetch() {
+    return globalFetch;
+  },
+  AbortController: globalThis.AbortController,
+  Blob: globalThis.Blob,
+  FormData: globalThis.FormData,
+  Headers: globalThis.Headers,
+  Request: globalThis.Request,
+  Response: globalThis.Response
+};
+var base64url3 = {
+  parse(string4, opts) {
+    return parse6(string4, base64UrlEncoding, opts);
+  },
+  stringify(data, opts) {
+    return stringify(data, base64UrlEncoding, opts);
+  }
+};
+var base64UrlEncoding = {
+  chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+  bits: 6
+};
+function parse6(string4, encoding, opts = {}) {
+  if (!encoding.codes) {
+    encoding.codes = {};
+    for (let i = 0;i < encoding.chars.length; ++i) {
+      encoding.codes[encoding.chars[i]] = i;
+    }
+  }
+  if (!opts.loose && string4.length * encoding.bits & 7) {
+    throw new SyntaxError("Invalid padding");
+  }
+  let end = string4.length;
+  while (string4[end - 1] === "=") {
+    --end;
+    if (!opts.loose && !((string4.length - end) * encoding.bits & 7)) {
+      throw new SyntaxError("Invalid padding");
+    }
+  }
+  const out = new (opts.out ?? Uint8Array)(end * encoding.bits / 8 | 0);
+  let bits = 0;
+  let buffer = 0;
+  let written = 0;
+  for (let i = 0;i < end; ++i) {
+    const value = encoding.codes[string4[i]];
+    if (value === undefined) {
+      throw new SyntaxError("Invalid character " + string4[i]);
+    }
+    buffer = buffer << encoding.bits | value;
+    bits += encoding.bits;
+    if (bits >= 8) {
+      bits -= 8;
+      out[written++] = 255 & buffer >> bits;
+    }
+  }
+  if (bits >= encoding.bits || 255 & buffer << 8 - bits) {
+    throw new SyntaxError("Unexpected end of data");
+  }
+  return out;
+}
+function stringify(data, encoding, opts = {}) {
+  const { pad = true } = opts;
+  const mask = (1 << encoding.bits) - 1;
+  let out = "";
+  let bits = 0;
+  let buffer = 0;
+  for (let i = 0;i < data.length; ++i) {
+    buffer = buffer << 8 | 255 & data[i];
+    bits += 8;
+    while (bits > encoding.bits) {
+      bits -= encoding.bits;
+      out += encoding.chars[mask & buffer >> bits];
+    }
+  }
+  if (bits) {
+    out += encoding.chars[mask & buffer << encoding.bits - bits];
+  }
+  if (pad) {
+    while (out.length * encoding.bits & 7) {
+      out += "=";
+    }
+  }
+  return out;
+}
+var algToHash = {
+  RS256: "SHA-256",
+  RS384: "SHA-384",
+  RS512: "SHA-512"
+};
+var RSA_ALGORITHM_NAME = "RSASSA-PKCS1-v1_5";
+var jwksAlgToCryptoAlg = {
+  RS256: RSA_ALGORITHM_NAME,
+  RS384: RSA_ALGORITHM_NAME,
+  RS512: RSA_ALGORITHM_NAME
+};
+var algs = Object.keys(algToHash);
+function getCryptoAlgorithm(algorithmName) {
+  const hash2 = algToHash[algorithmName];
+  const name = jwksAlgToCryptoAlg[algorithmName];
+  if (!hash2 || !name) {
+    throw new Error(`Unsupported algorithm ${algorithmName}, expected one of ${algs.join(",")}.`);
+  }
+  return {
+    hash: { name: algToHash[algorithmName] },
+    name: jwksAlgToCryptoAlg[algorithmName]
+  };
+}
+var isArrayString = (s) => {
+  return Array.isArray(s) && s.length > 0 && s.every((a) => typeof a === "string");
+};
+var assertAudienceClaim = (aud, audience) => {
+  const audienceList = [audience].flat().filter((a) => !!a);
+  const audList = [aud].flat().filter((a) => !!a);
+  const shouldVerifyAudience = audienceList.length > 0 && audList.length > 0;
+  if (!shouldVerifyAudience) {
+    return;
+  }
+  if (typeof aud === "string") {
+    if (!audienceList.includes(aud)) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.EnsureClerkJWT,
+        reason: TokenVerificationErrorReason.TokenVerificationFailed,
+        message: `Invalid JWT audience claim (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(audienceList)}".`
+      });
+    }
+  } else if (isArrayString(aud)) {
+    if (!aud.some((a) => audienceList.includes(a))) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.EnsureClerkJWT,
+        reason: TokenVerificationErrorReason.TokenVerificationFailed,
+        message: `Invalid JWT audience claim array (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(audienceList)}".`
+      });
+    }
+  }
+};
+var assertHeaderType = (typ, allowedTypes = "JWT") => {
+  if (typeof typ === "undefined") {
+    return;
+  }
+  const allowed = Array.isArray(allowedTypes) ? allowedTypes : [allowedTypes];
+  if (!allowed.includes(typ)) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenInvalid,
+      message: `Invalid JWT type ${JSON.stringify(typ)}. Expected "${allowed.join(", ")}".`
+    });
+  }
+};
+var assertHeaderAlgorithm = (alg) => {
+  if (!algs.includes(alg)) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenInvalidAlgorithm,
+      message: `Invalid JWT algorithm ${JSON.stringify(alg)}. Supported: ${algs}.`
+    });
+  }
+};
+var assertSubClaim = (sub) => {
+  if (typeof sub !== "string") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Subject claim (sub) is required and must be a string. Received ${JSON.stringify(sub)}.`
+    });
+  }
+};
+var assertAuthorizedPartiesClaim = (azp, authorizedParties) => {
+  if (!azp || !authorizedParties || authorizedParties.length === 0) {
+    return;
+  }
+  if (!authorizedParties.includes(azp)) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenInvalidAuthorizedParties,
+      message: `Invalid JWT Authorized party claim (azp) ${JSON.stringify(azp)}. Expected "${authorizedParties}".`
+    });
+  }
+};
+var assertExpirationClaim = (exp, clockSkewInMs) => {
+  if (typeof exp !== "number") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Invalid JWT expiry date claim (exp) ${JSON.stringify(exp)}. Expected number.`
+    });
+  }
+  const currentDate = new Date(Date.now());
+  const expiryDate = /* @__PURE__ */ new Date(0);
+  expiryDate.setUTCSeconds(exp);
+  const expired = expiryDate.getTime() <= currentDate.getTime() - clockSkewInMs;
+  if (expired) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenExpired,
+      message: `JWT is expired. Expiry date: ${expiryDate.toUTCString()}, Current date: ${currentDate.toUTCString()}.`
+    });
+  }
+};
+var assertActivationClaim = (nbf, clockSkewInMs) => {
+  if (typeof nbf === "undefined") {
+    return;
+  }
+  if (typeof nbf !== "number") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Invalid JWT not before date claim (nbf) ${JSON.stringify(nbf)}. Expected number.`
+    });
+  }
+  const currentDate = new Date(Date.now());
+  const notBeforeDate = /* @__PURE__ */ new Date(0);
+  notBeforeDate.setUTCSeconds(nbf);
+  const early = notBeforeDate.getTime() > currentDate.getTime() + clockSkewInMs;
+  if (early) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenNotActiveYet,
+      message: `JWT cannot be used prior to not before date claim (nbf). Not before date: ${notBeforeDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
+    });
+  }
+};
+var assertIssuedAtClaim = (iat, clockSkewInMs) => {
+  if (typeof iat === "undefined") {
+    return;
+  }
+  if (typeof iat !== "number") {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.EnsureClerkJWT,
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Invalid JWT issued at date claim (iat) ${JSON.stringify(iat)}. Expected number.`
+    });
+  }
+  const currentDate = new Date(Date.now());
+  const issuedAtDate = /* @__PURE__ */ new Date(0);
+  issuedAtDate.setUTCSeconds(iat);
+  const postIssued = issuedAtDate.getTime() > currentDate.getTime() + clockSkewInMs;
+  if (postIssued) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenIatInTheFuture,
+      message: `JWT issued at date claim (iat) is in the future. Issued at date: ${issuedAtDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
+    });
+  }
+};
+function pemToBuffer(secret) {
+  const trimmed = secret.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
+  const decoded = isomorphicAtob(trimmed);
+  const buffer = new ArrayBuffer(decoded.length);
+  const bufView = new Uint8Array(buffer);
+  for (let i = 0, strLen = decoded.length;i < strLen; i++) {
+    bufView[i] = decoded.charCodeAt(i);
+  }
+  return bufView;
+}
+function importKey(key, algorithm, keyUsage) {
+  if (typeof key === "object") {
+    return runtime.crypto.subtle.importKey("jwk", key, algorithm, false, [keyUsage]);
+  }
+  const keyData = pemToBuffer(key);
+  const format = keyUsage === "sign" ? "pkcs8" : "spki";
+  return runtime.crypto.subtle.importKey(format, keyData, algorithm, false, [keyUsage]);
+}
+var DEFAULT_CLOCK_SKEW_IN_MS = 5 * 1000;
+async function hasValidSignature(jwt2, key) {
+  const { header, signature, raw: raw3 } = jwt2;
+  const encoder = new TextEncoder;
+  const data = encoder.encode([raw3.header, raw3.payload].join("."));
+  const algorithm = getCryptoAlgorithm(header.alg);
+  try {
+    const cryptoKey = await importKey(key, algorithm, "verify");
+    const verified = await runtime.crypto.subtle.verify(algorithm.name, cryptoKey, signature, data);
+    return { data: verified };
+  } catch (error48) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalidSignature,
+          message: error48?.message
+        })
+      ]
+    };
+  }
+}
+function decodeJwt(token) {
+  const tokenParts = (token || "").toString().split(".");
+  if (tokenParts.length !== 3) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalid,
+          message: `Invalid JWT form. A JWT consists of three parts separated by dots.`
+        })
+      ]
+    };
+  }
+  const [rawHeader, rawPayload, rawSignature] = tokenParts;
+  const decoder = new TextDecoder;
+  const header = JSON.parse(decoder.decode(base64url3.parse(rawHeader, { loose: true })));
+  const payload = JSON.parse(decoder.decode(base64url3.parse(rawPayload, { loose: true })));
+  const signature = base64url3.parse(rawSignature, { loose: true });
+  const data = {
+    header,
+    payload,
+    signature,
+    raw: {
+      header: rawHeader,
+      payload: rawPayload,
+      signature: rawSignature,
+      text: token
+    }
+  };
+  return { data };
+}
+async function verifyJwt(token, options) {
+  const { audience, authorizedParties, clockSkewInMs, key, headerType } = options;
+  const clockSkew = clockSkewInMs || DEFAULT_CLOCK_SKEW_IN_MS;
+  const { data: decoded, errors: errors3 } = decodeJwt(token);
+  if (errors3) {
+    return { errors: errors3 };
+  }
+  const { header, payload } = decoded;
+  try {
+    const { typ, alg } = header;
+    assertHeaderType(typ, headerType);
+    assertHeaderAlgorithm(alg);
+    const { azp, sub, aud, iat, exp, nbf } = payload;
+    assertSubClaim(sub);
+    assertAudienceClaim([aud], [audience]);
+    assertAuthorizedPartiesClaim(azp, authorizedParties);
+    assertExpirationClaim(exp, clockSkew);
+    assertActivationClaim(nbf, clockSkew);
+    assertIssuedAtClaim(iat, clockSkew);
+  } catch (err) {
+    return { errors: [err] };
+  }
+  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
+  if (signatureErrors) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenVerificationFailed,
+          message: `Error verifying JWT signature. ${signatureErrors[0]}`
+        })
+      ]
+    };
+  }
+  if (!signatureValid) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalidSignature,
+          message: "JWT signature is invalid."
+        })
+      ]
+    };
+  }
+  return { data: payload };
+}
+
+// node_modules/@clerk/backend/dist/chunk-3SCGTTJP.mjs
+var __create2 = Object.create;
+var __defProp2 = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames2 = Object.getOwnPropertyNames;
+var __getProtoOf2 = Object.getPrototypeOf;
+var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+var __commonJS2 = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames2(from))
+      if (!__hasOwnProp2.call(to, key) && key !== except)
+        __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target, mod));
+
+// node_modules/@clerk/shared/dist/runtime/authorization-D2ans7vW.mjs
+var ALLOWED_LEVELS = new Set([
+  "first_factor",
+  "second_factor",
+  "multi_factor"
+]);
+var ALLOWED_TYPES = new Set([
+  "strict_mfa",
+  "strict",
+  "moderate",
+  "lax"
+]);
+
+// node_modules/@clerk/backend/dist/chunk-54FJKZQM.mjs
+var require_dist = __commonJS2({
+  "../../node_modules/.pnpm/cookie@1.0.2/node_modules/cookie/dist/index.js"(exports) {
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.parse = parse22;
+    exports.serialize = serialize2;
+    var cookieNameRegExp = /^[\u0021-\u003A\u003C\u003E-\u007E]+$/;
+    var cookieValueRegExp = /^[\u0021-\u003A\u003C-\u007E]*$/;
+    var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+    var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
+    var __toString = Object.prototype.toString;
+    var NullObject = /* @__PURE__ */ (() => {
+      const C = function() {};
+      C.prototype = /* @__PURE__ */ Object.create(null);
+      return C;
+    })();
+    function parse22(str, options) {
+      const obj = new NullObject;
+      const len = str.length;
+      if (len < 2)
+        return obj;
+      const dec = options?.decode || decode3;
+      let index = 0;
+      do {
+        const eqIdx = str.indexOf("=", index);
+        if (eqIdx === -1)
+          break;
+        const colonIdx = str.indexOf(";", index);
+        const endIdx = colonIdx === -1 ? len : colonIdx;
+        if (eqIdx > endIdx) {
+          index = str.lastIndexOf(";", eqIdx - 1) + 1;
+          continue;
+        }
+        const keyStartIdx = startIndex(str, index, eqIdx);
+        const keyEndIdx = endIndex(str, eqIdx, keyStartIdx);
+        const key = str.slice(keyStartIdx, keyEndIdx);
+        if (obj[key] === undefined) {
+          let valStartIdx = startIndex(str, eqIdx + 1, endIdx);
+          let valEndIdx = endIndex(str, endIdx, valStartIdx);
+          const value = dec(str.slice(valStartIdx, valEndIdx));
+          obj[key] = value;
+        }
+        index = endIdx + 1;
+      } while (index < len);
+      return obj;
+    }
+    function startIndex(str, index, max) {
+      do {
+        const code = str.charCodeAt(index);
+        if (code !== 32 && code !== 9)
+          return index;
+      } while (++index < max);
+      return max;
+    }
+    function endIndex(str, index, min) {
+      while (index > min) {
+        const code = str.charCodeAt(--index);
+        if (code !== 32 && code !== 9)
+          return index + 1;
+      }
+      return min;
+    }
+    function serialize2(name, val, options) {
+      const enc = options?.encode || encodeURIComponent;
+      if (!cookieNameRegExp.test(name)) {
+        throw new TypeError(`argument name is invalid: ${name}`);
+      }
+      const value = enc(val);
+      if (!cookieValueRegExp.test(value)) {
+        throw new TypeError(`argument val is invalid: ${val}`);
+      }
+      let str = name + "=" + value;
+      if (!options)
+        return str;
+      if (options.maxAge !== undefined) {
+        if (!Number.isInteger(options.maxAge)) {
+          throw new TypeError(`option maxAge is invalid: ${options.maxAge}`);
+        }
+        str += "; Max-Age=" + options.maxAge;
+      }
+      if (options.domain) {
+        if (!domainValueRegExp.test(options.domain)) {
+          throw new TypeError(`option domain is invalid: ${options.domain}`);
+        }
+        str += "; Domain=" + options.domain;
+      }
+      if (options.path) {
+        if (!pathValueRegExp.test(options.path)) {
+          throw new TypeError(`option path is invalid: ${options.path}`);
+        }
+        str += "; Path=" + options.path;
+      }
+      if (options.expires) {
+        if (!isDate(options.expires) || !Number.isFinite(options.expires.valueOf())) {
+          throw new TypeError(`option expires is invalid: ${options.expires}`);
+        }
+        str += "; Expires=" + options.expires.toUTCString();
+      }
+      if (options.httpOnly) {
+        str += "; HttpOnly";
+      }
+      if (options.secure) {
+        str += "; Secure";
+      }
+      if (options.partitioned) {
+        str += "; Partitioned";
+      }
+      if (options.priority) {
+        const priority = typeof options.priority === "string" ? options.priority.toLowerCase() : undefined;
+        switch (priority) {
+          case "low":
+            str += "; Priority=Low";
+            break;
+          case "medium":
+            str += "; Priority=Medium";
+            break;
+          case "high":
+            str += "; Priority=High";
+            break;
+          default:
+            throw new TypeError(`option priority is invalid: ${options.priority}`);
+        }
+      }
+      if (options.sameSite) {
+        const sameSite = typeof options.sameSite === "string" ? options.sameSite.toLowerCase() : options.sameSite;
+        switch (sameSite) {
+          case true:
+          case "strict":
+            str += "; SameSite=Strict";
+            break;
+          case "lax":
+            str += "; SameSite=Lax";
+            break;
+          case "none":
+            str += "; SameSite=None";
+            break;
+          default:
+            throw new TypeError(`option sameSite is invalid: ${options.sameSite}`);
+        }
+      }
+      return str;
+    }
+    function decode3(str) {
+      if (str.indexOf("%") === -1)
+        return str;
+      try {
+        return decodeURIComponent(str);
+      } catch (e) {
+        return str;
+      }
+    }
+    function isDate(val) {
+      return __toString.call(val) === "[object Date]";
+    }
+  }
+});
+var API_URL = "https://api.clerk.com";
+var API_VERSION = "v1";
+var USER_AGENT = `${"@clerk/backend"}@${"2.29.5"}`;
+var MAX_CACHE_LAST_UPDATED_AT_SECONDS = 5 * 60;
+var SUPPORTED_BAPI_VERSION = "2025-11-10";
+var Cookies = {
+  Session: "__session",
+  Refresh: "__refresh",
+  ClientUat: "__client_uat",
+  Handshake: "__clerk_handshake",
+  DevBrowser: "__clerk_db_jwt",
+  RedirectCount: "__clerk_redirect_count",
+  HandshakeNonce: "__clerk_handshake_nonce"
+};
+var QueryParameters = {
+  ClerkSynced: "__clerk_synced",
+  SuffixedCookies: "suffixed_cookies",
+  ClerkRedirectUrl: "__clerk_redirect_url",
+  DevBrowser: Cookies.DevBrowser,
+  Handshake: Cookies.Handshake,
+  HandshakeHelp: "__clerk_help",
+  LegacyDevBrowser: "__dev_session",
+  HandshakeReason: "__clerk_hs_reason",
+  HandshakeNonce: Cookies.HandshakeNonce,
+  HandshakeFormat: "format",
+  Session: "__session"
+};
+var SEPARATOR = "/";
+var MULTIPLE_SEPARATOR_REGEX = new RegExp("(?<!:)" + SEPARATOR + "{1,}", "g");
+function joinPaths(...args) {
+  return args.filter((p) => p).join(SEPARATOR).replace(MULTIPLE_SEPARATOR_REGEX, SEPARATOR);
+}
+var _M2MTokenApi_instances;
+var createRequestOptions_fn;
+_M2MTokenApi_instances = new WeakSet;
+createRequestOptions_fn = function(options, machineSecretKey) {
+  if (machineSecretKey) {
+    return {
+      ...options,
+      headerParams: {
+        ...options.headerParams,
+        Authorization: `Bearer ${machineSecretKey}`
+      }
+    };
+  }
+  return options;
+};
+var mapObjectSkip = Symbol("mapObjectSkip");
+var PlainObjectConstructor = {}.constructor;
+var import_cookie3 = __toESM2(require_dist());
+var cache = {};
+var lastUpdatedAt = 0;
+function getFromCache(kid) {
+  return cache[kid];
+}
+function getCacheValues() {
+  return Object.values(cache);
+}
+function setInCache(cacheKey, jwk, shouldExpire = true) {
+  cache[cacheKey] = jwk;
+  lastUpdatedAt = shouldExpire ? Date.now() : -1;
+}
+var PEM_HEADER = "-----BEGIN PUBLIC KEY-----";
+var PEM_TRAILER = "-----END PUBLIC KEY-----";
+var RSA_PREFIX = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA";
+var RSA_SUFFIX = "IDAQAB";
+function loadClerkJwkFromPem(params) {
+  const { kid, pem } = params;
+  const prefixedKid = `local-${kid}`;
+  const cachedJwk = getFromCache(prefixedKid);
+  if (cachedJwk) {
+    return cachedJwk;
+  }
+  if (!pem) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkJWTKey,
+      message: "Missing local JWK.",
+      reason: TokenVerificationErrorReason.LocalJWKMissing
+    });
+  }
+  const modulus = pem.replace(/\r\n|\n|\r/g, "").replace(PEM_HEADER, "").replace(PEM_TRAILER, "").replace(RSA_PREFIX, "").replace(RSA_SUFFIX, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const jwk = { kid: prefixedKid, kty: "RSA", alg: "RS256", n: modulus, e: "AQAB" };
+  setInCache(prefixedKid, jwk, false);
+  return jwk;
+}
+async function loadClerkJWKFromRemote(params) {
+  const { secretKey, apiUrl = API_URL, apiVersion = API_VERSION, kid, skipJwksCache } = params;
+  if (skipJwksCache || cacheHasExpired() || !getFromCache(kid)) {
+    if (!secretKey) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: "Failed to load JWKS from Clerk Backend or Frontend API.",
+        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+      });
+    }
+    const fetcher = () => fetchJWKSFromBAPI(apiUrl, secretKey, apiVersion);
+    const { keys } = await retry(fetcher);
+    if (!keys || !keys.length) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: "The JWKS endpoint did not contain any signing keys. Contact support@clerk.com.",
+        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+      });
+    }
+    keys.forEach((key) => setInCache(key.kid, key));
+  }
+  const jwk = getFromCache(kid);
+  if (!jwk) {
+    const cacheValues = getCacheValues();
+    const jwkKeys = cacheValues.map((jwk2) => jwk2.kid).sort().join(", ");
+    throw new TokenVerificationError({
+      action: `Go to your Dashboard and validate your secret and public keys are correct. ${TokenVerificationErrorAction.ContactSupport} if the issue persists.`,
+      message: `Unable to find a signing key in JWKS that matches the kid='${kid}' of the provided session token. Please make sure that the __session cookie or the HTTP authorization header contain a Clerk-generated session JWT. The following kid is available: ${jwkKeys}`,
+      reason: TokenVerificationErrorReason.JWKKidMismatch
+    });
+  }
+  return jwk;
+}
+async function fetchJWKSFromBAPI(apiUrl, key, apiVersion) {
+  if (!key) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkSecretKey,
+      message: "Missing Clerk Secret Key or API Key. Go to https://dashboard.clerk.com and get your key for your instance.",
+      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+    });
+  }
+  const url2 = new URL(apiUrl);
+  url2.pathname = joinPaths(url2.pathname, apiVersion, "/jwks");
+  const response = await runtime.fetch(url2.href, {
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT
+    }
+  });
+  if (!response.ok) {
+    const json2 = await response.json();
+    const invalidSecretKeyError = getErrorObjectByCode(json2?.errors, TokenVerificationErrorCode.InvalidSecretKey);
+    if (invalidSecretKeyError) {
+      const reason = TokenVerificationErrorReason.InvalidSecretKey;
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: invalidSecretKeyError.message,
+        reason
+      });
+    }
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.ContactSupport,
+      message: `Error loading Clerk JWKS from ${url2.href} with code=${response.status}`,
+      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+    });
+  }
+  return response.json();
+}
+function cacheHasExpired() {
+  if (lastUpdatedAt === -1) {
+    return false;
+  }
+  const isExpired = Date.now() - lastUpdatedAt >= MAX_CACHE_LAST_UPDATED_AT_SECONDS * 1000;
+  if (isExpired) {
+    cache = {};
+  }
+  return isExpired;
+}
+var getErrorObjectByCode = (errors3, code) => {
+  if (!errors3) {
+    return null;
+  }
+  return errors3.find((err) => err.code === code);
+};
+async function verifyToken(token, options) {
+  const { data: decodedResult, errors: errors3 } = decodeJwt(token);
+  if (errors3) {
+    return { errors: errors3 };
+  }
+  const { header } = decodedResult;
+  const { kid } = header;
+  try {
+    let key;
+    if (options.jwtKey) {
+      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
+    } else if (options.secretKey) {
+      key = await loadClerkJWKFromRemote({ ...options, kid });
+    } else {
+      return {
+        errors: [
+          new TokenVerificationError({
+            action: TokenVerificationErrorAction.SetClerkJWTKey,
+            message: "Failed to resolve JWK during verification.",
+            reason: TokenVerificationErrorReason.JWKFailedToResolve
+          })
+        ]
+      };
+    }
+    return await verifyJwt(token, { ...options, key });
+  } catch (error48) {
+    return { errors: [error48] };
+  }
+}
+
+// node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs
+function withLegacyReturn(cb) {
+  return async (...args) => {
+    const { data, errors: errors3 } = await cb(...args);
+    if (errors3) {
+      throw errors3[0];
+    }
+    return data;
+  };
+}
+
+// node_modules/@clerk/shared/dist/runtime/underscore-DjQrhefX.mjs
+function snakeToCamel(str) {
+  return str ? str.replace(/([-_][a-z])/g, (match3) => match3.toUpperCase().replace(/-|_/, "")) : "";
+}
+function camelToSnake(str) {
+  return str ? str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`) : "";
+}
+var createDeepObjectTransformer = (transform2) => {
+  const deepTransform = (obj) => {
+    if (!obj)
+      return obj;
+    if (Array.isArray(obj))
+      return obj.map((el) => {
+        if (typeof el === "object" || Array.isArray(el))
+          return deepTransform(el);
+        return el;
+      });
+    const copy = { ...obj };
+    const keys = Object.keys(copy);
+    for (const oldName of keys) {
+      const newName = transform2(oldName.toString());
+      if (newName !== oldName) {
+        copy[newName] = copy[oldName];
+        delete copy[oldName];
+      }
+      if (typeof copy[newName] === "object")
+        copy[newName] = deepTransform(copy[newName]);
+    }
+    return copy;
+  };
+  return deepTransform;
+};
+var deepCamelToSnake = createDeepObjectTransformer(camelToSnake);
+var deepSnakeToCamel = createDeepObjectTransformer(snakeToCamel);
+function isTruthy(value) {
+  if (typeof value === `boolean`)
+    return value;
+  if (value === undefined || value === null)
+    return false;
+  if (typeof value === `string`) {
+    if (value.toLowerCase() === `true`)
+      return true;
+    if (value.toLowerCase() === `false`)
+      return false;
+  }
+  const number4 = parseInt(value, 10);
+  if (isNaN(number4))
+    return false;
+  if (number4 > 0)
+    return true;
+  return false;
+}
+
+// node_modules/@clerk/shared/dist/runtime/telemetry-wqMDWlvR.mjs
+var DEFAULT_CACHE_TTL_MS = 86400000;
+var TelemetryEventThrottler = class {
+  #cache;
+  #cacheTtl = DEFAULT_CACHE_TTL_MS;
+  constructor(cache2) {
+    this.#cache = cache2;
+  }
+  isEventThrottled(payload) {
+    const now = Date.now();
+    const key = this.#generateKey(payload);
+    const entry = this.#cache.getItem(key);
+    if (!entry) {
+      this.#cache.setItem(key, now);
+      return false;
+    }
+    if (now - entry > this.#cacheTtl) {
+      this.#cache.setItem(key, now);
+      return false;
+    }
+    return true;
+  }
+  #generateKey(event) {
+    const { sk: _sk, pk: _pk, payload, ...rest } = event;
+    const sanitizedEvent = {
+      ...payload,
+      ...rest
+    };
+    return JSON.stringify(Object.keys({
+      ...payload,
+      ...rest
+    }).sort().map((key) => sanitizedEvent[key]));
+  }
+};
+var LocalStorageThrottlerCache = class {
+  #storageKey = "clerk_telemetry_throttler";
+  getItem(key) {
+    return this.#getCache()[key];
+  }
+  setItem(key, value) {
+    try {
+      const cache2 = this.#getCache();
+      cache2[key] = value;
+      localStorage.setItem(this.#storageKey, JSON.stringify(cache2));
+    } catch (err) {
+      if (err instanceof DOMException && (err.name === "QuotaExceededError" || err.name === "NS_ERROR_DOM_QUOTA_REACHED") && localStorage.length > 0)
+        localStorage.removeItem(this.#storageKey);
+    }
+  }
+  removeItem(key) {
+    try {
+      const cache2 = this.#getCache();
+      delete cache2[key];
+      localStorage.setItem(this.#storageKey, JSON.stringify(cache2));
+    } catch {}
+  }
+  #getCache() {
+    try {
+      const cacheString = localStorage.getItem(this.#storageKey);
+      if (!cacheString)
+        return {};
+      return JSON.parse(cacheString);
+    } catch {
+      return {};
+    }
+  }
+  static isSupported() {
+    return typeof window !== "undefined" && !!window.localStorage;
+  }
+};
+var InMemoryThrottlerCache = class {
+  #cache = /* @__PURE__ */ new Map;
+  #maxSize = 1e4;
+  getItem(key) {
+    if (this.#cache.size > this.#maxSize) {
+      this.#cache.clear();
+      return;
+    }
+    return this.#cache.get(key);
+  }
+  setItem(key, value) {
+    this.#cache.set(key, value);
+  }
+  removeItem(key) {
+    this.#cache.delete(key);
+  }
+};
+function isWindowClerkWithMetadata(clerk) {
+  return typeof clerk === "object" && clerk !== null && "constructor" in clerk && typeof clerk.constructor === "function";
+}
+var VALID_LOG_LEVELS = new Set([
+  "error",
+  "warn",
+  "info",
+  "debug",
+  "trace"
+]);
+var DEFAULT_CONFIG = {
+  samplingRate: 1,
+  maxBufferSize: 5,
+  endpoint: "https://clerk-telemetry.com"
+};
+var TelemetryCollector = class {
+  #config;
+  #eventThrottler;
+  #metadata = {};
+  #buffer = [];
+  #pendingFlush = null;
+  constructor(options) {
+    this.#config = {
+      maxBufferSize: options.maxBufferSize ?? DEFAULT_CONFIG.maxBufferSize,
+      samplingRate: options.samplingRate ?? DEFAULT_CONFIG.samplingRate,
+      perEventSampling: options.perEventSampling ?? true,
+      disabled: options.disabled ?? false,
+      debug: options.debug ?? false,
+      endpoint: DEFAULT_CONFIG.endpoint
+    };
+    if (!options.clerkVersion && typeof window === "undefined")
+      this.#metadata.clerkVersion = "";
+    else
+      this.#metadata.clerkVersion = options.clerkVersion ?? "";
+    this.#metadata.sdk = options.sdk;
+    this.#metadata.sdkVersion = options.sdkVersion;
+    this.#metadata.publishableKey = options.publishableKey ?? "";
+    const parsedKey = parsePublishableKey(options.publishableKey);
+    if (parsedKey)
+      this.#metadata.instanceType = parsedKey.instanceType;
+    if (options.secretKey)
+      this.#metadata.secretKey = options.secretKey.substring(0, 16);
+    this.#eventThrottler = new TelemetryEventThrottler(LocalStorageThrottlerCache.isSupported() ? new LocalStorageThrottlerCache : new InMemoryThrottlerCache);
+  }
+  get isEnabled() {
+    if (this.#metadata.instanceType !== "development")
+      return false;
+    if (this.#config.disabled || typeof process !== "undefined" && process.env && isTruthy(process.env.CLERK_TELEMETRY_DISABLED))
+      return false;
+    if (typeof window !== "undefined" && !!window?.navigator?.webdriver)
+      return false;
+    return true;
+  }
+  get isDebug() {
+    return this.#config.debug || typeof process !== "undefined" && process.env && isTruthy(process.env.CLERK_TELEMETRY_DEBUG);
+  }
+  record(event) {
+    try {
+      const preparedPayload = this.#preparePayload(event.event, event.payload);
+      this.#logEvent(preparedPayload.event, preparedPayload);
+      if (!this.#shouldRecord(preparedPayload, event.eventSamplingRate))
+        return;
+      this.#buffer.push({
+        kind: "event",
+        value: preparedPayload
+      });
+      this.#scheduleFlush();
+    } catch (error48) {
+      console.error("[clerk/telemetry] Error recording telemetry event", error48);
+    }
+  }
+  recordLog(entry) {
+    try {
+      if (!this.#shouldRecordLog(entry))
+        return;
+      const levelIsValid = typeof entry?.level === "string" && VALID_LOG_LEVELS.has(entry.level);
+      const messageIsValid = typeof entry?.message === "string" && entry.message.trim().length > 0;
+      let normalizedTimestamp = null;
+      const timestampInput = entry?.timestamp;
+      if (typeof timestampInput === "number" || typeof timestampInput === "string") {
+        const candidate = new Date(timestampInput);
+        if (!Number.isNaN(candidate.getTime()))
+          normalizedTimestamp = candidate;
+      }
+      if (!levelIsValid || !messageIsValid || normalizedTimestamp === null) {
+        if (this.isDebug && typeof console !== "undefined")
+          console.warn("[clerk/telemetry] Dropping invalid telemetry log entry", {
+            levelIsValid,
+            messageIsValid,
+            timestampIsValid: normalizedTimestamp !== null
+          });
+        return;
+      }
+      const sdkMetadata = this.#getSDKMetadata();
+      const logData = {
+        sdk: sdkMetadata.name,
+        sdkv: sdkMetadata.version,
+        cv: this.#metadata.clerkVersion ?? "",
+        lvl: entry.level,
+        msg: entry.message,
+        ts: normalizedTimestamp.toISOString(),
+        pk: this.#metadata.publishableKey || null,
+        payload: this.#sanitizeContext(entry.context)
+      };
+      this.#buffer.push({
+        kind: "log",
+        value: logData
+      });
+      this.#scheduleFlush();
+    } catch (error48) {
+      console.error("[clerk/telemetry] Error recording telemetry log entry", error48);
+    }
+  }
+  #shouldRecord(preparedPayload, eventSamplingRate) {
+    return this.isEnabled && !this.isDebug && this.#shouldBeSampled(preparedPayload, eventSamplingRate);
+  }
+  #shouldRecordLog(_entry) {
+    return true;
+  }
+  #shouldBeSampled(preparedPayload, eventSamplingRate) {
+    const randomSeed = Math.random();
+    if (!(randomSeed <= this.#config.samplingRate && (this.#config.perEventSampling === false || typeof eventSamplingRate === "undefined" || randomSeed <= eventSamplingRate)))
+      return false;
+    return !this.#eventThrottler.isEventThrottled(preparedPayload);
+  }
+  #scheduleFlush() {
+    if (typeof window === "undefined") {
+      this.#flush();
+      return;
+    }
+    if (this.#buffer.length >= this.#config.maxBufferSize) {
+      if (this.#pendingFlush)
+        if (typeof cancelIdleCallback !== "undefined")
+          cancelIdleCallback(Number(this.#pendingFlush));
+        else
+          clearTimeout(Number(this.#pendingFlush));
+      this.#flush();
+      return;
+    }
+    if (this.#pendingFlush)
+      return;
+    if ("requestIdleCallback" in window)
+      this.#pendingFlush = requestIdleCallback(() => {
+        this.#flush();
+        this.#pendingFlush = null;
+      });
+    else
+      this.#pendingFlush = setTimeout(() => {
+        this.#flush();
+        this.#pendingFlush = null;
+      }, 0);
+  }
+  #flush() {
+    const itemsToSend = [...this.#buffer];
+    this.#buffer = [];
+    this.#pendingFlush = null;
+    if (itemsToSend.length === 0)
+      return;
+    const eventsToSend = itemsToSend.filter((item) => item.kind === "event").map((item) => item.value);
+    const logsToSend = itemsToSend.filter((item) => item.kind === "log").map((item) => item.value);
+    if (eventsToSend.length > 0) {
+      const eventsUrl = new URL("/v1/event", this.#config.endpoint);
+      fetch(eventsUrl, {
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        method: "POST",
+        body: JSON.stringify({ events: eventsToSend })
+      }).catch(() => {
+        return;
+      });
+    }
+    if (logsToSend.length > 0) {
+      const logsUrl = new URL("/v1/logs", this.#config.endpoint);
+      fetch(logsUrl, {
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        method: "POST",
+        body: JSON.stringify({ logs: logsToSend })
+      }).catch(() => {
+        return;
+      });
+    }
+  }
+  #logEvent(event, payload) {
+    if (!this.isDebug)
+      return;
+    if (typeof console.groupCollapsed !== "undefined") {
+      console.groupCollapsed("[clerk/telemetry]", event);
+      console.log(payload);
+      console.groupEnd();
+    } else
+      console.log("[clerk/telemetry]", event, payload);
+  }
+  #getSDKMetadata() {
+    const sdkMetadata = {
+      name: this.#metadata.sdk,
+      version: this.#metadata.sdkVersion
+    };
+    if (typeof window !== "undefined") {
+      const windowWithClerk = window;
+      if (windowWithClerk.Clerk) {
+        const windowClerk = windowWithClerk.Clerk;
+        if (isWindowClerkWithMetadata(windowClerk) && windowClerk.constructor.sdkMetadata) {
+          const { name, version: version2 } = windowClerk.constructor.sdkMetadata;
+          if (name !== undefined)
+            sdkMetadata.name = name;
+          if (version2 !== undefined)
+            sdkMetadata.version = version2;
+        }
+      }
+    }
+    return sdkMetadata;
+  }
+  #preparePayload(event, payload) {
+    const sdkMetadata = this.#getSDKMetadata();
+    return {
+      event,
+      cv: this.#metadata.clerkVersion ?? "",
+      it: this.#metadata.instanceType ?? "",
+      sdk: sdkMetadata.name,
+      sdkv: sdkMetadata.version,
+      ...this.#metadata.publishableKey ? { pk: this.#metadata.publishableKey } : {},
+      ...this.#metadata.secretKey ? { sk: this.#metadata.secretKey } : {},
+      payload
+    };
+  }
+  #sanitizeContext(context) {
+    if (context === null || typeof context === "undefined")
+      return null;
+    if (typeof context !== "object")
+      return null;
+    try {
+      const cleaned = JSON.parse(JSON.stringify(context));
+      if (cleaned && typeof cleaned === "object" && !Array.isArray(cleaned))
+        return cleaned;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+};
+var AUTH_COMPONENTS = new Set(["SignIn", "SignUp"]);
+
+// node_modules/@clerk/backend/dist/index.mjs
+var verifyToken2 = withLegacyReturn(verifyToken);
+
+// src/middleware.ts
+async function middleware(c, next) {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader) {
+    throw new HTTPException(401, { message: "\u8A8D\u8A3C\u304C\u5FC5\u8981\u3067\u3059" });
+  }
+  const token = authHeader.replace("Bearer ", "");
+  try {
+    const payload = await verifyToken2(token, {
+      secretKey: process.env.CLERK_SECRET_KEY
+    });
+    c.set("userId", payload.sub);
+    await next();
+  } catch {
+    throw new HTTPException(401, { message: "\u8A8D\u8A3C\u306B\u5931\u6557\u3057\u307E\u3057\u305F" });
+  }
+}
+
 // src/index.ts
 var prisma = new import_client.PrismaClient;
 var app = new OpenAPIHono;
@@ -33255,6 +34805,7 @@ app.use("*", cors({
   allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 }));
+app.use("/api/*", middleware);
 var messageResponseSchema = exports_external.object({
   message: exports_external.string().openapi({ example: "Hello, Lydos!" }),
   timestamp: exports_external.string().openapi({ example: "2026-01-27T12:00:00.000Z" })
