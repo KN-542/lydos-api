@@ -64,45 +64,49 @@ app.openapi(
   }
 )
 
-// GET: 媒体マスタ全取得API
-const siteResponseSchema = z.object({
+// GET: プランマスタ全取得API
+const planResponseSchema = z.object({
   id: z.number().openapi({ example: 1 }),
-  name: z.string().openapi({ example: 'リクナビNEXT' }),
+  name: z.string().openapi({ example: '無料プラン' }),
+  description: z.string().openapi({ example: '基本的な機能が利用できます' }),
+  price: z.number().openapi({ example: 0 }),
   createdAt: z.string().openapi({ example: '2026-01-27T12:00:00.000Z' }),
 })
 
-const sitesResponseSchema = z.object({
-  sites: z.array(siteResponseSchema).openapi({ example: [] }),
+const plansResponseSchema = z.object({
+  plans: z.array(planResponseSchema).openapi({ example: [] }),
 })
 
 app.openapi(
   {
     method: 'get',
-    path: '/api/sites',
-    tags: ['Site'],
-    summary: '媒体マスタ全取得',
-    description: '媒体マスタ（m_site）の全データを取得します',
+    path: '/api/plans',
+    tags: ['Plan'],
+    summary: 'プランマスタ全取得',
+    description: 'プラン一覧を取得します',
     responses: {
       200: {
         description: 'Success',
         content: {
           'application/json': {
-            schema: sitesResponseSchema,
+            schema: plansResponseSchema,
           },
         },
       },
     },
   },
   async (c) => {
-    const sites = await prisma.mSite.findMany({
+    const plans = await prisma.mPlan.findMany({
       orderBy: { id: 'asc' },
     })
 
     return c.json({
-      sites: sites.map((site) => ({
-        id: site.id,
-        name: site.name,
-        createdAt: site.createdAt.toISOString(),
+      plans: plans.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        price: plan.price,
+        createdAt: plan.createdAt.toISOString(),
       })),
     })
   }
