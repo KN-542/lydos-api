@@ -1,4 +1,5 @@
-import type { MPlanEntity } from '../domain/model/mPlan'
+import { type MPlanEntity, TAuthIdVO } from '../domain/model/mPlan'
+import type { GetPlansDTO } from './dto/setting/plans'
 import type { IMPlanRepository } from './interface/plan'
 
 export class SettingService {
@@ -8,7 +9,10 @@ export class SettingService {
     this.planRepository = planRepository
   }
 
-  async getPlans(): Promise<MPlanEntity[]> {
-    return await this.planRepository.findAll()
+  async getPlans(dto: GetPlansDTO): Promise<MPlanEntity[]> {
+    const { authId } = dto
+    const vo = new TAuthIdVO(authId)
+
+    return await this.planRepository.findAll(vo)
   }
 }

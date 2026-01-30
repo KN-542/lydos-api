@@ -1,10 +1,9 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { PrismaClient } from '@prisma/client'
 import { Scalar } from '@scalar/hono-api-reference'
+import type { Context } from 'hono'
 import { cors } from 'hono/cors'
-import { z } from 'zod'
 import { SettingController } from './controller/setting'
-import { redis } from './lib/redis'
 import { middleware } from './middleware'
 import { MPlanRepository } from './repository/mPlan'
 import { SettingRouter } from './router'
@@ -12,7 +11,15 @@ import { SettingService } from './service/setting'
 
 const prisma = new PrismaClient()
 
-const app = new OpenAPIHono()
+// Contextに保存する変数の型を定義
+export type AppEnv = {
+  Variables: {
+    authId: string
+  }
+}
+export type HonoContext = Context<AppEnv>
+
+const app = new OpenAPIHono<AppEnv>()
 
 // DI: 依存性注入
 const planRepository = new MPlanRepository(prisma)
@@ -52,101 +59,6 @@ app.get(
     theme: 'purple',
     pageTitle: 'Lydos API Reference',
   })
-)
-
-// TODO: いずれ消す
-// メッセージレスポンススキーマ
-const messageResponseSchema = z.object({
-  message: z.string().openapi({ example: 'Hello, Lydos!' }),
-  timestamp: z.string().openapi({ example: '2026-01-27T12:00:00.000Z' }),
-})
-// TODO: いずれ消す
-// GET: メッセージ取得API
-const messageQuerySchema = z.object({
-  message: z.string().optional().openapi({ example: 'こんにちは' }),
-})
-
-app.openapi(
-  {
-    method: 'get',
-    path: '/api/message',
-    tags: ['Message'],
-    summary: 'メッセージ取得',
-    description: 'クエリパラメータのメッセージをエコーします',
-    request: {
-      query: messageQuerySchema,
-    },
-    responses: {
-      200: {
-        description: 'Success',
-        content: {
-          'application/json': {
-            schema: messageResponseSchema,
-          },
-        },
-      },
-    },
-  },
-  (c) => {
-    const { message } = c.req.valid('query')
-    return c.json({
-      message: message || 'メッセージが指定されていません（GET）',
-      timestamp: new Date().toISOString(),
-    })
-  }
-)
-// TODO: いずれ消す
-// POST: メッセージ保存API
-const messageRequestSchema = z.object({
-  message: z.string().openapi({ example: 'Hello, Lydos!' }),
-})
-
-const successResponseSchema = z.object({
-  success: z.boolean().openapi({ example: true }),
-  message: z.string().openapi({ example: 'メッセージを保存しました' }),
-})
-
-app.openapi(
-  {
-    method: 'post',
-    path: '/api/message',
-    tags: ['Message'],
-    summary: 'メッセージ保存',
-    description: '送信されたメッセージをRedisに保存します',
-    request: {
-      body: {
-        content: {
-          'application/json': {
-            schema: messageRequestSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Success',
-        content: {
-          'application/json': {
-            schema: successResponseSchema,
-          },
-        },
-      },
-    },
-  },
-  async (c) => {
-    const body = c.req.valid('json')
-    const timestamp = new Date().toISOString()
-    const key = `message:${timestamp}`
-
-    // Redisに保存
-    await redis.set(key, JSON.stringify({ message: body.message, timestamp }))
-    await redis.expire(key, 3600) // 1時間後に自動削除
-
-    return c.json({
-      success: true,
-      message: 'メッセージを保存しました',
-    })
-  }
 )
 
 // サーバーの起動

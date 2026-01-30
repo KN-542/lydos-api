@@ -12,7 +12,7 @@ export async function middleware(c: Context, next: Next) {
 
   const authHeader = c.req.header('Authorization')
 
-  if (!authHeader) {
+  if (authHeader === undefined) {
     throw new HTTPException(401, { message: '認証が必要です' })
   }
 
@@ -23,7 +23,7 @@ export async function middleware(c: Context, next: Next) {
       secretKey: process.env.CLERK_SECRET_KEY,
     })
 
-    c.set('userId', payload.sub)
+    c.set('authId', payload.sub)
     await next()
   } catch {
     throw new HTTPException(401, { message: '認証に失敗しました' })

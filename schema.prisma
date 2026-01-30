@@ -23,7 +23,7 @@ model MPlan {
 /// ユーザー
 model TUser {
   id          Int      @id @default(autoincrement())
-  clerkUserId String   @unique @db.VarChar(255) // Clerk認証との紐付け
+  authId String   @unique @db.VarChar(255) // Clerk認証との紐付け
   name        String   @db.VarChar(100)
   email       String   @unique @db.VarChar(255)
   imageUrl    String?  @db.VarChar(500) // プロフィール画像URL

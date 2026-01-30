@@ -1,4 +1,5 @@
 import type { OpenAPIHono } from '@hono/zod-openapi'
+import type { AppEnv } from '..'
 import { plansResponseSchema } from '../controller/response/setting/plans'
 import type { SettingController } from '../controller/setting'
 
@@ -9,7 +10,7 @@ export class SettingRouter {
     this.settingController = settingController
   }
 
-  registerRoutes(app: OpenAPIHono) {
+  registerRoutes(app: OpenAPIHono<AppEnv>) {
     app.openapi(
       {
         method: 'get',
@@ -29,7 +30,7 @@ export class SettingRouter {
         },
       },
       async (c) => {
-        const response = await this.settingController.getPlans()
+        const response = await this.settingController.getPlans(c)
         return c.json(response)
       }
     )

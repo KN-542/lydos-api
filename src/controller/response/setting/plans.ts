@@ -5,6 +5,7 @@ const planResponseSchema = z.object({
   name: z.string().openapi({ example: '無料プラン' }),
   description: z.string().openapi({ example: '基本的な機能が利用できます' }),
   price: z.number().openapi({ example: 0 }),
+  isSelected: z.boolean().openapi({ example: false }),
 })
 
 export const plansResponseSchema = z.object({

@@ -1,5 +1,5 @@
-import type { MPlanEntity } from '../../domain/model/mPlan'
+import type { MPlanEntity, TAuthIdVO } from '../../domain/model/mPlan'
 
 export interface IMPlanRepository {
-  findAll(): Promise<MPlanEntity[]>
+  findAll(vo: TAuthIdVO): Promise<MPlanEntity[]>
 }

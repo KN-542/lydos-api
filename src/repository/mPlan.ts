@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
-import { MPlanEntity } from '../domain/model/mPlan'
+import { MPlanEntity, type TAuthIdVO } from '../domain/model/mPlan'
 import type { IMPlanRepository } from '../service/interface/plan'
 
 export class MPlanRepository implements IMPlanRepository {
@@ -9,13 +9,27 @@ export class MPlanRepository implements IMPlanRepository {
     this.prisma = prisma
   }
 
-  async findAll(): Promise<MPlanEntity[]> {
+  async findAll(vo: TAuthIdVO): Promise<MPlanEntity[]> {
     const plans = await this.prisma.mPlan.findMany({
-      orderBy: { id: 'asc' },
+      include: {
+        _count: {
+          select: {
+            users: { where: { authId: vo.authId } },
+          },
+        },
+      },
     })
 
     return plans.map(
-      (plan) => new MPlanEntity(plan.id, plan.name, plan.description, plan.price, plan.createdAt)
+      (plan) =>
+        new MPlanEntity(
+          plan.id,
+          plan.name,
+          plan.description,
+          plan.price,
+          plan.createdAt,
+          plan._count.users > 0
+        )
     )
   }
 }
