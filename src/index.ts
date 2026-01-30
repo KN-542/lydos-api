@@ -3,12 +3,22 @@ import { PrismaClient } from '@prisma/client'
 import { Scalar } from '@scalar/hono-api-reference'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
+import { SettingController } from './controller/setting'
 import { redis } from './lib/redis'
 import { middleware } from './middleware'
+import { MPlanRepository } from './repository/mPlan'
+import { SettingRouter } from './router'
+import { SettingService } from './service/setting'
 
 const prisma = new PrismaClient()
 
 const app = new OpenAPIHono()
+
+// DI: 依存性注入
+const planRepository = new MPlanRepository(prisma)
+const settingService = new SettingService(planRepository)
+const settingController = new SettingController(settingService)
+const settingRouter = new SettingRouter(settingController)
 
 // CORSを有効にする
 app.use(
@@ -20,15 +30,37 @@ app.use(
   })
 )
 
-// 認証ミドルウェア
-app.use('/api/*', middleware)
+app.use('/*', middleware)
 
+// ルート登録
+settingRouter.registerRoutes(app)
+
+// OpenAPI仕様のJSONエンドポイント
+app.doc('/doc', {
+  openapi: '3.0.0',
+  info: {
+    version: '1.0.0',
+    title: 'Lydos API',
+  },
+})
+
+// Scalar UIでAPIリファレンスを表示
+app.get(
+  '/reference',
+  Scalar({
+    url: '/doc', // 相対パスにすることでnginxのプロキシ経由でも正しく動作
+    theme: 'purple',
+    pageTitle: 'Lydos API Reference',
+  })
+)
+
+// TODO: いずれ消す
 // メッセージレスポンススキーマ
 const messageResponseSchema = z.object({
   message: z.string().openapi({ example: 'Hello, Lydos!' }),
   timestamp: z.string().openapi({ example: '2026-01-27T12:00:00.000Z' }),
 })
-
+// TODO: いずれ消す
 // GET: メッセージ取得API
 const messageQuerySchema = z.object({
   message: z.string().optional().openapi({ example: 'こんにちは' }),
@@ -63,51 +95,7 @@ app.openapi(
     })
   }
 )
-
-// GET: 媒体マスタ全取得API
-const siteResponseSchema = z.object({
-  id: z.number().openapi({ example: 1 }),
-  name: z.string().openapi({ example: 'リクナビNEXT' }),
-  createdAt: z.string().openapi({ example: '2026-01-27T12:00:00.000Z' }),
-})
-
-const sitesResponseSchema = z.object({
-  sites: z.array(siteResponseSchema).openapi({ example: [] }),
-})
-
-app.openapi(
-  {
-    method: 'get',
-    path: '/api/sites',
-    tags: ['Site'],
-    summary: '媒体マスタ全取得',
-    description: '媒体マスタ（m_site）の全データを取得します',
-    responses: {
-      200: {
-        description: 'Success',
-        content: {
-          'application/json': {
-            schema: sitesResponseSchema,
-          },
-        },
-      },
-    },
-  },
-  async (c) => {
-    const sites = await prisma.mSite.findMany({
-      orderBy: { id: 'asc' },
-    })
-
-    return c.json({
-      sites: sites.map((site) => ({
-        id: site.id,
-        name: site.name,
-        createdAt: site.createdAt.toISOString(),
-      })),
-    })
-  }
-)
-
+// TODO: いずれ消す
 // POST: メッセージ保存API
 const messageRequestSchema = z.object({
   message: z.string().openapi({ example: 'Hello, Lydos!' }),
@@ -159,25 +147,6 @@ app.openapi(
       message: 'メッセージを保存しました',
     })
   }
-)
-
-// OpenAPI仕様のJSONエンドポイント
-app.doc('/doc', {
-  openapi: '3.0.0',
-  info: {
-    version: '1.0.0',
-    title: 'Lydos API',
-  },
-})
-
-// Scalar UIでAPIリファレンスを表示
-app.get(
-  '/reference',
-  Scalar({
-    url: '/doc', // 相対パスにすることでnginxのプロキシ経由でも正しく動作
-    theme: 'purple',
-    pageTitle: 'Lydos API Reference',
-  })
 )
 
 // サーバーの起動

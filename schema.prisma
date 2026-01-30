@@ -7,37 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// 媒体
-model MSite {
-  id        Int      @id @default(autoincrement())
-  name      String
+/// プラン
+model MPlan {
+  id        Int      @id @default(autoincrement()) // 1: 無料版, 2: 有料版
+  name      String   @db.VarChar(25)
+  description String   @db.Text
+  price     Int
   createdAt DateTime @default(now())
 
-  @@map("m_site")
-}
+  users TUser[]
 
-/// 法人
-model TCompany {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(50)
-  createdAt DateTime @default(now())
-  tusers    TUser[]
-
-  @@map("t_company")
+  @@map("m_plan")
 }
 
 /// ユーザー
 model TUser {
-  id           Int      @id @default(autoincrement())
-  companyId    Int
-  name         String   @db.VarChar(25)
-  email        String   @unique
-  password     String   @db.VarChar(255)
-  initPassword String   @db.VarChar(255)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  clerkUserId String   @unique @db.VarChar(255) // Clerk認証との紐付け
+  name        String   @db.VarChar(100)
+  email       String   @unique @db.VarChar(255)
+  imageUrl    String?  @db.VarChar(500) // プロフィール画像URL
+  planId      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  company TCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan MPlan @relation(fields: [planId], references: [id])
 
   @@map("t_user")
 }

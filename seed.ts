@@ -7,21 +7,19 @@ async function main() {
 
   try {
     await prisma.$transaction(async (tx) => {
-      // m_siteのマスタデータ
-      const sites = [
-        { id: 1, name: 'リクナビNEXT' },
-        { id: 2, name: 'マイナビ' },
-        { id: 3, name: 'DODA' },
-        { id: 99, name: 'その他' },
+      // m_planのマスタデータ
+      const plans = [
+        { id: 1, name: '無料プラン', description: '基本的な機能が利用できます', price: 0 },
+        { id: 2, name: '有料プラン', description: 'すべての機能が利用できます', price: 500 },
       ]
 
-      for (const site of sites) {
-        await tx.mSite.upsert({
-          where: { id: site.id },
-          update: { name: site.name },
-          create: site,
+      for (const plan of plans) {
+        await tx.mPlan.upsert({
+          where: { id: plan.id },
+          update: { name: plan.name, description: plan.description, price: plan.price },
+          create: plan,
         })
-        console.log(`Created/Updated site: ${site.name}`)
+        console.log(`Created/Updated plan: ${plan.name}`)
       }
     })
 

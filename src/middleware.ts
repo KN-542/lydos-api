@@ -3,6 +3,13 @@ import type { Context, Next } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 
 export async function middleware(c: Context, next: Next) {
+  const path = c.req.path
+
+  if (path === '/doc' || path === '/reference') {
+    await next()
+    return
+  }
+
   const authHeader = c.req.header('Authorization')
 
   if (!authHeader) {
