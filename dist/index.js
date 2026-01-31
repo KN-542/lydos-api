@@ -6312,11 +6312,30 @@ var require_client = __commonJS((exports) => {
   };
   exports.Prisma.TUserScalarFieldEnum = {
     id: "id",
-    clerkUserId: "clerkUserId",
+    authId: "authId",
     name: "name",
     email: "email",
     imageUrl: "imageUrl",
     planId: "planId",
+    createdAt: "createdAt",
+    updatedAt: "updatedAt"
+  };
+  exports.Prisma.TStripeCustomerScalarFieldEnum = {
+    id: "id",
+    userId: "userId",
+    stripeCustomerId: "stripeCustomerId",
+    createdAt: "createdAt",
+    updatedAt: "updatedAt"
+  };
+  exports.Prisma.TPaymentMethodScalarFieldEnum = {
+    id: "id",
+    stripeCustomerId: "stripeCustomerId",
+    stripePaymentMethodId: "stripePaymentMethodId",
+    brand: "brand",
+    last4: "last4",
+    expMonth: "expMonth",
+    expYear: "expYear",
+    isDefault: "isDefault",
     createdAt: "createdAt",
     updatedAt: "updatedAt"
   };
@@ -6334,7 +6353,9 @@ var require_client = __commonJS((exports) => {
   };
   exports.Prisma.ModelName = {
     MPlan: "MPlan",
-    TUser: "TUser"
+    TUser: "TUser",
+    TStripeCustomer: "TStripeCustomer",
+    TPaymentMethod: "TPaymentMethod"
   };
   var config2 = {
     generator: {
@@ -6403,21 +6424,54 @@ model MPlan {
 
 /// \u30E6\u30FC\u30B6\u30FC
 model TUser {
-  id          Int      @id @default(autoincrement())
-  clerkUserId String   @unique @db.VarChar(255) // Clerk\u8A8D\u8A3C\u3068\u306E\u7D10\u4ED8\u3051
-  name        String   @db.VarChar(100)
-  email       String   @unique @db.VarChar(255)
-  imageUrl    String?  @db.VarChar(500) // \u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u753B\u50CFURL
-  planId      Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  authId    String   @unique @db.VarChar(255) // Clerk\u8A8D\u8A3C\u3068\u306E\u7D10\u4ED8\u3051
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(255)
+  imageUrl  String?  @db.VarChar(500) // \u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u753B\u50CFURL
+  planId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  plan MPlan @relation(fields: [planId], references: [id])
+  plan           MPlan            @relation(fields: [planId], references: [id])
+  stripeCustomer TStripeCustomer?
 
   @@map("t_user")
 }
+
+/// Stripe\u9867\u5BA2\u60C5\u5831
+model TStripeCustomer {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique
+  stripeCustomerId String   @unique @db.VarChar(255) // Stripe Customer ID (cus_xxx)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user           TUser            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethods TPaymentMethod[]
+
+  @@map("t_stripe_customer")
+}
+
+/// \u652F\u6255\u3044\u65B9\u6CD5
+model TPaymentMethod {
+  id                    Int      @id @default(autoincrement())
+  stripeCustomerId      Int
+  stripePaymentMethodId String   @unique @db.VarChar(255) // Stripe Payment Method ID (pm_xxx)
+  brand                 String   @db.VarChar(50) // visa, mastercard, etc.
+  last4                 String   @db.VarChar(4) // \u30AB\u30FC\u30C9\u4E0B4\u6841
+  expMonth              Int // \u6709\u52B9\u671F\u9650\u6708
+  expYear               Int // \u6709\u52B9\u671F\u9650\u5E74
+  isDefault             Boolean  @default(false) // \u30C7\u30D5\u30A9\u30EB\u30C8\u652F\u6255\u3044\u65B9\u6CD5
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  stripeCustomer TStripeCustomer @relation(fields: [stripeCustomerId], references: [id], onDelete: Cascade)
+
+  @@map("t_payment_method")
+}
 `,
-    inlineSchemaHash: "8a4e1efcdbaa97796a100e446aa5e350b3d72245d615ac45b9d1eb183535ff4a",
+    inlineSchemaHash: "a6d0c9ac56ff52dd70313425aa9fbe409280bd3c2122a7d376ddda809224c751",
     copyEngine: true
   };
   var fs = __require("fs");
@@ -6433,7 +6487,7 @@ model TUser {
     config2.dirname = path.join(process.cwd(), alternativePath);
     config2.isBundled = true;
   }
-  config2.runtimeDataModel = JSON.parse('{"models":{"MPlan":{"dbName":"m_plan","schema":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","nativeType":null,"default":{"name":"autoincrement","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["25"]],"isGenerated":false,"isUpdatedAt":false},{"name":"description","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["Text",[]],"isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","nativeType":null,"default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"users","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TUser","nativeType":null,"relationName":"MPlanToTUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false,"documentation":"\u30D7\u30E9\u30F3"},"TUser":{"dbName":"t_user","schema":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","nativeType":null,"default":{"name":"autoincrement","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"clerkUserId","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["255"]],"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["100"]],"isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["255"]],"isGenerated":false,"isUpdatedAt":false},{"name":"imageUrl","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["500"]],"isGenerated":false,"isUpdatedAt":false},{"name":"planId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","nativeType":null,"default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","nativeType":null,"isGenerated":false,"isUpdatedAt":true},{"name":"plan","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MPlan","nativeType":null,"relationName":"MPlanToTUser","relationFromFields":["planId"],"relationToFields":["id"],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false,"documentation":"\u30E6\u30FC\u30B6\u30FC"}},"enums":{},"types":{}}');
+  config2.runtimeDataModel = JSON.parse('{"models":{"MPlan":{"dbName":"m_plan","schema":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","nativeType":null,"default":{"name":"autoincrement","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["25"]],"isGenerated":false,"isUpdatedAt":false},{"name":"description","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["Text",[]],"isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","nativeType":null,"default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"users","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TUser","nativeType":null,"relationName":"MPlanToTUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false,"documentation":"\u30D7\u30E9\u30F3"},"TUser":{"dbName":"t_user","schema":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","nativeType":null,"default":{"name":"autoincrement","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"authId","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["255"]],"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["100"]],"isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["255"]],"isGenerated":false,"isUpdatedAt":false},{"name":"imageUrl","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["500"]],"isGenerated":false,"isUpdatedAt":false},{"name":"planId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","nativeType":null,"default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","nativeType":null,"isGenerated":false,"isUpdatedAt":true},{"name":"plan","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MPlan","nativeType":null,"relationName":"MPlanToTUser","relationFromFields":["planId"],"relationToFields":["id"],"isGenerated":false,"isUpdatedAt":false},{"name":"stripeCustomer","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TStripeCustomer","nativeType":null,"relationName":"TStripeCustomerToTUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false,"documentation":"\u30E6\u30FC\u30B6\u30FC"},"TStripeCustomer":{"dbName":"t_stripe_customer","schema":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","nativeType":null,"default":{"name":"autoincrement","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"userId","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"stripeCustomerId","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["255"]],"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","nativeType":null,"default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","nativeType":null,"isGenerated":false,"isUpdatedAt":true},{"name":"user","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TUser","nativeType":null,"relationName":"TStripeCustomerToTUser","relationFromFields":["userId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"paymentMethods","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TPaymentMethod","nativeType":null,"relationName":"TPaymentMethodToTStripeCustomer","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false,"documentation":"Stripe\u9867\u5BA2\u60C5\u5831"},"TPaymentMethod":{"dbName":"t_payment_method","schema":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","nativeType":null,"default":{"name":"autoincrement","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"stripeCustomerId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"stripePaymentMethodId","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["255"]],"isGenerated":false,"isUpdatedAt":false},{"name":"brand","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["50"]],"isGenerated":false,"isUpdatedAt":false},{"name":"last4","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","nativeType":["VarChar",["4"]],"isGenerated":false,"isUpdatedAt":false},{"name":"expMonth","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"expYear","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","nativeType":null,"isGenerated":false,"isUpdatedAt":false},{"name":"isDefault","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","nativeType":null,"default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","nativeType":null,"default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","nativeType":null,"isGenerated":false,"isUpdatedAt":true},{"name":"stripeCustomer","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"TStripeCustomer","nativeType":null,"relationName":"TPaymentMethodToTStripeCustomer","relationFromFields":["stripeCustomerId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false,"documentation":"\u652F\u6255\u3044\u65B9\u6CD5"}},"enums":{},"types":{}}');
   defineDmmfProperty2(exports.Prisma, config2.runtimeDataModel);
   config2.engineWasm = undefined;
   config2.compilerWasm = undefined;
@@ -23381,7 +23435,7 @@ function isFormContentType(contentType) {
 }
 
 // src/index.ts
-var import_client = __toESM(require_default2(), 1);
+var import_client2 = __toESM(require_default2(), 1);
 
 // node_modules/@scalar/core/dist/libs/html-rendering/html-rendering.js
 var addIndent = (str, spaces = 2, initialIndent = false) => {
@@ -23638,26 +23692,179 @@ var cors = (options) => {
   };
 };
 
+// src/lib/zod.ts
+var required2 = () => exports_external.preprocess((v) => {
+  if (typeof v !== "string") {
+    return v;
+  }
+  return v.trim() || undefined;
+}, exports_external.string());
+
+// src/service/dto/request/abstract.ts
+var serviceDTOSchema = exports_external.object({
+  authId: required2()
+});
+
+class serviceRequestDTO {
+  authId;
+  constructor(authId) {
+    const validated = serviceDTOSchema.parse({ authId });
+    this.authId = validated.authId;
+  }
+}
+
+// src/service/dto/request/setting/createCheckoutSession.ts
+class CreateCheckoutSessionRequestDTO extends serviceRequestDTO {
+}
+
+// src/service/dto/request/setting/getPaymentMethods.ts
+class GetPaymentMethodsRequestDTO extends serviceRequestDTO {
+}
+
+// src/service/dto/request/setting/getPlans.ts
+class GetPlansRequestDTO extends serviceRequestDTO {
+}
+
+// src/controller/request/setting/context.ts
+function toRequestDTO(c, DTOConstructor) {
+  const authId = c.get("authId");
+  return new DTOConstructor(authId);
+}
+
+// src/controller/response/setting/createCheckoutSession.ts
+var createCheckoutSessionResponseSchema = exports_external.object({
+  checkoutUrl: exports_external.string().describe("Stripe Checkout Session URL")
+});
+
+class CreateCheckoutSessionResponse {
+  checkoutUrl;
+  constructor(dto) {
+    this.checkoutUrl = dto.checkoutUrl;
+  }
+}
+
+// src/controller/response/setting/getPaymentMethods.ts
+var paymentMethodSchema = exports_external.object({
+  id: exports_external.string().describe("Payment Method ID"),
+  brand: exports_external.string().describe("Card brand (visa, mastercard, etc.)"),
+  last4: exports_external.string().describe("Last 4 digits of card"),
+  expMonth: exports_external.number().describe("Expiration month"),
+  expYear: exports_external.number().describe("Expiration year")
+});
+var getPaymentMethodsResponseSchema = exports_external.object({
+  paymentMethods: exports_external.array(paymentMethodSchema).describe("List of payment methods")
+});
+
+class GetPaymentMethodsResponse {
+  paymentMethods;
+  constructor(dto) {
+    this.paymentMethods = dto.paymentMethods.map((pm) => ({
+      id: pm.id,
+      brand: pm.brand,
+      last4: pm.last4,
+      expMonth: pm.expMonth,
+      expYear: pm.expYear
+    }));
+  }
+}
+
+// src/controller/response/setting/getPlans.ts
+var planResponseSchema = exports_external.object({
+  id: exports_external.number().openapi({ example: 1 }),
+  name: exports_external.string().openapi({ example: "\u7121\u6599\u30D7\u30E9\u30F3" }),
+  description: exports_external.string().openapi({ example: "\u57FA\u672C\u7684\u306A\u6A5F\u80FD\u304C\u5229\u7528\u3067\u304D\u307E\u3059" }),
+  price: exports_external.number().openapi({ example: 0 }),
+  isSelected: exports_external.boolean().openapi({ example: false })
+});
+var plansResponseSchema = exports_external.object({
+  plans: exports_external.array(planResponseSchema)
+});
+
+class GetPlansResponse {
+  plans;
+  constructor(dto) {
+    this.plans = dto.plans;
+  }
+}
+
 // src/controller/setting.ts
 class SettingController {
   settingService;
   constructor(settingService) {
     this.settingService = settingService;
   }
-  async getPlans(_) {
-    const plans = await this.settingService.getPlans();
-    return {
-      plans: plans.map((plan) => ({
-        id: plan.id,
-        name: plan.name,
-        description: plan.description,
-        price: plan.price
-      }))
-    };
+  async getPlans(c) {
+    try {
+      const requestDTO = toRequestDTO(c, GetPlansRequestDTO);
+      const responseDTO = await this.settingService.getPlans(requestDTO);
+      const response = new GetPlansResponse(responseDTO);
+      return c.json(response, 200);
+    } catch (error48) {
+      console.error("Error in SettingController.getPlans:", error48);
+      return c.json({ error: "Internal Server Error" }, 500);
+    }
+  }
+  async createCheckoutSession(c) {
+    try {
+      const requestDTO = toRequestDTO(c, CreateCheckoutSessionRequestDTO);
+      const responseDTO = await this.settingService.createCheckoutSession(requestDTO);
+      const response = new CreateCheckoutSessionResponse(responseDTO);
+      return c.json(response, 200);
+    } catch (error48) {
+      console.error("Error in SettingController.createCheckoutSession:", error48);
+      return c.json({ error: "Internal Server Error" }, 500);
+    }
+  }
+  async getPaymentMethods(c) {
+    try {
+      const requestDTO = toRequestDTO(c, GetPaymentMethodsRequestDTO);
+      const responseDTO = await this.settingService.getPaymentMethods(requestDTO);
+      const response = new GetPaymentMethodsResponse(responseDTO);
+      return c.json(response, 200);
+    } catch (error48) {
+      console.error("Error in SettingController.getPaymentMethods:", error48);
+      return c.json({ error: "Internal Server Error" }, 500);
+    }
   }
 }
 
+// node_modules/@clerk/shared/dist/runtime/runtimeEnvironment-BB2sO-19.mjs
+var isTestEnvironment = () => {
+  try {
+    return false;
+  } catch {}
+  return false;
+};
+var isProductionEnvironment = () => {
+  try {
+    return false;
+  } catch {}
+  return false;
+};
+
+// node_modules/@clerk/shared/dist/runtime/deprecated-BqlFbLHj.mjs
+var displayedWarnings = /* @__PURE__ */ new Set;
+var deprecated = (fnName, warning, key) => {
+  const hideWarning = isTestEnvironment() || isProductionEnvironment();
+  const messageId = key ?? fnName;
+  if (displayedWarnings.has(messageId) || hideWarning)
+    return;
+  displayedWarnings.add(messageId);
+  console.warn(`Clerk - DEPRECATION WARNING: "${fnName}" is deprecated and will be removed in the next major release.
+${warning}`);
+};
+
 // node_modules/@clerk/shared/dist/runtime/constants-ByUssRbE.mjs
+var LEGACY_DEV_INSTANCE_SUFFIXES = [
+  ".lcl.dev",
+  ".lclstage.dev",
+  ".lclclerk.com"
+];
+var CURRENT_DEV_INSTANCE_SUFFIXES = [
+  ".accounts.dev",
+  ".accountsstage.dev",
+  ".accounts.lclclerk.com"
+];
 var DEV_OR_STAGING_SUFFIXES = [
   ".lcl.dev",
   ".stg.dev",
@@ -23676,6 +23883,15 @@ var isomorphicAtob = (data) => {
     return atob(data);
   else if (typeof global !== "undefined" && global.Buffer)
     return new global.Buffer(data, "base64").toString();
+  return data;
+};
+
+// node_modules/@clerk/shared/dist/runtime/isomorphicBtoa-Dr7WubZv.mjs
+var isomorphicBtoa = (data) => {
+  if (typeof btoa !== "undefined" && typeof btoa === "function")
+    return btoa(data);
+  else if (typeof global !== "undefined" && global.Buffer)
+    return new global.Buffer(data).toString("base64");
   return data;
 };
 
@@ -23752,6 +23968,17 @@ function createDevOrStagingUrlCache() {
     return res;
   } };
 }
+function isDevelopmentFromSecretKey(apiKey) {
+  return apiKey.startsWith("test_") || apiKey.startsWith("sk_test_");
+}
+async function getCookieSuffix(publishableKey, subtle = globalThis.crypto.subtle) {
+  const data = new TextEncoder().encode(publishableKey);
+  const digest = await subtle.digest("sha-1", data);
+  return isomorphicBtoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/gi, "-").replace(/\//gi, "_").substring(0, 8);
+}
+var getSuffixedCookieName = (cookieName, cookieSuffix) => {
+  return `${cookieName}_${cookieSuffix}`;
+};
 
 // node_modules/@clerk/shared/dist/runtime/retry-DAlTROH9.mjs
 var defaultOptions = {
@@ -23809,6 +24036,18 @@ var retry = async (callback, options = {}) => {
     }
 };
 
+// node_modules/@clerk/shared/dist/runtime/url-Cdy8w8vK.mjs
+function isLegacyDevAccountPortalOrigin(host) {
+  return LEGACY_DEV_INSTANCE_SUFFIXES.some((legacyDevSuffix) => {
+    return host.startsWith("accounts.") && host.endsWith(legacyDevSuffix);
+  });
+}
+function isCurrentDevAccountPortalOrigin(host) {
+  return CURRENT_DEV_INSTANCE_SUFFIXES.some((currentDevSuffix) => {
+    return host.endsWith(currentDevSuffix) && !host.endsWith(".clerk" + currentDevSuffix);
+  });
+}
+
 // node_modules/@clerk/shared/dist/runtime/error-Dl9xmUf3.mjs
 function createErrorTypeGuard(ErrorClass) {
   function typeGuard(error48) {
@@ -23851,6 +24090,9 @@ var ClerkAPIError = class {
   }
 };
 var isClerkAPIError = createErrorTypeGuard(ClerkAPIError);
+function parseError(error48) {
+  return new ClerkAPIError(error48);
+}
 var ClerkError = class ClerkError2 extends Error {
   static kind = "ClerkError";
   clerkError = true;
@@ -24036,6 +24278,29 @@ var TokenVerificationError = class _TokenVerificationError extends Error {
   }
   getFullMessage() {
     return `${[this.message, this.action].filter((m) => m).join(" ")} (reason=${this.reason}, token-carrier=${this.tokenCarrier})`;
+  }
+};
+var MachineTokenVerificationErrorCode = {
+  TokenInvalid: "token-invalid",
+  InvalidSecretKey: "secret-key-invalid",
+  UnexpectedError: "unexpected-error",
+  TokenVerificationFailed: "token-verification-failed"
+};
+var MachineTokenVerificationError = class _MachineTokenVerificationError extends Error {
+  constructor({
+    message,
+    code,
+    status,
+    action
+  }) {
+    super(message);
+    Object.setPrototypeOf(this, _MachineTokenVerificationError.prototype);
+    this.code = code;
+    this.status = status;
+    this.action = action;
+  }
+  getFullMessage() {
+    return `${this.message} (code=${this.code}, status=${this.status || "n/a"})`;
   }
 };
 
@@ -24409,6 +24674,9 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames2 = Object.getOwnPropertyNames;
 var __getProtoOf2 = Object.getPrototypeOf;
 var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
 var __commonJS2 = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -24421,8 +24689,36 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target, mod));
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+
+// node_modules/@clerk/shared/dist/runtime/buildAccountsBaseUrl.mjs
+function buildAccountsBaseUrl(frontendApi) {
+  if (!frontendApi)
+    return "";
+  return `https://${frontendApi.replace(/clerk\.accountsstage\./, "accountsstage.").replace(/clerk\.accounts\.|clerk\./, "accounts.")}`;
+}
 
 // node_modules/@clerk/shared/dist/runtime/authorization-D2ans7vW.mjs
+var TYPES_TO_OBJECTS = {
+  strict_mfa: {
+    afterMinutes: 10,
+    level: "multi_factor"
+  },
+  strict: {
+    afterMinutes: 10,
+    level: "second_factor"
+  },
+  moderate: {
+    afterMinutes: 60,
+    level: "second_factor"
+  },
+  lax: {
+    afterMinutes: 1440,
+    level: "second_factor"
+  }
+};
 var ALLOWED_LEVELS = new Set([
   "first_factor",
   "second_factor",
@@ -24434,6 +24730,429 @@ var ALLOWED_TYPES = new Set([
   "moderate",
   "lax"
 ]);
+var isValidMaxAge = (maxAge) => typeof maxAge === "number" && maxAge > 0;
+var isValidLevel = (level) => ALLOWED_LEVELS.has(level);
+var isValidVerificationType = (type) => ALLOWED_TYPES.has(type);
+var prefixWithOrg = (value) => value.replace(/^(org:)*/, "org:");
+var checkOrgAuthorization = (params, options) => {
+  const { orgId, orgRole, orgPermissions } = options;
+  if (!params.role && !params.permission)
+    return null;
+  if (!orgId || !orgRole || !orgPermissions)
+    return null;
+  if (params.permission)
+    return orgPermissions.includes(prefixWithOrg(params.permission));
+  if (params.role)
+    return prefixWithOrg(orgRole) === prefixWithOrg(params.role);
+  return null;
+};
+var checkForFeatureOrPlan = (claim, featureOrPlan) => {
+  const { org: orgFeatures, user: userFeatures } = splitByScope(claim);
+  const [scope, _id] = featureOrPlan.split(":");
+  const id = _id || scope;
+  if (scope === "org")
+    return orgFeatures.includes(id);
+  else if (scope === "user")
+    return userFeatures.includes(id);
+  else
+    return [...orgFeatures, ...userFeatures].includes(id);
+};
+var checkBillingAuthorization = (params, options) => {
+  const { features, plans } = options;
+  if (params.feature && features)
+    return checkForFeatureOrPlan(features, params.feature);
+  if (params.plan && plans)
+    return checkForFeatureOrPlan(plans, params.plan);
+  return null;
+};
+var splitByScope = (fea) => {
+  const features = fea ? fea.split(",").map((f) => f.trim()) : [];
+  return {
+    org: features.filter((f) => f.split(":")[0].includes("o")).map((f) => f.split(":")[1]),
+    user: features.filter((f) => f.split(":")[0].includes("u")).map((f) => f.split(":")[1])
+  };
+};
+var validateReverificationConfig = (config2) => {
+  if (!config2)
+    return false;
+  const convertConfigToObject = (config$1) => {
+    if (typeof config$1 === "string")
+      return TYPES_TO_OBJECTS[config$1];
+    return config$1;
+  };
+  const isValidStringValue = typeof config2 === "string" && isValidVerificationType(config2);
+  const isValidObjectValue = typeof config2 === "object" && isValidLevel(config2.level) && isValidMaxAge(config2.afterMinutes);
+  if (isValidStringValue || isValidObjectValue)
+    return convertConfigToObject.bind(null, config2);
+  return false;
+};
+var checkReverificationAuthorization = (params, { factorVerificationAge }) => {
+  if (!params.reverification || !factorVerificationAge)
+    return null;
+  const isValidReverification = validateReverificationConfig(params.reverification);
+  if (!isValidReverification)
+    return null;
+  const { level, afterMinutes } = isValidReverification();
+  const [factor1Age, factor2Age] = factorVerificationAge;
+  const isValidFactor1 = factor1Age !== -1 ? afterMinutes > factor1Age : null;
+  const isValidFactor2 = factor2Age !== -1 ? afterMinutes > factor2Age : null;
+  switch (level) {
+    case "first_factor":
+      return isValidFactor1;
+    case "second_factor":
+      return factor2Age !== -1 ? isValidFactor2 : isValidFactor1;
+    case "multi_factor":
+      return factor2Age === -1 ? isValidFactor1 : isValidFactor1 && isValidFactor2;
+  }
+};
+var createCheckAuthorization = (options) => {
+  return (params) => {
+    if (!options.userId)
+      return false;
+    const billingAuthorization = checkBillingAuthorization(params, options);
+    const orgAuthorization = checkOrgAuthorization(params, options);
+    const reverificationAuthorization = checkReverificationAuthorization(params, options);
+    if ([billingAuthorization || orgAuthorization, reverificationAuthorization].some((a) => a === null))
+      return [billingAuthorization || orgAuthorization, reverificationAuthorization].some((a) => a === true);
+    return [billingAuthorization || orgAuthorization, reverificationAuthorization].every((a) => a === true);
+  };
+};
+
+// node_modules/@clerk/shared/dist/runtime/jwtPayloadParser.mjs
+var parsePermissions = ({ per, fpm }) => {
+  if (!per || !fpm)
+    return {
+      permissions: [],
+      featurePermissionMap: []
+    };
+  const permissions = per.split(",").map((p) => p.trim());
+  return {
+    permissions,
+    featurePermissionMap: fpm.split(",").map((permission) => Number.parseInt(permission.trim(), 10)).map((permission) => permission.toString(2).padStart(permissions.length, "0").split("").map((bit) => Number.parseInt(bit, 10)).reverse()).filter(Boolean)
+  };
+};
+function buildOrgPermissions({ features, permissions, featurePermissionMap }) {
+  if (!features || !permissions || !featurePermissionMap)
+    return [];
+  const orgPermissions = [];
+  for (let featureIndex = 0;featureIndex < features.length; featureIndex++) {
+    const feature = features[featureIndex];
+    if (featureIndex >= featurePermissionMap.length)
+      continue;
+    const permissionBits = featurePermissionMap[featureIndex];
+    if (!permissionBits)
+      continue;
+    for (let permIndex = 0;permIndex < permissionBits.length; permIndex++)
+      if (permissionBits[permIndex] === 1)
+        orgPermissions.push(`org:${feature}:${permissions[permIndex]}`);
+  }
+  return orgPermissions;
+}
+var __experimental_JWTPayloadToAuthObjectProperties = (claims) => {
+  let orgId;
+  let orgRole;
+  let orgSlug;
+  let orgPermissions;
+  const factorVerificationAge = claims.fva ?? null;
+  const sessionStatus = claims.sts ?? null;
+  switch (claims.v) {
+    case 2:
+      if (claims.o) {
+        orgId = claims.o?.id;
+        orgSlug = claims.o?.slg;
+        if (claims.o?.rol)
+          orgRole = `org:${claims.o?.rol}`;
+        const { org } = splitByScope(claims.fea);
+        const { permissions, featurePermissionMap } = parsePermissions({
+          per: claims.o?.per,
+          fpm: claims.o?.fpm
+        });
+        orgPermissions = buildOrgPermissions({
+          features: org,
+          featurePermissionMap,
+          permissions
+        });
+      }
+      break;
+    default:
+      orgId = claims.org_id;
+      orgRole = claims.org_role;
+      orgSlug = claims.org_slug;
+      orgPermissions = claims.org_permissions;
+      break;
+  }
+  return {
+    sessionClaims: claims,
+    sessionId: claims.sid,
+    sessionStatus,
+    actor: claims.act,
+    userId: claims.sub,
+    orgId,
+    orgRole,
+    orgSlug,
+    orgPermissions,
+    factorVerificationAge
+  };
+};
+
+// node_modules/@clerk/shared/dist/runtime/pathToRegexp-Bu45OrlU.mjs
+function _(r) {
+  for (var n = [], e = 0;e < r.length; ) {
+    var a = r[e];
+    if (a === "*" || a === "+" || a === "?") {
+      n.push({
+        type: "MODIFIER",
+        index: e,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === "\\") {
+      n.push({
+        type: "ESCAPED_CHAR",
+        index: e++,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === "{") {
+      n.push({
+        type: "OPEN",
+        index: e,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === "}") {
+      n.push({
+        type: "CLOSE",
+        index: e,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === ":") {
+      for (var u = "", t = e + 1;t < r.length; ) {
+        var c = r.charCodeAt(t);
+        if (c >= 48 && c <= 57 || c >= 65 && c <= 90 || c >= 97 && c <= 122 || c === 95) {
+          u += r[t++];
+          continue;
+        }
+        break;
+      }
+      if (!u)
+        throw new TypeError("Missing parameter name at ".concat(e));
+      n.push({
+        type: "NAME",
+        index: e,
+        value: u
+      }), e = t;
+      continue;
+    }
+    if (a === "(") {
+      var o = 1, m = "", t = e + 1;
+      if (r[t] === "?")
+        throw new TypeError('Pattern cannot start with "?" at '.concat(t));
+      for (;t < r.length; ) {
+        if (r[t] === "\\") {
+          m += r[t++] + r[t++];
+          continue;
+        }
+        if (r[t] === ")") {
+          if (o--, o === 0) {
+            t++;
+            break;
+          }
+        } else if (r[t] === "(" && (o++, r[t + 1] !== "?"))
+          throw new TypeError("Capturing groups are not allowed at ".concat(t));
+        m += r[t++];
+      }
+      if (o)
+        throw new TypeError("Unbalanced pattern at ".concat(e));
+      if (!m)
+        throw new TypeError("Missing pattern at ".concat(e));
+      n.push({
+        type: "PATTERN",
+        index: e,
+        value: m
+      }), e = t;
+      continue;
+    }
+    n.push({
+      type: "CHAR",
+      index: e,
+      value: r[e++]
+    });
+  }
+  return n.push({
+    type: "END",
+    index: e,
+    value: ""
+  }), n;
+}
+function F(r, n) {
+  n === undefined && (n = {});
+  for (var e = _(r), a = n.prefixes, u = a === undefined ? "./" : a, t = n.delimiter, c = t === undefined ? "/#?" : t, o = [], m = 0, h = 0, p = "", f = function(l) {
+    if (h < e.length && e[h].type === l)
+      return e[h++].value;
+  }, w = function(l) {
+    var v = f(l);
+    if (v !== undefined)
+      return v;
+    var E = e[h], N = E.type, S = E.index;
+    throw new TypeError("Unexpected ".concat(N, " at ").concat(S, ", expected ").concat(l));
+  }, d = function() {
+    for (var l = "", v;v = f("CHAR") || f("ESCAPED_CHAR"); )
+      l += v;
+    return l;
+  }, M = function(l) {
+    for (var v = 0, E = c;v < E.length; v++) {
+      var N = E[v];
+      if (l.indexOf(N) > -1)
+        return true;
+    }
+    return false;
+  }, A = function(l) {
+    var v = o[o.length - 1], E = l || (v && typeof v == "string" ? v : "");
+    if (v && !E)
+      throw new TypeError('Must have text between two parameters, missing text after "'.concat(v.name, '"'));
+    return !E || M(E) ? "[^".concat(s(c), "]+?") : "(?:(?!".concat(s(E), ")[^").concat(s(c), "])+?");
+  };h < e.length; ) {
+    var T = f("CHAR"), x = f("NAME"), C = f("PATTERN");
+    if (x || C) {
+      var g = T || "";
+      u.indexOf(g) === -1 && (p += g, g = ""), p && (o.push(p), p = ""), o.push({
+        name: x || m++,
+        prefix: g,
+        suffix: "",
+        pattern: C || A(g),
+        modifier: f("MODIFIER") || ""
+      });
+      continue;
+    }
+    var i = T || f("ESCAPED_CHAR");
+    if (i) {
+      p += i;
+      continue;
+    }
+    p && (o.push(p), p = "");
+    if (f("OPEN")) {
+      var g = d(), y = f("NAME") || "", O = f("PATTERN") || "", b = d();
+      w("CLOSE"), o.push({
+        name: y || (O ? m++ : ""),
+        pattern: y && !O ? A(g) : O,
+        prefix: g,
+        suffix: b,
+        modifier: f("MODIFIER") || ""
+      });
+      continue;
+    }
+    w("END");
+  }
+  return o;
+}
+function H(r, n) {
+  var e = [];
+  return I(P(r, e, n), e, n);
+}
+function I(r, n, e) {
+  e === undefined && (e = {});
+  var a = e.decode, u = a === undefined ? function(t) {
+    return t;
+  } : a;
+  return function(t) {
+    var c = r.exec(t);
+    if (!c)
+      return false;
+    for (var o = c[0], m = c.index, h = Object.create(null), p = function(w) {
+      if (c[w] === undefined)
+        return "continue";
+      var d = n[w - 1];
+      d.modifier === "*" || d.modifier === "+" ? h[d.name] = c[w].split(d.prefix + d.suffix).map(function(M) {
+        return u(M, d);
+      }) : h[d.name] = u(c[w], d);
+    }, f = 1;f < c.length; f++)
+      p(f);
+    return {
+      path: o,
+      index: m,
+      params: h
+    };
+  };
+}
+function s(r) {
+  return r.replace(/([.+*?=^!:${}()[\]|/\\])/g, "\\$1");
+}
+function D(r) {
+  return r && r.sensitive ? "" : "i";
+}
+function $(r, n) {
+  if (!n)
+    return r;
+  for (var e = /\((?:\?<(.*?)>)?(?!\?)/g, a = 0, u = e.exec(r.source);u; )
+    n.push({
+      name: u[1] || a++,
+      prefix: "",
+      suffix: "",
+      modifier: "",
+      pattern: ""
+    }), u = e.exec(r.source);
+  return r;
+}
+function W(r, n, e) {
+  var a = r.map(function(u) {
+    return P(u, n, e).source;
+  });
+  return new RegExp("(?:".concat(a.join("|"), ")"), D(e));
+}
+function L(r, n, e) {
+  return U(F(r, e), n, e);
+}
+function U(r, n, e) {
+  e === undefined && (e = {});
+  for (var a = e.strict, u = a === undefined ? false : a, t = e.start, c = t === undefined ? true : t, o = e.end, m = o === undefined ? true : o, h = e.encode, p = h === undefined ? function(v) {
+    return v;
+  } : h, f = e.delimiter, w = f === undefined ? "/#?" : f, d = e.endsWith, M = d === undefined ? "" : d, A = "[".concat(s(M), "]|$"), T = "[".concat(s(w), "]"), x = c ? "^" : "", C = 0, g = r;C < g.length; C++) {
+    var i = g[C];
+    if (typeof i == "string")
+      x += s(p(i));
+    else {
+      var R = s(p(i.prefix)), y = s(p(i.suffix));
+      if (i.pattern)
+        if (n && n.push(i), R || y)
+          if (i.modifier === "+" || i.modifier === "*") {
+            var O = i.modifier === "*" ? "?" : "";
+            x += "(?:".concat(R, "((?:").concat(i.pattern, ")(?:").concat(y).concat(R, "(?:").concat(i.pattern, "))*)").concat(y, ")").concat(O);
+          } else
+            x += "(?:".concat(R, "(").concat(i.pattern, ")").concat(y, ")").concat(i.modifier);
+        else {
+          if (i.modifier === "+" || i.modifier === "*")
+            throw new TypeError('Can not repeat "'.concat(i.name, '" without a prefix and suffix'));
+          x += "(".concat(i.pattern, ")").concat(i.modifier);
+        }
+      else
+        x += "(?:".concat(R).concat(y, ")").concat(i.modifier);
+    }
+  }
+  if (m)
+    u || (x += "".concat(T, "?")), x += e.endsWith ? "(?=".concat(A, ")") : "$";
+  else {
+    var b = r[r.length - 1], l = typeof b == "string" ? T.indexOf(b[b.length - 1]) > -1 : b === undefined;
+    u || (x += "(?:".concat(T, "(?=").concat(A, "))?")), l || (x += "(?=".concat(T, "|").concat(A, ")"));
+  }
+  return new RegExp(x, D(e));
+}
+function P(r, n, e) {
+  return r instanceof RegExp ? $(r, n) : Array.isArray(r) ? W(r, n, e) : L(r, n, e);
+}
+function match2(str, options) {
+  try {
+    return H(str, options);
+  } catch (e) {
+    throw new Error(`Invalid path and options: Consult the documentation of path-to-regexp here: https://github.com/pillarjs/path-to-regexp/tree/6.x
+${e.message}`);
+  }
+}
 
 // node_modules/@clerk/backend/dist/chunk-54FJKZQM.mjs
 var require_dist = __commonJS2({
@@ -24596,6 +25315,14 @@ var API_VERSION = "v1";
 var USER_AGENT = `${"@clerk/backend"}@${"2.29.5"}`;
 var MAX_CACHE_LAST_UPDATED_AT_SECONDS = 5 * 60;
 var SUPPORTED_BAPI_VERSION = "2025-11-10";
+var Attributes = {
+  AuthToken: "__clerkAuthToken",
+  AuthSignature: "__clerkAuthSignature",
+  AuthStatus: "__clerkAuthStatus",
+  AuthReason: "__clerkAuthReason",
+  AuthMessage: "__clerkAuthMessage",
+  ClerkUrl: "__clerkUrl"
+};
 var Cookies = {
   Session: "__session",
   Refresh: "__refresh",
@@ -24618,13 +25345,728 @@ var QueryParameters = {
   HandshakeFormat: "format",
   Session: "__session"
 };
+var Headers2 = {
+  Accept: "accept",
+  AuthMessage: "x-clerk-auth-message",
+  Authorization: "authorization",
+  AuthReason: "x-clerk-auth-reason",
+  AuthSignature: "x-clerk-auth-signature",
+  AuthStatus: "x-clerk-auth-status",
+  AuthToken: "x-clerk-auth-token",
+  CacheControl: "cache-control",
+  ClerkRedirectTo: "x-clerk-redirect-to",
+  ClerkRequestData: "x-clerk-request-data",
+  ClerkUrl: "x-clerk-clerk-url",
+  CloudFrontForwardedProto: "cloudfront-forwarded-proto",
+  ContentType: "content-type",
+  ContentSecurityPolicy: "content-security-policy",
+  ContentSecurityPolicyReportOnly: "content-security-policy-report-only",
+  EnableDebug: "x-clerk-debug",
+  ForwardedHost: "x-forwarded-host",
+  ForwardedPort: "x-forwarded-port",
+  ForwardedProto: "x-forwarded-proto",
+  Host: "host",
+  Location: "location",
+  Nonce: "x-nonce",
+  Origin: "origin",
+  Referrer: "referer",
+  SecFetchDest: "sec-fetch-dest",
+  SecFetchSite: "sec-fetch-site",
+  UserAgent: "user-agent",
+  ReportingEndpoints: "reporting-endpoints"
+};
+var ContentTypes = {
+  Json: "application/json"
+};
+var constants = {
+  Attributes,
+  Cookies,
+  Headers: Headers2,
+  ContentTypes,
+  QueryParameters
+};
+function mergePreDefinedOptions(preDefinedOptions, options) {
+  return Object.keys(preDefinedOptions).reduce((obj, key) => {
+    return { ...obj, [key]: options[key] || obj[key] };
+  }, { ...preDefinedOptions });
+}
+function assertValidSecretKey(val) {
+  if (!val || typeof val !== "string") {
+    throw Error("Missing Clerk Secret Key. Go to https://dashboard.clerk.com and get your key for your instance.");
+  }
+}
+function assertValidPublishableKey(val) {
+  parsePublishableKey(val, { fatal: true });
+}
+var TokenType = {
+  SessionToken: "session_token",
+  ApiKey: "api_key",
+  M2MToken: "m2m_token",
+  OAuthToken: "oauth_token"
+};
+var AuthenticateContext = class {
+  constructor(cookieSuffix, clerkRequest, options) {
+    this.cookieSuffix = cookieSuffix;
+    this.clerkRequest = clerkRequest;
+    this.originalFrontendApi = "";
+    if (options.acceptsToken === TokenType.M2MToken || options.acceptsToken === TokenType.ApiKey) {
+      this.initHeaderValues();
+    } else {
+      this.initPublishableKeyValues(options);
+      this.initHeaderValues();
+      this.initCookieValues();
+      this.initHandshakeValues();
+    }
+    Object.assign(this, options);
+    this.clerkUrl = this.clerkRequest.clerkUrl;
+  }
+  get sessionToken() {
+    return this.sessionTokenInCookie || this.tokenInHeader;
+  }
+  usesSuffixedCookies() {
+    const suffixedClientUat = this.getSuffixedCookie(constants.Cookies.ClientUat);
+    const clientUat = this.getCookie(constants.Cookies.ClientUat);
+    const suffixedSession = this.getSuffixedCookie(constants.Cookies.Session) || "";
+    const session = this.getCookie(constants.Cookies.Session) || "";
+    if (session && !this.tokenHasIssuer(session)) {
+      return false;
+    }
+    if (session && !this.tokenBelongsToInstance(session)) {
+      return true;
+    }
+    if (!suffixedClientUat && !suffixedSession) {
+      return false;
+    }
+    const { data: sessionData } = decodeJwt(session);
+    const sessionIat = sessionData?.payload.iat || 0;
+    const { data: suffixedSessionData } = decodeJwt(suffixedSession);
+    const suffixedSessionIat = suffixedSessionData?.payload.iat || 0;
+    if (suffixedClientUat !== "0" && clientUat !== "0" && sessionIat > suffixedSessionIat) {
+      return false;
+    }
+    if (suffixedClientUat === "0" && clientUat !== "0") {
+      return false;
+    }
+    if (this.instanceType !== "production") {
+      const isSuffixedSessionExpired = this.sessionExpired(suffixedSessionData);
+      if (suffixedClientUat !== "0" && clientUat === "0" && isSuffixedSessionExpired) {
+        return false;
+      }
+    }
+    if (!suffixedClientUat && suffixedSession) {
+      return false;
+    }
+    return true;
+  }
+  isCrossOriginReferrer() {
+    if (!this.referrer || !this.clerkUrl.origin) {
+      return false;
+    }
+    try {
+      const referrerOrigin = new URL(this.referrer).origin;
+      return referrerOrigin !== this.clerkUrl.origin;
+    } catch {
+      return false;
+    }
+  }
+  isKnownClerkReferrer() {
+    if (!this.referrer) {
+      return false;
+    }
+    try {
+      const referrerOrigin = new URL(this.referrer);
+      const referrerHost = referrerOrigin.hostname;
+      if (this.frontendApi) {
+        const fapiHost = this.frontendApi.startsWith("http") ? new URL(this.frontendApi).hostname : this.frontendApi;
+        if (referrerHost === fapiHost) {
+          return true;
+        }
+      }
+      if (isLegacyDevAccountPortalOrigin(referrerHost) || isCurrentDevAccountPortalOrigin(referrerHost)) {
+        return true;
+      }
+      const expectedAccountsUrl = buildAccountsBaseUrl(this.frontendApi);
+      if (expectedAccountsUrl) {
+        const expectedAccountsOrigin = new URL(expectedAccountsUrl).origin;
+        if (referrerOrigin.origin === expectedAccountsOrigin) {
+          return true;
+        }
+      }
+      if (referrerHost.startsWith("accounts.")) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+  initPublishableKeyValues(options) {
+    assertValidPublishableKey(options.publishableKey);
+    this.publishableKey = options.publishableKey;
+    const originalPk = parsePublishableKey(this.publishableKey, {
+      fatal: true,
+      domain: options.domain,
+      isSatellite: options.isSatellite
+    });
+    this.originalFrontendApi = originalPk.frontendApi;
+    const pk = parsePublishableKey(this.publishableKey, {
+      fatal: true,
+      proxyUrl: options.proxyUrl,
+      domain: options.domain,
+      isSatellite: options.isSatellite
+    });
+    this.instanceType = pk.instanceType;
+    this.frontendApi = pk.frontendApi;
+  }
+  initHeaderValues() {
+    this.tokenInHeader = this.parseAuthorizationHeader(this.getHeader(constants.Headers.Authorization));
+    this.origin = this.getHeader(constants.Headers.Origin);
+    this.host = this.getHeader(constants.Headers.Host);
+    this.forwardedHost = this.getHeader(constants.Headers.ForwardedHost);
+    this.forwardedProto = this.getHeader(constants.Headers.CloudFrontForwardedProto) || this.getHeader(constants.Headers.ForwardedProto);
+    this.referrer = this.getHeader(constants.Headers.Referrer);
+    this.userAgent = this.getHeader(constants.Headers.UserAgent);
+    this.secFetchDest = this.getHeader(constants.Headers.SecFetchDest);
+    this.accept = this.getHeader(constants.Headers.Accept);
+  }
+  initCookieValues() {
+    this.sessionTokenInCookie = this.getSuffixedOrUnSuffixedCookie(constants.Cookies.Session);
+    this.refreshTokenInCookie = this.getSuffixedCookie(constants.Cookies.Refresh);
+    this.clientUat = Number.parseInt(this.getSuffixedOrUnSuffixedCookie(constants.Cookies.ClientUat) || "") || 0;
+  }
+  initHandshakeValues() {
+    this.devBrowserToken = this.getQueryParam(constants.QueryParameters.DevBrowser) || this.getSuffixedOrUnSuffixedCookie(constants.Cookies.DevBrowser);
+    this.handshakeToken = this.getQueryParam(constants.QueryParameters.Handshake) || this.getCookie(constants.Cookies.Handshake);
+    this.handshakeRedirectLoopCounter = Number(this.getCookie(constants.Cookies.RedirectCount)) || 0;
+    this.handshakeNonce = this.getQueryParam(constants.QueryParameters.HandshakeNonce) || this.getCookie(constants.Cookies.HandshakeNonce);
+  }
+  getQueryParam(name) {
+    return this.clerkRequest.clerkUrl.searchParams.get(name);
+  }
+  getHeader(name) {
+    return this.clerkRequest.headers.get(name) || undefined;
+  }
+  getCookie(name) {
+    return this.clerkRequest.cookies.get(name) || undefined;
+  }
+  getSuffixedCookie(name) {
+    return this.getCookie(getSuffixedCookieName(name, this.cookieSuffix)) || undefined;
+  }
+  getSuffixedOrUnSuffixedCookie(cookieName) {
+    if (this.usesSuffixedCookies()) {
+      return this.getSuffixedCookie(cookieName);
+    }
+    return this.getCookie(cookieName);
+  }
+  parseAuthorizationHeader(authorizationHeader) {
+    if (!authorizationHeader) {
+      return;
+    }
+    const [scheme, token] = authorizationHeader.split(" ", 2);
+    if (!token) {
+      return scheme;
+    }
+    if (scheme === "Bearer") {
+      return token;
+    }
+    return;
+  }
+  tokenHasIssuer(token) {
+    const { data, errors: errors3 } = decodeJwt(token);
+    if (errors3) {
+      return false;
+    }
+    return !!data.payload.iss;
+  }
+  tokenBelongsToInstance(token) {
+    if (!token) {
+      return false;
+    }
+    const { data, errors: errors3 } = decodeJwt(token);
+    if (errors3) {
+      return false;
+    }
+    const tokenIssuer = data.payload.iss.replace(/https?:\/\//gi, "");
+    return this.originalFrontendApi === tokenIssuer;
+  }
+  sessionExpired(jwt2) {
+    return !!jwt2 && jwt2?.payload.exp <= Date.now() / 1000 >> 0;
+  }
+};
+var createAuthenticateContext = async (clerkRequest, options) => {
+  const cookieSuffix = options.publishableKey ? await getCookieSuffix(options.publishableKey, runtime.crypto.subtle) : "";
+  return new AuthenticateContext(cookieSuffix, clerkRequest, options);
+};
 var SEPARATOR = "/";
 var MULTIPLE_SEPARATOR_REGEX = new RegExp("(?<!:)" + SEPARATOR + "{1,}", "g");
 function joinPaths(...args) {
   return args.filter((p) => p).join(SEPARATOR).replace(MULTIPLE_SEPARATOR_REGEX, SEPARATOR);
 }
+var AbstractAPI = class {
+  constructor(request) {
+    this.request = request;
+  }
+  requireId(id) {
+    if (!id) {
+      throw new Error("A valid resource ID is required.");
+    }
+  }
+};
+var basePath = "/actor_tokens";
+var ActorTokenAPI = class extends AbstractAPI {
+  async create(params) {
+    return this.request({
+      method: "POST",
+      path: basePath,
+      bodyParams: params
+    });
+  }
+  async revoke(actorTokenId) {
+    this.requireId(actorTokenId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath, actorTokenId, "revoke")
+    });
+  }
+};
+var basePath2 = "/accountless_applications";
+var AccountlessApplicationAPI = class extends AbstractAPI {
+  async createAccountlessApplication(params) {
+    const headerParams = params?.requestHeaders ? Object.fromEntries(params.requestHeaders.entries()) : undefined;
+    return this.request({
+      method: "POST",
+      path: basePath2,
+      headerParams
+    });
+  }
+  async completeAccountlessApplicationOnboarding(params) {
+    const headerParams = params?.requestHeaders ? Object.fromEntries(params.requestHeaders.entries()) : undefined;
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath2, "complete"),
+      headerParams
+    });
+  }
+};
+var basePath3 = "/allowlist_identifiers";
+var AllowlistIdentifierAPI = class extends AbstractAPI {
+  async getAllowlistIdentifierList(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath3,
+      queryParams: { ...params, paginated: true }
+    });
+  }
+  async createAllowlistIdentifier(params) {
+    return this.request({
+      method: "POST",
+      path: basePath3,
+      bodyParams: params
+    });
+  }
+  async deleteAllowlistIdentifier(allowlistIdentifierId) {
+    this.requireId(allowlistIdentifierId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath3, allowlistIdentifierId)
+    });
+  }
+};
+var basePath4 = "/api_keys";
+var APIKeysAPI = class extends AbstractAPI {
+  async list(queryParams) {
+    return this.request({
+      method: "GET",
+      path: basePath4,
+      queryParams
+    });
+  }
+  async create(params) {
+    return this.request({
+      method: "POST",
+      path: basePath4,
+      bodyParams: params
+    });
+  }
+  async get(apiKeyId) {
+    this.requireId(apiKeyId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath4, apiKeyId)
+    });
+  }
+  async update(params) {
+    const { apiKeyId, ...bodyParams } = params;
+    this.requireId(apiKeyId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath4, apiKeyId),
+      bodyParams
+    });
+  }
+  async delete(apiKeyId) {
+    this.requireId(apiKeyId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath4, apiKeyId)
+    });
+  }
+  async revoke(params) {
+    const { apiKeyId, revocationReason = null } = params;
+    this.requireId(apiKeyId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath4, apiKeyId, "revoke"),
+      bodyParams: { revocationReason }
+    });
+  }
+  async getSecret(apiKeyId) {
+    this.requireId(apiKeyId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath4, apiKeyId, "secret")
+    });
+  }
+  async verify(secret) {
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath4, "verify"),
+      bodyParams: { secret }
+    });
+  }
+  async verifySecret(secret) {
+    deprecated("apiKeys.verifySecret()", "Use `apiKeys.verify()` instead.");
+    return this.verify(secret);
+  }
+};
+var basePath5 = "/beta_features";
+var BetaFeaturesAPI = class extends AbstractAPI {
+  async changeDomain(params) {
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath5, "change_domain"),
+      bodyParams: params
+    });
+  }
+};
+var basePath6 = "/blocklist_identifiers";
+var BlocklistIdentifierAPI = class extends AbstractAPI {
+  async getBlocklistIdentifierList(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath6,
+      queryParams: params
+    });
+  }
+  async createBlocklistIdentifier(params) {
+    return this.request({
+      method: "POST",
+      path: basePath6,
+      bodyParams: params
+    });
+  }
+  async deleteBlocklistIdentifier(blocklistIdentifierId) {
+    this.requireId(blocklistIdentifierId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath6, blocklistIdentifierId)
+    });
+  }
+};
+var basePath7 = "/clients";
+var ClientAPI = class extends AbstractAPI {
+  async getClientList(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath7,
+      queryParams: { ...params, paginated: true }
+    });
+  }
+  async getClient(clientId) {
+    this.requireId(clientId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath7, clientId)
+    });
+  }
+  verifyClient(token) {
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath7, "verify"),
+      bodyParams: { token }
+    });
+  }
+  async getHandshakePayload(queryParams) {
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath7, "handshake_payload"),
+      queryParams
+    });
+  }
+};
+var basePath8 = "/domains";
+var DomainAPI = class extends AbstractAPI {
+  async list() {
+    return this.request({
+      method: "GET",
+      path: basePath8
+    });
+  }
+  async add(params) {
+    return this.request({
+      method: "POST",
+      path: basePath8,
+      bodyParams: params
+    });
+  }
+  async update(params) {
+    const { domainId, ...bodyParams } = params;
+    this.requireId(domainId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath8, domainId),
+      bodyParams
+    });
+  }
+  async delete(satelliteDomainId) {
+    return this.deleteDomain(satelliteDomainId);
+  }
+  async deleteDomain(satelliteDomainId) {
+    this.requireId(satelliteDomainId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath8, satelliteDomainId)
+    });
+  }
+};
+var basePath9 = "/email_addresses";
+var EmailAddressAPI = class extends AbstractAPI {
+  async getEmailAddress(emailAddressId) {
+    this.requireId(emailAddressId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath9, emailAddressId)
+    });
+  }
+  async createEmailAddress(params) {
+    return this.request({
+      method: "POST",
+      path: basePath9,
+      bodyParams: params
+    });
+  }
+  async updateEmailAddress(emailAddressId, params = {}) {
+    this.requireId(emailAddressId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath9, emailAddressId),
+      bodyParams: params
+    });
+  }
+  async deleteEmailAddress(emailAddressId) {
+    this.requireId(emailAddressId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath9, emailAddressId)
+    });
+  }
+};
+var basePath10 = "/oauth_applications/access_tokens";
+var IdPOAuthAccessTokenApi = class extends AbstractAPI {
+  async verify(accessToken) {
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath10, "verify"),
+      bodyParams: { access_token: accessToken }
+    });
+  }
+  async verifyAccessToken(accessToken) {
+    deprecated("idPOAuthAccessToken.verifyAccessToken()", "Use `idPOAuthAccessToken.verify()` instead.");
+    return this.verify(accessToken);
+  }
+};
+var basePath11 = "/instance";
+var InstanceAPI = class extends AbstractAPI {
+  async get() {
+    return this.request({
+      method: "GET",
+      path: basePath11
+    });
+  }
+  async update(params) {
+    return this.request({
+      method: "PATCH",
+      path: basePath11,
+      bodyParams: params
+    });
+  }
+  async updateRestrictions(params) {
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath11, "restrictions"),
+      bodyParams: params
+    });
+  }
+  async updateOrganizationSettings(params) {
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath11, "organization_settings"),
+      bodyParams: params
+    });
+  }
+};
+var basePath12 = "/invitations";
+var InvitationAPI = class extends AbstractAPI {
+  async getInvitationList(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath12,
+      queryParams: { ...params, paginated: true }
+    });
+  }
+  async createInvitation(params) {
+    return this.request({
+      method: "POST",
+      path: basePath12,
+      bodyParams: params
+    });
+  }
+  async createInvitationBulk(params) {
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath12, "bulk"),
+      bodyParams: params
+    });
+  }
+  async revokeInvitation(invitationId) {
+    this.requireId(invitationId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath12, invitationId, "revoke")
+    });
+  }
+};
+var basePath13 = "/machines";
+var MachineApi = class extends AbstractAPI {
+  async get(machineId) {
+    this.requireId(machineId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath13, machineId)
+    });
+  }
+  async list(queryParams = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath13,
+      queryParams
+    });
+  }
+  async create(bodyParams) {
+    return this.request({
+      method: "POST",
+      path: basePath13,
+      bodyParams
+    });
+  }
+  async update(params) {
+    const { machineId, ...bodyParams } = params;
+    this.requireId(machineId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath13, machineId),
+      bodyParams
+    });
+  }
+  async delete(machineId) {
+    this.requireId(machineId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath13, machineId)
+    });
+  }
+  async getSecretKey(machineId) {
+    this.requireId(machineId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath13, machineId, "secret_key")
+    });
+  }
+  async rotateSecretKey(params) {
+    const { machineId, previousTokenTtl } = params;
+    this.requireId(machineId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath13, machineId, "secret_key", "rotate"),
+      bodyParams: {
+        previousTokenTtl
+      }
+    });
+  }
+  async createScope(machineId, toMachineId) {
+    this.requireId(machineId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath13, machineId, "scopes"),
+      bodyParams: {
+        toMachineId
+      }
+    });
+  }
+  async deleteScope(machineId, otherMachineId) {
+    this.requireId(machineId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath13, machineId, "scopes", otherMachineId)
+    });
+  }
+};
+var basePath14 = "/m2m_tokens";
 var _M2MTokenApi_instances;
 var createRequestOptions_fn;
+var M2MTokenApi = class extends AbstractAPI {
+  constructor() {
+    super(...arguments);
+    __privateAdd(this, _M2MTokenApi_instances);
+  }
+  async createToken(params) {
+    const { claims = null, machineSecretKey, secondsUntilExpiration = null } = params || {};
+    const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
+      method: "POST",
+      path: basePath14,
+      bodyParams: {
+        secondsUntilExpiration,
+        claims
+      }
+    }, machineSecretKey);
+    return this.request(requestOptions);
+  }
+  async revokeToken(params) {
+    const { m2mTokenId, revocationReason = null, machineSecretKey } = params;
+    this.requireId(m2mTokenId);
+    const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
+      method: "POST",
+      path: joinPaths(basePath14, m2mTokenId, "revoke"),
+      bodyParams: {
+        revocationReason
+      }
+    }, machineSecretKey);
+    return this.request(requestOptions);
+  }
+  async verify(params) {
+    const { token, machineSecretKey } = params;
+    const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
+      method: "POST",
+      path: joinPaths(basePath14, "verify"),
+      bodyParams: { token }
+    }, machineSecretKey);
+    return this.request(requestOptions);
+  }
+  async verifyToken(params) {
+    deprecated("m2m.verifyToken()", "Use `m2m.verify()` instead.");
+    return this.verify(params);
+  }
+};
 _M2MTokenApi_instances = new WeakSet;
 createRequestOptions_fn = function(options, machineSecretKey) {
   if (machineSecretKey) {
@@ -24638,9 +26080,2710 @@ createRequestOptions_fn = function(options, machineSecretKey) {
   }
   return options;
 };
+var basePath15 = "/jwks";
+var JwksAPI = class extends AbstractAPI {
+  async getJwks() {
+    return this.request({
+      method: "GET",
+      path: basePath15
+    });
+  }
+};
+var basePath16 = "/jwt_templates";
+var JwtTemplatesApi = class extends AbstractAPI {
+  async list(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath16,
+      queryParams: { ...params, paginated: true }
+    });
+  }
+  async get(templateId) {
+    this.requireId(templateId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath16, templateId)
+    });
+  }
+  async create(params) {
+    return this.request({
+      method: "POST",
+      path: basePath16,
+      bodyParams: params
+    });
+  }
+  async update(params) {
+    const { templateId, ...bodyParams } = params;
+    this.requireId(templateId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath16, templateId),
+      bodyParams
+    });
+  }
+  async delete(templateId) {
+    this.requireId(templateId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath16, templateId)
+    });
+  }
+};
+var basePath17 = "/organizations";
+var OrganizationAPI = class extends AbstractAPI {
+  async getOrganizationList(params) {
+    return this.request({
+      method: "GET",
+      path: basePath17,
+      queryParams: params
+    });
+  }
+  async createOrganization(params) {
+    return this.request({
+      method: "POST",
+      path: basePath17,
+      bodyParams: params
+    });
+  }
+  async getOrganization(params) {
+    const { includeMembersCount } = params;
+    const organizationIdOrSlug = "organizationId" in params ? params.organizationId : params.slug;
+    this.requireId(organizationIdOrSlug);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath17, organizationIdOrSlug),
+      queryParams: {
+        includeMembersCount
+      }
+    });
+  }
+  async updateOrganization(organizationId, params) {
+    this.requireId(organizationId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath17, organizationId),
+      bodyParams: params
+    });
+  }
+  async updateOrganizationLogo(organizationId, params) {
+    this.requireId(organizationId);
+    const formData = new runtime.FormData;
+    formData.append("file", params?.file);
+    if (params?.uploaderUserId) {
+      formData.append("uploader_user_id", params?.uploaderUserId);
+    }
+    return this.request({
+      method: "PUT",
+      path: joinPaths(basePath17, organizationId, "logo"),
+      formData
+    });
+  }
+  async deleteOrganizationLogo(organizationId) {
+    this.requireId(organizationId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath17, organizationId, "logo")
+    });
+  }
+  async updateOrganizationMetadata(organizationId, params) {
+    this.requireId(organizationId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath17, organizationId, "metadata"),
+      bodyParams: params
+    });
+  }
+  async deleteOrganization(organizationId) {
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath17, organizationId)
+    });
+  }
+  async getOrganizationMembershipList(params) {
+    const { organizationId, ...queryParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath17, organizationId, "memberships"),
+      queryParams
+    });
+  }
+  async getInstanceOrganizationMembershipList(params) {
+    return this.request({
+      method: "GET",
+      path: "/organization_memberships",
+      queryParams: params
+    });
+  }
+  async createOrganizationMembership(params) {
+    const { organizationId, ...bodyParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath17, organizationId, "memberships"),
+      bodyParams
+    });
+  }
+  async updateOrganizationMembership(params) {
+    const { organizationId, userId, ...bodyParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath17, organizationId, "memberships", userId),
+      bodyParams
+    });
+  }
+  async updateOrganizationMembershipMetadata(params) {
+    const { organizationId, userId, ...bodyParams } = params;
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath17, organizationId, "memberships", userId, "metadata"),
+      bodyParams
+    });
+  }
+  async deleteOrganizationMembership(params) {
+    const { organizationId, userId } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath17, organizationId, "memberships", userId)
+    });
+  }
+  async getOrganizationInvitationList(params) {
+    const { organizationId, ...queryParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath17, organizationId, "invitations"),
+      queryParams
+    });
+  }
+  async createOrganizationInvitation(params) {
+    const { organizationId, ...bodyParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath17, organizationId, "invitations"),
+      bodyParams
+    });
+  }
+  async createOrganizationInvitationBulk(organizationId, params) {
+    this.requireId(organizationId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath17, organizationId, "invitations", "bulk"),
+      bodyParams: params
+    });
+  }
+  async getOrganizationInvitation(params) {
+    const { organizationId, invitationId } = params;
+    this.requireId(organizationId);
+    this.requireId(invitationId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath17, organizationId, "invitations", invitationId)
+    });
+  }
+  async revokeOrganizationInvitation(params) {
+    const { organizationId, invitationId, ...bodyParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath17, organizationId, "invitations", invitationId, "revoke"),
+      bodyParams
+    });
+  }
+  async getOrganizationDomainList(params) {
+    const { organizationId, ...queryParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath17, organizationId, "domains"),
+      queryParams
+    });
+  }
+  async createOrganizationDomain(params) {
+    const { organizationId, ...bodyParams } = params;
+    this.requireId(organizationId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath17, organizationId, "domains"),
+      bodyParams: {
+        ...bodyParams,
+        verified: bodyParams.verified ?? true
+      }
+    });
+  }
+  async updateOrganizationDomain(params) {
+    const { organizationId, domainId, ...bodyParams } = params;
+    this.requireId(organizationId);
+    this.requireId(domainId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath17, organizationId, "domains", domainId),
+      bodyParams
+    });
+  }
+  async deleteOrganizationDomain(params) {
+    const { organizationId, domainId } = params;
+    this.requireId(organizationId);
+    this.requireId(domainId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath17, organizationId, "domains", domainId)
+    });
+  }
+};
+var basePath18 = "/oauth_applications";
+var OAuthApplicationsApi = class extends AbstractAPI {
+  async list(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath18,
+      queryParams: params
+    });
+  }
+  async get(oauthApplicationId) {
+    this.requireId(oauthApplicationId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath18, oauthApplicationId)
+    });
+  }
+  async create(params) {
+    return this.request({
+      method: "POST",
+      path: basePath18,
+      bodyParams: params
+    });
+  }
+  async update(params) {
+    const { oauthApplicationId, ...bodyParams } = params;
+    this.requireId(oauthApplicationId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath18, oauthApplicationId),
+      bodyParams
+    });
+  }
+  async delete(oauthApplicationId) {
+    this.requireId(oauthApplicationId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath18, oauthApplicationId)
+    });
+  }
+  async rotateSecret(oauthApplicationId) {
+    this.requireId(oauthApplicationId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath18, oauthApplicationId, "rotate_secret")
+    });
+  }
+};
+var basePath19 = "/phone_numbers";
+var PhoneNumberAPI = class extends AbstractAPI {
+  async getPhoneNumber(phoneNumberId) {
+    this.requireId(phoneNumberId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath19, phoneNumberId)
+    });
+  }
+  async createPhoneNumber(params) {
+    return this.request({
+      method: "POST",
+      path: basePath19,
+      bodyParams: params
+    });
+  }
+  async updatePhoneNumber(phoneNumberId, params = {}) {
+    this.requireId(phoneNumberId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath19, phoneNumberId),
+      bodyParams: params
+    });
+  }
+  async deletePhoneNumber(phoneNumberId) {
+    this.requireId(phoneNumberId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath19, phoneNumberId)
+    });
+  }
+};
+var basePath20 = "/proxy_checks";
+var ProxyCheckAPI = class extends AbstractAPI {
+  async verify(params) {
+    return this.request({
+      method: "POST",
+      path: basePath20,
+      bodyParams: params
+    });
+  }
+};
+var basePath21 = "/redirect_urls";
+var RedirectUrlAPI = class extends AbstractAPI {
+  async getRedirectUrlList() {
+    return this.request({
+      method: "GET",
+      path: basePath21,
+      queryParams: { paginated: true }
+    });
+  }
+  async getRedirectUrl(redirectUrlId) {
+    this.requireId(redirectUrlId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath21, redirectUrlId)
+    });
+  }
+  async createRedirectUrl(params) {
+    return this.request({
+      method: "POST",
+      path: basePath21,
+      bodyParams: params
+    });
+  }
+  async deleteRedirectUrl(redirectUrlId) {
+    this.requireId(redirectUrlId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath21, redirectUrlId)
+    });
+  }
+};
+var basePath22 = "/saml_connections";
+var SamlConnectionAPI = class extends AbstractAPI {
+  async getSamlConnectionList(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath22,
+      queryParams: params
+    });
+  }
+  async createSamlConnection(params) {
+    return this.request({
+      method: "POST",
+      path: basePath22,
+      bodyParams: params,
+      options: {
+        deepSnakecaseBodyParamKeys: true
+      }
+    });
+  }
+  async getSamlConnection(samlConnectionId) {
+    this.requireId(samlConnectionId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath22, samlConnectionId)
+    });
+  }
+  async updateSamlConnection(samlConnectionId, params = {}) {
+    this.requireId(samlConnectionId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath22, samlConnectionId),
+      bodyParams: params,
+      options: {
+        deepSnakecaseBodyParamKeys: true
+      }
+    });
+  }
+  async deleteSamlConnection(samlConnectionId) {
+    this.requireId(samlConnectionId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath22, samlConnectionId)
+    });
+  }
+};
+var basePath23 = "/sessions";
+var SessionAPI = class extends AbstractAPI {
+  async getSessionList(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath23,
+      queryParams: { ...params, paginated: true }
+    });
+  }
+  async getSession(sessionId) {
+    this.requireId(sessionId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath23, sessionId)
+    });
+  }
+  async createSession(params) {
+    return this.request({
+      method: "POST",
+      path: basePath23,
+      bodyParams: params
+    });
+  }
+  async revokeSession(sessionId) {
+    this.requireId(sessionId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath23, sessionId, "revoke")
+    });
+  }
+  async verifySession(sessionId, token) {
+    this.requireId(sessionId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath23, sessionId, "verify"),
+      bodyParams: { token }
+    });
+  }
+  async getToken(sessionId, template, expiresInSeconds) {
+    this.requireId(sessionId);
+    const path = template ? joinPaths(basePath23, sessionId, "tokens", template) : joinPaths(basePath23, sessionId, "tokens");
+    const requestOptions = {
+      method: "POST",
+      path
+    };
+    if (expiresInSeconds !== undefined) {
+      requestOptions.bodyParams = { expires_in_seconds: expiresInSeconds };
+    }
+    return this.request(requestOptions);
+  }
+  async refreshSession(sessionId, params) {
+    this.requireId(sessionId);
+    const { suffixed_cookies, ...restParams } = params;
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath23, sessionId, "refresh"),
+      bodyParams: restParams,
+      queryParams: { suffixed_cookies }
+    });
+  }
+};
+var basePath24 = "/sign_in_tokens";
+var SignInTokenAPI = class extends AbstractAPI {
+  async createSignInToken(params) {
+    return this.request({
+      method: "POST",
+      path: basePath24,
+      bodyParams: params
+    });
+  }
+  async revokeSignInToken(signInTokenId) {
+    this.requireId(signInTokenId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath24, signInTokenId, "revoke")
+    });
+  }
+};
+var basePath25 = "/sign_ups";
+var SignUpAPI = class extends AbstractAPI {
+  async get(signUpAttemptId) {
+    this.requireId(signUpAttemptId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath25, signUpAttemptId)
+    });
+  }
+  async update(params) {
+    const { signUpAttemptId, ...bodyParams } = params;
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath25, signUpAttemptId),
+      bodyParams
+    });
+  }
+};
+var basePath26 = "/testing_tokens";
+var TestingTokenAPI = class extends AbstractAPI {
+  async createTestingToken() {
+    return this.request({
+      method: "POST",
+      path: basePath26
+    });
+  }
+};
+var basePath27 = "/users";
+var UserAPI = class extends AbstractAPI {
+  async getUserList(params = {}) {
+    const { limit, offset, orderBy, ...userCountParams } = params;
+    const [data, totalCount] = await Promise.all([
+      this.request({
+        method: "GET",
+        path: basePath27,
+        queryParams: params
+      }),
+      this.getCount(userCountParams)
+    ]);
+    return { data, totalCount };
+  }
+  async getUser(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath27, userId)
+    });
+  }
+  async createUser(params) {
+    return this.request({
+      method: "POST",
+      path: basePath27,
+      bodyParams: params
+    });
+  }
+  async updateUser(userId, params = {}) {
+    this.requireId(userId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath27, userId),
+      bodyParams: params
+    });
+  }
+  async updateUserProfileImage(userId, params) {
+    this.requireId(userId);
+    const formData = new runtime.FormData;
+    formData.append("file", params?.file);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "profile_image"),
+      formData
+    });
+  }
+  async updateUserMetadata(userId, params) {
+    this.requireId(userId);
+    return this.request({
+      method: "PATCH",
+      path: joinPaths(basePath27, userId, "metadata"),
+      bodyParams: params
+    });
+  }
+  async deleteUser(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, userId)
+    });
+  }
+  async getCount(params = {}) {
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath27, "count"),
+      queryParams: params
+    });
+  }
+  async getUserOauthAccessToken(userId, provider) {
+    this.requireId(userId);
+    const hasPrefix = provider.startsWith("oauth_");
+    const _provider = hasPrefix ? provider : `oauth_${provider}`;
+    if (hasPrefix) {
+      deprecated("getUserOauthAccessToken(userId, provider)", "Remove the `oauth_` prefix from the `provider` argument.");
+    }
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath27, userId, "oauth_access_tokens", _provider),
+      queryParams: { paginated: true }
+    });
+  }
+  async disableUserMFA(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, userId, "mfa")
+    });
+  }
+  async getOrganizationMembershipList(params) {
+    const { userId, limit, offset } = params;
+    this.requireId(userId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath27, userId, "organization_memberships"),
+      queryParams: { limit, offset }
+    });
+  }
+  async getOrganizationInvitationList(params) {
+    const { userId, ...queryParams } = params;
+    this.requireId(userId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath27, userId, "organization_invitations"),
+      queryParams
+    });
+  }
+  async verifyPassword(params) {
+    const { userId, password } = params;
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "verify_password"),
+      bodyParams: { password }
+    });
+  }
+  async verifyTOTP(params) {
+    const { userId, code } = params;
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "verify_totp"),
+      bodyParams: { code }
+    });
+  }
+  async banUser(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "ban")
+    });
+  }
+  async unbanUser(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "unban")
+    });
+  }
+  async lockUser(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "lock")
+    });
+  }
+  async unlockUser(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "unlock")
+    });
+  }
+  async deleteUserProfileImage(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, userId, "profile_image")
+    });
+  }
+  async deleteUserPasskey(params) {
+    this.requireId(params.userId);
+    this.requireId(params.passkeyIdentificationId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, params.userId, "passkeys", params.passkeyIdentificationId)
+    });
+  }
+  async deleteUserWeb3Wallet(params) {
+    this.requireId(params.userId);
+    this.requireId(params.web3WalletIdentificationId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, params.userId, "web3_wallets", params.web3WalletIdentificationId)
+    });
+  }
+  async deleteUserExternalAccount(params) {
+    this.requireId(params.userId);
+    this.requireId(params.externalAccountId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, params.userId, "external_accounts", params.externalAccountId)
+    });
+  }
+  async deleteUserBackupCodes(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, userId, "backup_code")
+    });
+  }
+  async deleteUserTOTP(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath27, userId, "totp")
+    });
+  }
+  async setPasswordCompromised(userId, params = {
+    revokeAllSessions: false
+  }) {
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "password", "set_compromised"),
+      bodyParams: params
+    });
+  }
+  async unsetPasswordCompromised(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath27, userId, "password", "unset_compromised")
+    });
+  }
+};
+var basePath28 = "/waitlist_entries";
+var WaitlistEntryAPI = class extends AbstractAPI {
+  async list(params = {}) {
+    return this.request({
+      method: "GET",
+      path: basePath28,
+      queryParams: params
+    });
+  }
+  async create(params) {
+    return this.request({
+      method: "POST",
+      path: basePath28,
+      bodyParams: params
+    });
+  }
+  async invite(id, params = {}) {
+    this.requireId(id);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath28, id, "invite"),
+      bodyParams: params
+    });
+  }
+  async reject(id) {
+    this.requireId(id);
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath28, id, "reject")
+    });
+  }
+  async delete(id) {
+    this.requireId(id);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath28, id)
+    });
+  }
+};
+var basePath29 = "/webhooks";
+var WebhookAPI = class extends AbstractAPI {
+  async createSvixApp() {
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath29, "svix")
+    });
+  }
+  async generateSvixAuthURL() {
+    return this.request({
+      method: "POST",
+      path: joinPaths(basePath29, "svix_url")
+    });
+  }
+  async deleteSvixApp() {
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath29, "svix")
+    });
+  }
+};
+var basePath30 = "/billing";
+var organizationBasePath = "/organizations";
+var userBasePath = "/users";
+var BillingAPI = class extends AbstractAPI {
+  async getPlanList(params) {
+    return this.request({
+      method: "GET",
+      path: joinPaths(basePath30, "plans"),
+      queryParams: params
+    });
+  }
+  async cancelSubscriptionItem(subscriptionItemId, params) {
+    this.requireId(subscriptionItemId);
+    return this.request({
+      method: "DELETE",
+      path: joinPaths(basePath30, "subscription_items", subscriptionItemId),
+      queryParams: params
+    });
+  }
+  async extendSubscriptionItemFreeTrial(subscriptionItemId, params) {
+    this.requireId(subscriptionItemId);
+    return this.request({
+      method: "POST",
+      path: joinPaths("/billing", "subscription_items", subscriptionItemId, "extend_free_trial"),
+      bodyParams: params
+    });
+  }
+  async getOrganizationBillingSubscription(organizationId) {
+    this.requireId(organizationId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(organizationBasePath, organizationId, "billing", "subscription")
+    });
+  }
+  async getUserBillingSubscription(userId) {
+    this.requireId(userId);
+    return this.request({
+      method: "GET",
+      path: joinPaths(userBasePath, userId, "billing", "subscription")
+    });
+  }
+};
+var isObject3 = (value) => typeof value === "object" && value !== null;
+var isObjectCustom = (value) => isObject3(value) && !(value instanceof RegExp) && !(value instanceof Error) && !(value instanceof Date) && !(globalThis.Blob && value instanceof globalThis.Blob);
 var mapObjectSkip = Symbol("mapObjectSkip");
+var _mapObject = (object2, mapper, options, isSeen = /* @__PURE__ */ new WeakMap) => {
+  options = {
+    deep: false,
+    target: {},
+    ...options
+  };
+  if (isSeen.has(object2)) {
+    return isSeen.get(object2);
+  }
+  isSeen.set(object2, options.target);
+  const { target } = options;
+  delete options.target;
+  const mapArray = (array2) => array2.map((element) => isObjectCustom(element) ? _mapObject(element, mapper, options, isSeen) : element);
+  if (Array.isArray(object2)) {
+    return mapArray(object2);
+  }
+  for (const [key, value] of Object.entries(object2)) {
+    const mapResult = mapper(key, value, object2);
+    if (mapResult === mapObjectSkip) {
+      continue;
+    }
+    let [newKey, newValue, { shouldRecurse = true } = {}] = mapResult;
+    if (newKey === "__proto__") {
+      continue;
+    }
+    if (options.deep && shouldRecurse && isObjectCustom(newValue)) {
+      newValue = Array.isArray(newValue) ? mapArray(newValue) : _mapObject(newValue, mapper, options, isSeen);
+    }
+    target[newKey] = newValue;
+  }
+  return target;
+};
+function mapObject(object2, mapper, options) {
+  if (!isObject3(object2)) {
+    throw new TypeError(`Expected an object, got \`${object2}\` (${typeof object2})`);
+  }
+  if (Array.isArray(object2)) {
+    throw new TypeError("Expected an object, got an array");
+  }
+  return _mapObject(object2, mapper, options);
+}
+var SPLIT_LOWER_UPPER_RE = /([\p{Ll}\d])(\p{Lu})/gu;
+var SPLIT_UPPER_UPPER_RE = /(\p{Lu})([\p{Lu}][\p{Ll}])/gu;
+var SPLIT_SEPARATE_NUMBER_RE = /(\d)\p{Ll}|(\p{L})\d/u;
+var DEFAULT_STRIP_REGEXP = /[^\p{L}\d]+/giu;
+var SPLIT_REPLACE_VALUE = "$1\x00$2";
+var DEFAULT_PREFIX_SUFFIX_CHARACTERS = "";
+function split(value) {
+  let result = value.trim();
+  result = result.replace(SPLIT_LOWER_UPPER_RE, SPLIT_REPLACE_VALUE).replace(SPLIT_UPPER_UPPER_RE, SPLIT_REPLACE_VALUE);
+  result = result.replace(DEFAULT_STRIP_REGEXP, "\x00");
+  let start = 0;
+  let end = result.length;
+  while (result.charAt(start) === "\x00")
+    start++;
+  if (start === end)
+    return [];
+  while (result.charAt(end - 1) === "\x00")
+    end--;
+  return result.slice(start, end).split(/\0/g);
+}
+function splitSeparateNumbers(value) {
+  const words = split(value);
+  for (let i = 0;i < words.length; i++) {
+    const word = words[i];
+    const match22 = SPLIT_SEPARATE_NUMBER_RE.exec(word);
+    if (match22) {
+      const offset = match22.index + (match22[1] ?? match22[2]).length;
+      words.splice(i, 1, word.slice(0, offset), word.slice(offset));
+    }
+  }
+  return words;
+}
+function noCase(input, options) {
+  const [prefix, words, suffix] = splitPrefixSuffix(input, options);
+  return prefix + words.map(lowerFactory(options?.locale)).join(options?.delimiter ?? " ") + suffix;
+}
+function snakeCase(input, options) {
+  return noCase(input, { delimiter: "_", ...options });
+}
+function lowerFactory(locale) {
+  return locale === false ? (input) => input.toLowerCase() : (input) => input.toLocaleLowerCase(locale);
+}
+function splitPrefixSuffix(input, options = {}) {
+  const splitFn = options.split ?? (options.separateNumbers ? splitSeparateNumbers : split);
+  const prefixCharacters = options.prefixCharacters ?? DEFAULT_PREFIX_SUFFIX_CHARACTERS;
+  const suffixCharacters = options.suffixCharacters ?? DEFAULT_PREFIX_SUFFIX_CHARACTERS;
+  let prefixIndex = 0;
+  let suffixIndex = input.length;
+  while (prefixIndex < input.length) {
+    const char = input.charAt(prefixIndex);
+    if (!prefixCharacters.includes(char))
+      break;
+    prefixIndex++;
+  }
+  while (suffixIndex > prefixIndex) {
+    const index = suffixIndex - 1;
+    const char = input.charAt(index);
+    if (!suffixCharacters.includes(char))
+      break;
+    suffixIndex = index;
+  }
+  return [
+    input.slice(0, prefixIndex),
+    splitFn(input.slice(prefixIndex, suffixIndex)),
+    input.slice(suffixIndex)
+  ];
+}
 var PlainObjectConstructor = {}.constructor;
+function snakecaseKeys(obj, options) {
+  if (Array.isArray(obj)) {
+    if (obj.some((item) => item.constructor !== PlainObjectConstructor)) {
+      throw new Error("obj must be array of plain objects");
+    }
+    options = { deep: true, exclude: [], parsingOptions: {}, ...options };
+    const convertCase2 = options.snakeCase || ((key) => snakeCase(key, options.parsingOptions));
+    return obj.map((item) => {
+      return mapObject(item, (key, val) => {
+        return [
+          matches(options.exclude, key) ? key : convertCase2(key),
+          val,
+          mapperOptions(key, val, options)
+        ];
+      }, options);
+    });
+  } else {
+    if (obj.constructor !== PlainObjectConstructor) {
+      throw new Error("obj must be an plain object");
+    }
+  }
+  options = { deep: true, exclude: [], parsingOptions: {}, ...options };
+  const convertCase = options.snakeCase || ((key) => snakeCase(key, options.parsingOptions));
+  return mapObject(obj, (key, val) => {
+    return [
+      matches(options.exclude, key) ? key : convertCase(key),
+      val,
+      mapperOptions(key, val, options)
+    ];
+  }, options);
+}
+function matches(patterns, value) {
+  return patterns.some((pattern) => {
+    return typeof pattern === "string" ? pattern === value : pattern.test(value);
+  });
+}
+function mapperOptions(key, val, options) {
+  return options.shouldRecurse ? { shouldRecurse: options.shouldRecurse(key, val) } : undefined;
+}
+var snakecase_keys_default = snakecaseKeys;
+var AccountlessApplication = class _AccountlessApplication {
+  constructor(publishableKey, secretKey, claimUrl, apiKeysUrl) {
+    this.publishableKey = publishableKey;
+    this.secretKey = secretKey;
+    this.claimUrl = claimUrl;
+    this.apiKeysUrl = apiKeysUrl;
+  }
+  static fromJSON(data) {
+    return new _AccountlessApplication(data.publishable_key, data.secret_key, data.claim_url, data.api_keys_url);
+  }
+};
+var ActorToken = class _ActorToken {
+  constructor(id, status, userId, actor, token, url2, createdAt, updatedAt) {
+    this.id = id;
+    this.status = status;
+    this.userId = userId;
+    this.actor = actor;
+    this.token = token;
+    this.url = url2;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _ActorToken(data.id, data.status, data.user_id, data.actor, data.token, data.url, data.created_at, data.updated_at);
+  }
+};
+var AllowlistIdentifier = class _AllowlistIdentifier {
+  constructor(id, identifier, identifierType, createdAt, updatedAt, instanceId, invitationId) {
+    this.id = id;
+    this.identifier = identifier;
+    this.identifierType = identifierType;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.instanceId = instanceId;
+    this.invitationId = invitationId;
+  }
+  static fromJSON(data) {
+    return new _AllowlistIdentifier(data.id, data.identifier, data.identifier_type, data.created_at, data.updated_at, data.instance_id, data.invitation_id);
+  }
+};
+var APIKey = class _APIKey {
+  constructor(id, type, name, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret) {
+    this.id = id;
+    this.type = type;
+    this.name = name;
+    this.subject = subject;
+    this.scopes = scopes;
+    this.claims = claims;
+    this.revoked = revoked;
+    this.revocationReason = revocationReason;
+    this.expired = expired;
+    this.expiration = expiration;
+    this.createdBy = createdBy;
+    this.description = description;
+    this.lastUsedAt = lastUsedAt;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.secret = secret;
+  }
+  static fromJSON(data) {
+    return new _APIKey(data.id, data.type, data.name, data.subject, data.scopes, data.claims, data.revoked, data.revocation_reason, data.expired, data.expiration, data.created_by, data.description, data.last_used_at, data.created_at, data.updated_at, data.secret);
+  }
+};
+var BlocklistIdentifier = class _BlocklistIdentifier {
+  constructor(id, identifier, identifierType, createdAt, updatedAt, instanceId) {
+    this.id = id;
+    this.identifier = identifier;
+    this.identifierType = identifierType;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.instanceId = instanceId;
+  }
+  static fromJSON(data) {
+    return new _BlocklistIdentifier(data.id, data.identifier, data.identifier_type, data.created_at, data.updated_at, data.instance_id);
+  }
+};
+var SessionActivity = class _SessionActivity {
+  constructor(id, isMobile, ipAddress, city, country, browserVersion, browserName, deviceType) {
+    this.id = id;
+    this.isMobile = isMobile;
+    this.ipAddress = ipAddress;
+    this.city = city;
+    this.country = country;
+    this.browserVersion = browserVersion;
+    this.browserName = browserName;
+    this.deviceType = deviceType;
+  }
+  static fromJSON(data) {
+    return new _SessionActivity(data.id, data.is_mobile, data.ip_address, data.city, data.country, data.browser_version, data.browser_name, data.device_type);
+  }
+};
+var Session = class _Session {
+  constructor(id, clientId, userId, status, lastActiveAt, expireAt, abandonAt, createdAt, updatedAt, lastActiveOrganizationId, latestActivity, actor = null) {
+    this.id = id;
+    this.clientId = clientId;
+    this.userId = userId;
+    this.status = status;
+    this.lastActiveAt = lastActiveAt;
+    this.expireAt = expireAt;
+    this.abandonAt = abandonAt;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.lastActiveOrganizationId = lastActiveOrganizationId;
+    this.latestActivity = latestActivity;
+    this.actor = actor;
+  }
+  static fromJSON(data) {
+    return new _Session(data.id, data.client_id, data.user_id, data.status, data.last_active_at, data.expire_at, data.abandon_at, data.created_at, data.updated_at, data.last_active_organization_id, data.latest_activity && SessionActivity.fromJSON(data.latest_activity), data.actor);
+  }
+};
+var Client = class _Client {
+  constructor(id, sessionIds, sessions, signInId, signUpId, lastActiveSessionId, lastAuthenticationStrategy, createdAt, updatedAt) {
+    this.id = id;
+    this.sessionIds = sessionIds;
+    this.sessions = sessions;
+    this.signInId = signInId;
+    this.signUpId = signUpId;
+    this.lastActiveSessionId = lastActiveSessionId;
+    this.lastAuthenticationStrategy = lastAuthenticationStrategy;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _Client(data.id, data.session_ids, data.sessions.map((x) => Session.fromJSON(x)), data.sign_in_id, data.sign_up_id, data.last_active_session_id, data.last_authentication_strategy, data.created_at, data.updated_at);
+  }
+};
+var CnameTarget = class _CnameTarget {
+  constructor(host, value, required3) {
+    this.host = host;
+    this.value = value;
+    this.required = required3;
+  }
+  static fromJSON(data) {
+    return new _CnameTarget(data.host, data.value, data.required);
+  }
+};
+var Cookies2 = class _Cookies {
+  constructor(cookies) {
+    this.cookies = cookies;
+  }
+  static fromJSON(data) {
+    return new _Cookies(data.cookies);
+  }
+};
+var DeletedObject = class _DeletedObject {
+  constructor(object2, id, slug, deleted) {
+    this.object = object2;
+    this.id = id;
+    this.slug = slug;
+    this.deleted = deleted;
+  }
+  static fromJSON(data) {
+    return new _DeletedObject(data.object, data.id || null, data.slug || null, data.deleted);
+  }
+};
+var Domain = class _Domain {
+  constructor(id, name, isSatellite, frontendApiUrl, developmentOrigin, cnameTargets, accountsPortalUrl, proxyUrl) {
+    this.id = id;
+    this.name = name;
+    this.isSatellite = isSatellite;
+    this.frontendApiUrl = frontendApiUrl;
+    this.developmentOrigin = developmentOrigin;
+    this.cnameTargets = cnameTargets;
+    this.accountsPortalUrl = accountsPortalUrl;
+    this.proxyUrl = proxyUrl;
+  }
+  static fromJSON(data) {
+    return new _Domain(data.id, data.name, data.is_satellite, data.frontend_api_url, data.development_origin, data.cname_targets && data.cname_targets.map((x) => CnameTarget.fromJSON(x)), data.accounts_portal_url, data.proxy_url);
+  }
+};
+var Email = class _Email {
+  constructor(id, fromEmailName, emailAddressId, toEmailAddress, subject, body, bodyPlain, status, slug, data, deliveredByClerk) {
+    this.id = id;
+    this.fromEmailName = fromEmailName;
+    this.emailAddressId = emailAddressId;
+    this.toEmailAddress = toEmailAddress;
+    this.subject = subject;
+    this.body = body;
+    this.bodyPlain = bodyPlain;
+    this.status = status;
+    this.slug = slug;
+    this.data = data;
+    this.deliveredByClerk = deliveredByClerk;
+  }
+  static fromJSON(data) {
+    return new _Email(data.id, data.from_email_name, data.email_address_id, data.to_email_address, data.subject, data.body, data.body_plain, data.status, data.slug, data.data, data.delivered_by_clerk);
+  }
+};
+var IdentificationLink = class _IdentificationLink {
+  constructor(id, type) {
+    this.id = id;
+    this.type = type;
+  }
+  static fromJSON(data) {
+    return new _IdentificationLink(data.id, data.type);
+  }
+};
+var Verification = class _Verification {
+  constructor(status, strategy, externalVerificationRedirectURL = null, attempts = null, expireAt = null, nonce = null, message = null) {
+    this.status = status;
+    this.strategy = strategy;
+    this.externalVerificationRedirectURL = externalVerificationRedirectURL;
+    this.attempts = attempts;
+    this.expireAt = expireAt;
+    this.nonce = nonce;
+    this.message = message;
+  }
+  static fromJSON(data) {
+    return new _Verification(data.status, data.strategy, data.external_verification_redirect_url ? new URL(data.external_verification_redirect_url) : null, data.attempts, data.expire_at, data.nonce);
+  }
+};
+var EmailAddress = class _EmailAddress {
+  constructor(id, emailAddress, verification, linkedTo) {
+    this.id = id;
+    this.emailAddress = emailAddress;
+    this.verification = verification;
+    this.linkedTo = linkedTo;
+  }
+  static fromJSON(data) {
+    return new _EmailAddress(data.id, data.email_address, data.verification && Verification.fromJSON(data.verification), data.linked_to.map((link) => IdentificationLink.fromJSON(link)));
+  }
+};
+var ExternalAccount = class _ExternalAccount {
+  constructor(id, provider, identificationId, externalId, approvedScopes, emailAddress, firstName, lastName, imageUrl, username, phoneNumber, publicMetadata = {}, label, verification) {
+    this.id = id;
+    this.provider = provider;
+    this.identificationId = identificationId;
+    this.externalId = externalId;
+    this.approvedScopes = approvedScopes;
+    this.emailAddress = emailAddress;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.imageUrl = imageUrl;
+    this.username = username;
+    this.phoneNumber = phoneNumber;
+    this.publicMetadata = publicMetadata;
+    this.label = label;
+    this.verification = verification;
+  }
+  static fromJSON(data) {
+    return new _ExternalAccount(data.id, data.provider, data.identification_id, data.provider_user_id, data.approved_scopes, data.email_address, data.first_name, data.last_name, data.image_url || "", data.username, data.phone_number, data.public_metadata, data.label, data.verification && Verification.fromJSON(data.verification));
+  }
+};
+var IdPOAuthAccessToken = class _IdPOAuthAccessToken {
+  constructor(id, clientId, type, subject, scopes, revoked, revocationReason, expired, expiration, createdAt, updatedAt) {
+    this.id = id;
+    this.clientId = clientId;
+    this.type = type;
+    this.subject = subject;
+    this.scopes = scopes;
+    this.revoked = revoked;
+    this.revocationReason = revocationReason;
+    this.expired = expired;
+    this.expiration = expiration;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _IdPOAuthAccessToken(data.id, data.client_id, data.type, data.subject, data.scopes, data.revoked, data.revocation_reason, data.expired, data.expiration, data.created_at, data.updated_at);
+  }
+  static fromJwtPayload(payload, clockSkewInMs = 5000) {
+    const oauthPayload = payload;
+    return new _IdPOAuthAccessToken(oauthPayload.jti ?? "", oauthPayload.client_id ?? "", "oauth_token", payload.sub, oauthPayload.scp ?? oauthPayload.scope?.split(" ") ?? [], false, null, payload.exp * 1000 <= Date.now() - clockSkewInMs, payload.exp, payload.iat, payload.iat);
+  }
+};
+var Instance = class _Instance {
+  constructor(id, environmentType, allowedOrigins) {
+    this.id = id;
+    this.environmentType = environmentType;
+    this.allowedOrigins = allowedOrigins;
+  }
+  static fromJSON(data) {
+    return new _Instance(data.id, data.environment_type, data.allowed_origins);
+  }
+};
+var InstanceRestrictions = class _InstanceRestrictions {
+  constructor(allowlist, blocklist, blockEmailSubaddresses, blockDisposableEmailDomains, ignoreDotsForGmailAddresses) {
+    this.allowlist = allowlist;
+    this.blocklist = blocklist;
+    this.blockEmailSubaddresses = blockEmailSubaddresses;
+    this.blockDisposableEmailDomains = blockDisposableEmailDomains;
+    this.ignoreDotsForGmailAddresses = ignoreDotsForGmailAddresses;
+  }
+  static fromJSON(data) {
+    return new _InstanceRestrictions(data.allowlist, data.blocklist, data.block_email_subaddresses, data.block_disposable_email_domains, data.ignore_dots_for_gmail_addresses);
+  }
+};
+var InstanceSettings = class _InstanceSettings {
+  constructor(id, restrictedToAllowlist, fromEmailAddress, progressiveSignUp, enhancedEmailDeliverability) {
+    this.id = id;
+    this.restrictedToAllowlist = restrictedToAllowlist;
+    this.fromEmailAddress = fromEmailAddress;
+    this.progressiveSignUp = progressiveSignUp;
+    this.enhancedEmailDeliverability = enhancedEmailDeliverability;
+  }
+  static fromJSON(data) {
+    return new _InstanceSettings(data.id, data.restricted_to_allowlist, data.from_email_address, data.progressive_sign_up, data.enhanced_email_deliverability);
+  }
+};
+var Invitation = class _Invitation {
+  constructor(id, emailAddress, publicMetadata, createdAt, updatedAt, status, url2, revoked) {
+    this.id = id;
+    this.emailAddress = emailAddress;
+    this.publicMetadata = publicMetadata;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.status = status;
+    this.url = url2;
+    this.revoked = revoked;
+    this._raw = null;
+  }
+  get raw() {
+    return this._raw;
+  }
+  static fromJSON(data) {
+    const res = new _Invitation(data.id, data.email_address, data.public_metadata, data.created_at, data.updated_at, data.status, data.url, data.revoked);
+    res._raw = data;
+    return res;
+  }
+};
+var ObjectType = {
+  AccountlessApplication: "accountless_application",
+  ActorToken: "actor_token",
+  AllowlistIdentifier: "allowlist_identifier",
+  ApiKey: "api_key",
+  BlocklistIdentifier: "blocklist_identifier",
+  Client: "client",
+  Cookies: "cookies",
+  Domain: "domain",
+  Email: "email",
+  EmailAddress: "email_address",
+  ExternalAccount: "external_account",
+  FacebookAccount: "facebook_account",
+  GoogleAccount: "google_account",
+  Instance: "instance",
+  InstanceRestrictions: "instance_restrictions",
+  InstanceSettings: "instance_settings",
+  Invitation: "invitation",
+  Machine: "machine",
+  MachineScope: "machine_scope",
+  MachineSecretKey: "machine_secret_key",
+  M2MToken: "machine_to_machine_token",
+  JwtTemplate: "jwt_template",
+  OauthAccessToken: "oauth_access_token",
+  IdpOAuthAccessToken: "clerk_idp_oauth_access_token",
+  OAuthApplication: "oauth_application",
+  Organization: "organization",
+  OrganizationDomain: "organization_domain",
+  OrganizationInvitation: "organization_invitation",
+  OrganizationMembership: "organization_membership",
+  OrganizationSettings: "organization_settings",
+  PhoneNumber: "phone_number",
+  ProxyCheck: "proxy_check",
+  RedirectUrl: "redirect_url",
+  SamlAccount: "saml_account",
+  SamlConnection: "saml_connection",
+  Session: "session",
+  SignInAttempt: "sign_in_attempt",
+  SignInToken: "sign_in_token",
+  SignUpAttempt: "sign_up_attempt",
+  SmsMessage: "sms_message",
+  User: "user",
+  WaitlistEntry: "waitlist_entry",
+  Web3Wallet: "web3_wallet",
+  Token: "token",
+  TotalCount: "total_count",
+  TestingToken: "testing_token",
+  Role: "role",
+  Permission: "permission",
+  BillingPayer: "commerce_payer",
+  BillingPaymentAttempt: "commerce_payment_attempt",
+  BillingSubscription: "commerce_subscription",
+  BillingSubscriptionItem: "commerce_subscription_item",
+  BillingPlan: "commerce_plan",
+  Feature: "feature"
+};
+var Machine = class _Machine {
+  constructor(id, name, instanceId, createdAt, updatedAt, scopedMachines, defaultTokenTtl, secretKey) {
+    this.id = id;
+    this.name = name;
+    this.instanceId = instanceId;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.scopedMachines = scopedMachines;
+    this.defaultTokenTtl = defaultTokenTtl;
+    this.secretKey = secretKey;
+  }
+  static fromJSON(data) {
+    return new _Machine(data.id, data.name, data.instance_id, data.created_at, data.updated_at, data.scoped_machines.map((m) => new _Machine(m.id, m.name, m.instance_id, m.created_at, m.updated_at, [], m.default_token_ttl)), data.default_token_ttl, data.secret_key);
+  }
+};
+var MachineScope = class _MachineScope {
+  constructor(fromMachineId, toMachineId, createdAt, deleted) {
+    this.fromMachineId = fromMachineId;
+    this.toMachineId = toMachineId;
+    this.createdAt = createdAt;
+    this.deleted = deleted;
+  }
+  static fromJSON(data) {
+    return new _MachineScope(data.from_machine_id, data.to_machine_id, data.created_at, data.deleted);
+  }
+};
+var MachineSecretKey = class _MachineSecretKey {
+  constructor(secret) {
+    this.secret = secret;
+  }
+  static fromJSON(data) {
+    return new _MachineSecretKey(data.secret);
+  }
+};
+var M2MToken = class _M2MToken {
+  constructor(id, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdAt, updatedAt, token) {
+    this.id = id;
+    this.subject = subject;
+    this.scopes = scopes;
+    this.claims = claims;
+    this.revoked = revoked;
+    this.revocationReason = revocationReason;
+    this.expired = expired;
+    this.expiration = expiration;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.token = token;
+  }
+  static fromJSON(data) {
+    return new _M2MToken(data.id, data.subject, data.scopes, data.claims, data.revoked, data.revocation_reason, data.expired, data.expiration, data.created_at, data.updated_at, data.token);
+  }
+};
+var JwtTemplate = class _JwtTemplate {
+  constructor(id, name, claims, lifetime, allowedClockSkew, customSigningKey, signingAlgorithm, createdAt, updatedAt) {
+    this.id = id;
+    this.name = name;
+    this.claims = claims;
+    this.lifetime = lifetime;
+    this.allowedClockSkew = allowedClockSkew;
+    this.customSigningKey = customSigningKey;
+    this.signingAlgorithm = signingAlgorithm;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _JwtTemplate(data.id, data.name, data.claims, data.lifetime, data.allowed_clock_skew, data.custom_signing_key, data.signing_algorithm, data.created_at, data.updated_at);
+  }
+};
+var OauthAccessToken = class _OauthAccessToken {
+  constructor(externalAccountId, provider, token, publicMetadata = {}, label, scopes, tokenSecret, expiresAt, idToken) {
+    this.externalAccountId = externalAccountId;
+    this.provider = provider;
+    this.token = token;
+    this.publicMetadata = publicMetadata;
+    this.label = label;
+    this.scopes = scopes;
+    this.tokenSecret = tokenSecret;
+    this.expiresAt = expiresAt;
+    this.idToken = idToken;
+  }
+  static fromJSON(data) {
+    return new _OauthAccessToken(data.external_account_id, data.provider, data.token, data.public_metadata, data.label || "", data.scopes, data.token_secret, data.expires_at, data.id_token);
+  }
+};
+var OAuthApplication = class _OAuthApplication {
+  constructor(id, instanceId, name, clientId, clientUri, clientImageUrl, dynamicallyRegistered, consentScreenEnabled, pkceRequired, isPublic, scopes, redirectUris, authorizeUrl, tokenFetchUrl, userInfoUrl, discoveryUrl, tokenIntrospectionUrl, createdAt, updatedAt, clientSecret) {
+    this.id = id;
+    this.instanceId = instanceId;
+    this.name = name;
+    this.clientId = clientId;
+    this.clientUri = clientUri;
+    this.clientImageUrl = clientImageUrl;
+    this.dynamicallyRegistered = dynamicallyRegistered;
+    this.consentScreenEnabled = consentScreenEnabled;
+    this.pkceRequired = pkceRequired;
+    this.isPublic = isPublic;
+    this.scopes = scopes;
+    this.redirectUris = redirectUris;
+    this.authorizeUrl = authorizeUrl;
+    this.tokenFetchUrl = tokenFetchUrl;
+    this.userInfoUrl = userInfoUrl;
+    this.discoveryUrl = discoveryUrl;
+    this.tokenIntrospectionUrl = tokenIntrospectionUrl;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.clientSecret = clientSecret;
+  }
+  static fromJSON(data) {
+    return new _OAuthApplication(data.id, data.instance_id, data.name, data.client_id, data.client_uri, data.client_image_url, data.dynamically_registered, data.consent_screen_enabled, data.pkce_required, data.public, data.scopes, data.redirect_uris, data.authorize_url, data.token_fetch_url, data.user_info_url, data.discovery_url, data.token_introspection_url, data.created_at, data.updated_at, data.client_secret);
+  }
+};
+var Organization = class _Organization {
+  constructor(id, name, slug, imageUrl, hasImage, createdAt, updatedAt, publicMetadata = {}, privateMetadata = {}, maxAllowedMemberships, adminDeleteEnabled, membersCount, createdBy) {
+    this.id = id;
+    this.name = name;
+    this.slug = slug;
+    this.imageUrl = imageUrl;
+    this.hasImage = hasImage;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.publicMetadata = publicMetadata;
+    this.privateMetadata = privateMetadata;
+    this.maxAllowedMemberships = maxAllowedMemberships;
+    this.adminDeleteEnabled = adminDeleteEnabled;
+    this.membersCount = membersCount;
+    this.createdBy = createdBy;
+    this._raw = null;
+  }
+  get raw() {
+    return this._raw;
+  }
+  static fromJSON(data) {
+    const res = new _Organization(data.id, data.name, data.slug, data.image_url || "", data.has_image, data.created_at, data.updated_at, data.public_metadata, data.private_metadata, data.max_allowed_memberships, data.admin_delete_enabled, data.members_count, data.created_by);
+    res._raw = data;
+    return res;
+  }
+};
+var OrganizationInvitation = class _OrganizationInvitation {
+  constructor(id, emailAddress, role, roleName, organizationId, createdAt, updatedAt, expiresAt, url2, status, publicMetadata = {}, privateMetadata = {}, publicOrganizationData) {
+    this.id = id;
+    this.emailAddress = emailAddress;
+    this.role = role;
+    this.roleName = roleName;
+    this.organizationId = organizationId;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.expiresAt = expiresAt;
+    this.url = url2;
+    this.status = status;
+    this.publicMetadata = publicMetadata;
+    this.privateMetadata = privateMetadata;
+    this.publicOrganizationData = publicOrganizationData;
+    this._raw = null;
+  }
+  get raw() {
+    return this._raw;
+  }
+  static fromJSON(data) {
+    const res = new _OrganizationInvitation(data.id, data.email_address, data.role, data.role_name, data.organization_id, data.created_at, data.updated_at, data.expires_at, data.url, data.status, data.public_metadata, data.private_metadata, data.public_organization_data);
+    res._raw = data;
+    return res;
+  }
+};
+var OrganizationMembership = class _OrganizationMembership {
+  constructor(id, role, permissions, publicMetadata = {}, privateMetadata = {}, createdAt, updatedAt, organization, publicUserData) {
+    this.id = id;
+    this.role = role;
+    this.permissions = permissions;
+    this.publicMetadata = publicMetadata;
+    this.privateMetadata = privateMetadata;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.organization = organization;
+    this.publicUserData = publicUserData;
+    this._raw = null;
+  }
+  get raw() {
+    return this._raw;
+  }
+  static fromJSON(data) {
+    const res = new _OrganizationMembership(data.id, data.role, data.permissions, data.public_metadata, data.private_metadata, data.created_at, data.updated_at, Organization.fromJSON(data.organization), OrganizationMembershipPublicUserData.fromJSON(data.public_user_data));
+    res._raw = data;
+    return res;
+  }
+};
+var OrganizationMembershipPublicUserData = class _OrganizationMembershipPublicUserData {
+  constructor(identifier, firstName, lastName, imageUrl, hasImage, userId) {
+    this.identifier = identifier;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.imageUrl = imageUrl;
+    this.hasImage = hasImage;
+    this.userId = userId;
+  }
+  static fromJSON(data) {
+    return new _OrganizationMembershipPublicUserData(data.identifier, data.first_name, data.last_name, data.image_url, data.has_image, data.user_id);
+  }
+};
+var OrganizationSettings = class _OrganizationSettings {
+  constructor(enabled, maxAllowedMemberships, maxAllowedRoles, maxAllowedPermissions, creatorRole, adminDeleteEnabled, domainsEnabled, slugDisabled, domainsEnrollmentModes, domainsDefaultRole) {
+    this.enabled = enabled;
+    this.maxAllowedMemberships = maxAllowedMemberships;
+    this.maxAllowedRoles = maxAllowedRoles;
+    this.maxAllowedPermissions = maxAllowedPermissions;
+    this.creatorRole = creatorRole;
+    this.adminDeleteEnabled = adminDeleteEnabled;
+    this.domainsEnabled = domainsEnabled;
+    this.slugDisabled = slugDisabled;
+    this.domainsEnrollmentModes = domainsEnrollmentModes;
+    this.domainsDefaultRole = domainsDefaultRole;
+  }
+  static fromJSON(data) {
+    return new _OrganizationSettings(data.enabled, data.max_allowed_memberships, data.max_allowed_roles, data.max_allowed_permissions, data.creator_role, data.admin_delete_enabled, data.domains_enabled, data.slug_disabled, data.domains_enrollment_modes, data.domains_default_role);
+  }
+};
+var PhoneNumber = class _PhoneNumber {
+  constructor(id, phoneNumber, reservedForSecondFactor, defaultSecondFactor, verification, linkedTo) {
+    this.id = id;
+    this.phoneNumber = phoneNumber;
+    this.reservedForSecondFactor = reservedForSecondFactor;
+    this.defaultSecondFactor = defaultSecondFactor;
+    this.verification = verification;
+    this.linkedTo = linkedTo;
+  }
+  static fromJSON(data) {
+    return new _PhoneNumber(data.id, data.phone_number, data.reserved_for_second_factor, data.default_second_factor, data.verification && Verification.fromJSON(data.verification), data.linked_to.map((link) => IdentificationLink.fromJSON(link)));
+  }
+};
+var ProxyCheck = class _ProxyCheck {
+  constructor(id, domainId, lastRunAt, proxyUrl, successful, createdAt, updatedAt) {
+    this.id = id;
+    this.domainId = domainId;
+    this.lastRunAt = lastRunAt;
+    this.proxyUrl = proxyUrl;
+    this.successful = successful;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _ProxyCheck(data.id, data.domain_id, data.last_run_at, data.proxy_url, data.successful, data.created_at, data.updated_at);
+  }
+};
+var RedirectUrl = class _RedirectUrl {
+  constructor(id, url2, createdAt, updatedAt) {
+    this.id = id;
+    this.url = url2;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _RedirectUrl(data.id, data.url, data.created_at, data.updated_at);
+  }
+};
+var SamlConnection = class _SamlConnection {
+  constructor(id, name, domain2, organizationId, idpEntityId, idpSsoUrl, idpCertificate, idpMetadataUrl, idpMetadata, acsUrl, spEntityId, spMetadataUrl, active, provider, userCount, syncUserAttributes, allowSubdomains, allowIdpInitiated, createdAt, updatedAt, attributeMapping) {
+    this.id = id;
+    this.name = name;
+    this.domain = domain2;
+    this.organizationId = organizationId;
+    this.idpEntityId = idpEntityId;
+    this.idpSsoUrl = idpSsoUrl;
+    this.idpCertificate = idpCertificate;
+    this.idpMetadataUrl = idpMetadataUrl;
+    this.idpMetadata = idpMetadata;
+    this.acsUrl = acsUrl;
+    this.spEntityId = spEntityId;
+    this.spMetadataUrl = spMetadataUrl;
+    this.active = active;
+    this.provider = provider;
+    this.userCount = userCount;
+    this.syncUserAttributes = syncUserAttributes;
+    this.allowSubdomains = allowSubdomains;
+    this.allowIdpInitiated = allowIdpInitiated;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.attributeMapping = attributeMapping;
+  }
+  static fromJSON(data) {
+    return new _SamlConnection(data.id, data.name, data.domain, data.organization_id, data.idp_entity_id, data.idp_sso_url, data.idp_certificate, data.idp_metadata_url, data.idp_metadata, data.acs_url, data.sp_entity_id, data.sp_metadata_url, data.active, data.provider, data.user_count, data.sync_user_attributes, data.allow_subdomains, data.allow_idp_initiated, data.created_at, data.updated_at, data.attribute_mapping && AttributeMapping.fromJSON(data.attribute_mapping));
+  }
+};
+var SamlAccountConnection = class _SamlAccountConnection {
+  constructor(id, name, domain2, active, provider, syncUserAttributes, allowSubdomains, allowIdpInitiated, createdAt, updatedAt) {
+    this.id = id;
+    this.name = name;
+    this.domain = domain2;
+    this.active = active;
+    this.provider = provider;
+    this.syncUserAttributes = syncUserAttributes;
+    this.allowSubdomains = allowSubdomains;
+    this.allowIdpInitiated = allowIdpInitiated;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _SamlAccountConnection(data.id, data.name, data.domain, data.active, data.provider, data.sync_user_attributes, data.allow_subdomains, data.allow_idp_initiated, data.created_at, data.updated_at);
+  }
+};
+var AttributeMapping = class _AttributeMapping {
+  constructor(userId, emailAddress, firstName, lastName) {
+    this.userId = userId;
+    this.emailAddress = emailAddress;
+    this.firstName = firstName;
+    this.lastName = lastName;
+  }
+  static fromJSON(data) {
+    return new _AttributeMapping(data.user_id, data.email_address, data.first_name, data.last_name);
+  }
+};
+var SamlAccount = class _SamlAccount {
+  constructor(id, provider, providerUserId, active, emailAddress, firstName, lastName, verification, samlConnection, lastAuthenticatedAt, enterpriseConnectionId) {
+    this.id = id;
+    this.provider = provider;
+    this.providerUserId = providerUserId;
+    this.active = active;
+    this.emailAddress = emailAddress;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.verification = verification;
+    this.samlConnection = samlConnection;
+    this.lastAuthenticatedAt = lastAuthenticatedAt;
+    this.enterpriseConnectionId = enterpriseConnectionId;
+  }
+  static fromJSON(data) {
+    return new _SamlAccount(data.id, data.provider, data.provider_user_id, data.active, data.email_address, data.first_name, data.last_name, data.verification && Verification.fromJSON(data.verification), data.saml_connection && SamlAccountConnection.fromJSON(data.saml_connection), data.last_authenticated_at ?? null, data.enterprise_connection_id);
+  }
+};
+var SignInToken = class _SignInToken {
+  constructor(id, userId, token, status, url2, createdAt, updatedAt) {
+    this.id = id;
+    this.userId = userId;
+    this.token = token;
+    this.status = status;
+    this.url = url2;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+  static fromJSON(data) {
+    return new _SignInToken(data.id, data.user_id, data.token, data.status, data.url, data.created_at, data.updated_at);
+  }
+};
+var SignUpAttemptVerification = class _SignUpAttemptVerification {
+  constructor(nextAction, supportedStrategies) {
+    this.nextAction = nextAction;
+    this.supportedStrategies = supportedStrategies;
+  }
+  static fromJSON(data) {
+    return new _SignUpAttemptVerification(data.next_action, data.supported_strategies);
+  }
+};
+var SignUpAttemptVerifications = class _SignUpAttemptVerifications {
+  constructor(emailAddress, phoneNumber, web3Wallet, externalAccount) {
+    this.emailAddress = emailAddress;
+    this.phoneNumber = phoneNumber;
+    this.web3Wallet = web3Wallet;
+    this.externalAccount = externalAccount;
+  }
+  static fromJSON(data) {
+    return new _SignUpAttemptVerifications(data.email_address && SignUpAttemptVerification.fromJSON(data.email_address), data.phone_number && SignUpAttemptVerification.fromJSON(data.phone_number), data.web3_wallet && SignUpAttemptVerification.fromJSON(data.web3_wallet), data.external_account);
+  }
+};
+var SignUpAttempt = class _SignUpAttempt {
+  constructor(id, status, requiredFields, optionalFields, missingFields, unverifiedFields, verifications, username, emailAddress, phoneNumber, web3Wallet, passwordEnabled, firstName, lastName, customAction, externalId, createdSessionId, createdUserId, abandonAt, legalAcceptedAt, publicMetadata, unsafeMetadata) {
+    this.id = id;
+    this.status = status;
+    this.requiredFields = requiredFields;
+    this.optionalFields = optionalFields;
+    this.missingFields = missingFields;
+    this.unverifiedFields = unverifiedFields;
+    this.verifications = verifications;
+    this.username = username;
+    this.emailAddress = emailAddress;
+    this.phoneNumber = phoneNumber;
+    this.web3Wallet = web3Wallet;
+    this.passwordEnabled = passwordEnabled;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.customAction = customAction;
+    this.externalId = externalId;
+    this.createdSessionId = createdSessionId;
+    this.createdUserId = createdUserId;
+    this.abandonAt = abandonAt;
+    this.legalAcceptedAt = legalAcceptedAt;
+    this.publicMetadata = publicMetadata;
+    this.unsafeMetadata = unsafeMetadata;
+  }
+  static fromJSON(data) {
+    return new _SignUpAttempt(data.id, data.status, data.required_fields, data.optional_fields, data.missing_fields, data.unverified_fields, data.verifications ? SignUpAttemptVerifications.fromJSON(data.verifications) : null, data.username, data.email_address, data.phone_number, data.web3_wallet, data.password_enabled, data.first_name, data.last_name, data.custom_action, data.external_id, data.created_session_id, data.created_user_id, data.abandon_at, data.legal_accepted_at, data.public_metadata, data.unsafe_metadata);
+  }
+};
+var SMSMessage = class _SMSMessage {
+  constructor(id, fromPhoneNumber, toPhoneNumber, message, status, phoneNumberId, data) {
+    this.id = id;
+    this.fromPhoneNumber = fromPhoneNumber;
+    this.toPhoneNumber = toPhoneNumber;
+    this.message = message;
+    this.status = status;
+    this.phoneNumberId = phoneNumberId;
+    this.data = data;
+  }
+  static fromJSON(data) {
+    return new _SMSMessage(data.id, data.from_phone_number, data.to_phone_number, data.message, data.status, data.phone_number_id, data.data);
+  }
+};
+var Token = class _Token {
+  constructor(jwt2) {
+    this.jwt = jwt2;
+  }
+  static fromJSON(data) {
+    return new _Token(data.jwt);
+  }
+};
+var Web3Wallet = class _Web3Wallet {
+  constructor(id, web3Wallet, verification) {
+    this.id = id;
+    this.web3Wallet = web3Wallet;
+    this.verification = verification;
+  }
+  static fromJSON(data) {
+    return new _Web3Wallet(data.id, data.web3_wallet, data.verification && Verification.fromJSON(data.verification));
+  }
+};
+var User = class _User {
+  constructor(id, passwordEnabled, totpEnabled, backupCodeEnabled, twoFactorEnabled, banned, locked, createdAt, updatedAt, imageUrl, hasImage, primaryEmailAddressId, primaryPhoneNumberId, primaryWeb3WalletId, lastSignInAt, externalId, username, firstName, lastName, publicMetadata = {}, privateMetadata = {}, unsafeMetadata = {}, emailAddresses = [], phoneNumbers = [], web3Wallets = [], externalAccounts = [], samlAccounts = [], lastActiveAt, createOrganizationEnabled, createOrganizationsLimit = null, deleteSelfEnabled, legalAcceptedAt, locale) {
+    this.id = id;
+    this.passwordEnabled = passwordEnabled;
+    this.totpEnabled = totpEnabled;
+    this.backupCodeEnabled = backupCodeEnabled;
+    this.twoFactorEnabled = twoFactorEnabled;
+    this.banned = banned;
+    this.locked = locked;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.imageUrl = imageUrl;
+    this.hasImage = hasImage;
+    this.primaryEmailAddressId = primaryEmailAddressId;
+    this.primaryPhoneNumberId = primaryPhoneNumberId;
+    this.primaryWeb3WalletId = primaryWeb3WalletId;
+    this.lastSignInAt = lastSignInAt;
+    this.externalId = externalId;
+    this.username = username;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.publicMetadata = publicMetadata;
+    this.privateMetadata = privateMetadata;
+    this.unsafeMetadata = unsafeMetadata;
+    this.emailAddresses = emailAddresses;
+    this.phoneNumbers = phoneNumbers;
+    this.web3Wallets = web3Wallets;
+    this.externalAccounts = externalAccounts;
+    this.samlAccounts = samlAccounts;
+    this.lastActiveAt = lastActiveAt;
+    this.createOrganizationEnabled = createOrganizationEnabled;
+    this.createOrganizationsLimit = createOrganizationsLimit;
+    this.deleteSelfEnabled = deleteSelfEnabled;
+    this.legalAcceptedAt = legalAcceptedAt;
+    this.locale = locale;
+    this._raw = null;
+  }
+  get raw() {
+    return this._raw;
+  }
+  static fromJSON(data) {
+    const res = new _User(data.id, data.password_enabled, data.totp_enabled, data.backup_code_enabled, data.two_factor_enabled, data.banned, data.locked, data.created_at, data.updated_at, data.image_url, data.has_image, data.primary_email_address_id, data.primary_phone_number_id, data.primary_web3_wallet_id, data.last_sign_in_at, data.external_id, data.username, data.first_name, data.last_name, data.public_metadata, data.private_metadata, data.unsafe_metadata, (data.email_addresses || []).map((x) => EmailAddress.fromJSON(x)), (data.phone_numbers || []).map((x) => PhoneNumber.fromJSON(x)), (data.web3_wallets || []).map((x) => Web3Wallet.fromJSON(x)), (data.external_accounts || []).map((x) => ExternalAccount.fromJSON(x)), (data.saml_accounts || []).map((x) => SamlAccount.fromJSON(x)), data.last_active_at, data.create_organization_enabled, data.create_organizations_limit, data.delete_self_enabled, data.legal_accepted_at, data.locale);
+    res._raw = data;
+    return res;
+  }
+  get primaryEmailAddress() {
+    return this.emailAddresses.find(({ id }) => id === this.primaryEmailAddressId) ?? null;
+  }
+  get primaryPhoneNumber() {
+    return this.phoneNumbers.find(({ id }) => id === this.primaryPhoneNumberId) ?? null;
+  }
+  get primaryWeb3Wallet() {
+    return this.web3Wallets.find(({ id }) => id === this.primaryWeb3WalletId) ?? null;
+  }
+  get fullName() {
+    return [this.firstName, this.lastName].join(" ").trim() || null;
+  }
+};
+var WaitlistEntry = class _WaitlistEntry {
+  constructor(id, emailAddress, status, invitation, createdAt, updatedAt, isLocked) {
+    this.id = id;
+    this.emailAddress = emailAddress;
+    this.status = status;
+    this.invitation = invitation;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.isLocked = isLocked;
+  }
+  static fromJSON(data) {
+    return new _WaitlistEntry(data.id, data.email_address, data.status, data.invitation && Invitation.fromJSON(data.invitation), data.created_at, data.updated_at, data.is_locked);
+  }
+};
+var Feature = class _Feature {
+  constructor(id, name, description, slug, avatarUrl) {
+    this.id = id;
+    this.name = name;
+    this.description = description;
+    this.slug = slug;
+    this.avatarUrl = avatarUrl;
+  }
+  static fromJSON(data) {
+    return new _Feature(data.id, data.name, data.description ?? null, data.slug, data.avatar_url ?? null);
+  }
+};
+var BillingPlan = class _BillingPlan {
+  constructor(id, name, slug, description, isDefault, isRecurring, hasBaseFee, publiclyVisible, fee, annualFee, annualMonthlyFee, forPayerType, features) {
+    this.id = id;
+    this.name = name;
+    this.slug = slug;
+    this.description = description;
+    this.isDefault = isDefault;
+    this.isRecurring = isRecurring;
+    this.hasBaseFee = hasBaseFee;
+    this.publiclyVisible = publiclyVisible;
+    this.fee = fee;
+    this.annualFee = annualFee;
+    this.annualMonthlyFee = annualMonthlyFee;
+    this.forPayerType = forPayerType;
+    this.features = features;
+  }
+  static fromJSON(data) {
+    const formatAmountJSON = (fee) => {
+      return fee ? {
+        amount: fee.amount,
+        amountFormatted: fee.amount_formatted,
+        currency: fee.currency,
+        currencySymbol: fee.currency_symbol
+      } : null;
+    };
+    return new _BillingPlan(data.id, data.name, data.slug, data.description ?? null, data.is_default, data.is_recurring, data.has_base_fee, data.publicly_visible, formatAmountJSON(data.fee), formatAmountJSON(data.annual_fee), formatAmountJSON(data.annual_monthly_fee), data.for_payer_type, (data.features ?? []).map((feature) => Feature.fromJSON(feature)));
+  }
+};
+var BillingSubscriptionItem = class _BillingSubscriptionItem {
+  constructor(id, status, planPeriod, periodStart, nextPayment, amount, plan, planId, createdAt, updatedAt, periodEnd, canceledAt, pastDueAt, endedAt, payerId, isFreeTrial, lifetimePaid) {
+    this.id = id;
+    this.status = status;
+    this.planPeriod = planPeriod;
+    this.periodStart = periodStart;
+    this.nextPayment = nextPayment;
+    this.amount = amount;
+    this.plan = plan;
+    this.planId = planId;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.periodEnd = periodEnd;
+    this.canceledAt = canceledAt;
+    this.pastDueAt = pastDueAt;
+    this.endedAt = endedAt;
+    this.payerId = payerId;
+    this.isFreeTrial = isFreeTrial;
+    this.lifetimePaid = lifetimePaid;
+  }
+  static fromJSON(data) {
+    function formatAmountJSON(amount) {
+      if (!amount) {
+        return amount;
+      }
+      return {
+        amount: amount.amount,
+        amountFormatted: amount.amount_formatted,
+        currency: amount.currency,
+        currencySymbol: amount.currency_symbol
+      };
+    }
+    return new _BillingSubscriptionItem(data.id, data.status, data.plan_period, data.period_start, data.next_payment, formatAmountJSON(data.amount) ?? undefined, data.plan ? BillingPlan.fromJSON(data.plan) : null, data.plan_id ?? null, data.created_at, data.updated_at, data.period_end, data.canceled_at, data.past_due_at, data.ended_at, data.payer_id, data.is_free_trial, formatAmountJSON(data.lifetime_paid) ?? undefined);
+  }
+};
+var BillingSubscription = class _BillingSubscription {
+  constructor(id, status, payerId, createdAt, updatedAt, activeAt, pastDueAt, subscriptionItems, nextPayment, eligibleForFreeTrial) {
+    this.id = id;
+    this.status = status;
+    this.payerId = payerId;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.activeAt = activeAt;
+    this.pastDueAt = pastDueAt;
+    this.subscriptionItems = subscriptionItems;
+    this.nextPayment = nextPayment;
+    this.eligibleForFreeTrial = eligibleForFreeTrial;
+  }
+  static fromJSON(data) {
+    const nextPayment = data.next_payment ? {
+      date: data.next_payment.date,
+      amount: {
+        amount: data.next_payment.amount.amount,
+        amountFormatted: data.next_payment.amount.amount_formatted,
+        currency: data.next_payment.amount.currency,
+        currencySymbol: data.next_payment.amount.currency_symbol
+      }
+    } : null;
+    return new _BillingSubscription(data.id, data.status, data.payer_id, data.created_at, data.updated_at, data.active_at ?? null, data.past_due_at ?? null, (data.subscription_items ?? []).map((item) => BillingSubscriptionItem.fromJSON(item)), nextPayment, data.eligible_for_free_trial ?? false);
+  }
+};
+function deserialize(payload) {
+  let data, totalCount;
+  if (Array.isArray(payload)) {
+    const data2 = payload.map((item) => jsonToObject(item));
+    return { data: data2 };
+  } else if (isPaginated(payload)) {
+    data = payload.data.map((item) => jsonToObject(item));
+    totalCount = payload.total_count;
+    return { data, totalCount };
+  } else {
+    return { data: jsonToObject(payload) };
+  }
+}
+function isPaginated(payload) {
+  if (!payload || typeof payload !== "object" || !("data" in payload)) {
+    return false;
+  }
+  return Array.isArray(payload.data) && payload.data !== undefined;
+}
+function getCount(item) {
+  return item.total_count;
+}
+function jsonToObject(item) {
+  if (typeof item !== "string" && "object" in item && "deleted" in item) {
+    return DeletedObject.fromJSON(item);
+  }
+  switch (item.object) {
+    case ObjectType.AccountlessApplication:
+      return AccountlessApplication.fromJSON(item);
+    case ObjectType.ActorToken:
+      return ActorToken.fromJSON(item);
+    case ObjectType.AllowlistIdentifier:
+      return AllowlistIdentifier.fromJSON(item);
+    case ObjectType.ApiKey:
+      return APIKey.fromJSON(item);
+    case ObjectType.BlocklistIdentifier:
+      return BlocklistIdentifier.fromJSON(item);
+    case ObjectType.Client:
+      return Client.fromJSON(item);
+    case ObjectType.Cookies:
+      return Cookies2.fromJSON(item);
+    case ObjectType.Domain:
+      return Domain.fromJSON(item);
+    case ObjectType.EmailAddress:
+      return EmailAddress.fromJSON(item);
+    case ObjectType.Email:
+      return Email.fromJSON(item);
+    case ObjectType.IdpOAuthAccessToken:
+      return IdPOAuthAccessToken.fromJSON(item);
+    case ObjectType.Instance:
+      return Instance.fromJSON(item);
+    case ObjectType.InstanceRestrictions:
+      return InstanceRestrictions.fromJSON(item);
+    case ObjectType.InstanceSettings:
+      return InstanceSettings.fromJSON(item);
+    case ObjectType.Invitation:
+      return Invitation.fromJSON(item);
+    case ObjectType.JwtTemplate:
+      return JwtTemplate.fromJSON(item);
+    case ObjectType.Machine:
+      return Machine.fromJSON(item);
+    case ObjectType.MachineScope:
+      return MachineScope.fromJSON(item);
+    case ObjectType.MachineSecretKey:
+      return MachineSecretKey.fromJSON(item);
+    case ObjectType.M2MToken:
+      return M2MToken.fromJSON(item);
+    case ObjectType.OauthAccessToken:
+      return OauthAccessToken.fromJSON(item);
+    case ObjectType.OAuthApplication:
+      return OAuthApplication.fromJSON(item);
+    case ObjectType.Organization:
+      return Organization.fromJSON(item);
+    case ObjectType.OrganizationInvitation:
+      return OrganizationInvitation.fromJSON(item);
+    case ObjectType.OrganizationMembership:
+      return OrganizationMembership.fromJSON(item);
+    case ObjectType.OrganizationSettings:
+      return OrganizationSettings.fromJSON(item);
+    case ObjectType.PhoneNumber:
+      return PhoneNumber.fromJSON(item);
+    case ObjectType.ProxyCheck:
+      return ProxyCheck.fromJSON(item);
+    case ObjectType.RedirectUrl:
+      return RedirectUrl.fromJSON(item);
+    case ObjectType.SamlConnection:
+      return SamlConnection.fromJSON(item);
+    case ObjectType.SignInToken:
+      return SignInToken.fromJSON(item);
+    case ObjectType.SignUpAttempt:
+      return SignUpAttempt.fromJSON(item);
+    case ObjectType.Session:
+      return Session.fromJSON(item);
+    case ObjectType.SmsMessage:
+      return SMSMessage.fromJSON(item);
+    case ObjectType.Token:
+      return Token.fromJSON(item);
+    case ObjectType.TotalCount:
+      return getCount(item);
+    case ObjectType.User:
+      return User.fromJSON(item);
+    case ObjectType.WaitlistEntry:
+      return WaitlistEntry.fromJSON(item);
+    case ObjectType.BillingPlan:
+      return BillingPlan.fromJSON(item);
+    case ObjectType.BillingSubscription:
+      return BillingSubscription.fromJSON(item);
+    case ObjectType.BillingSubscriptionItem:
+      return BillingSubscriptionItem.fromJSON(item);
+    case ObjectType.Feature:
+      return Feature.fromJSON(item);
+    default:
+      return item;
+  }
+}
+function buildRequest(options) {
+  const requestFn = async (requestOptions) => {
+    const {
+      secretKey,
+      machineSecretKey,
+      useMachineSecretKey = false,
+      requireSecretKey = true,
+      apiUrl = API_URL,
+      apiVersion = API_VERSION,
+      userAgent = USER_AGENT,
+      skipApiVersionInUrl = false
+    } = options;
+    const { path, method, queryParams, headerParams, bodyParams, formData, options: opts } = requestOptions;
+    const { deepSnakecaseBodyParamKeys = false } = opts || {};
+    if (requireSecretKey) {
+      assertValidSecretKey(secretKey);
+    }
+    const url2 = skipApiVersionInUrl ? joinPaths(apiUrl, path) : joinPaths(apiUrl, apiVersion, path);
+    const finalUrl = new URL(url2);
+    if (queryParams) {
+      const snakecasedQueryParams = snakecase_keys_default({ ...queryParams });
+      for (const [key, val] of Object.entries(snakecasedQueryParams)) {
+        if (val) {
+          [val].flat().forEach((v) => finalUrl.searchParams.append(key, v));
+        }
+      }
+    }
+    const headers = new Headers({
+      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
+      [constants.Headers.UserAgent]: userAgent,
+      ...headerParams
+    });
+    const authorizationHeader = constants.Headers.Authorization;
+    if (!headers.has(authorizationHeader)) {
+      if (useMachineSecretKey && machineSecretKey) {
+        headers.set(authorizationHeader, `Bearer ${machineSecretKey}`);
+      } else if (secretKey) {
+        headers.set(authorizationHeader, `Bearer ${secretKey}`);
+      }
+    }
+    let res;
+    try {
+      if (formData) {
+        res = await runtime.fetch(finalUrl.href, {
+          method,
+          headers,
+          body: formData
+        });
+      } else {
+        headers.set("Content-Type", "application/json");
+        const buildBody = () => {
+          const hasBody = method !== "GET" && bodyParams && Object.keys(bodyParams).length > 0;
+          if (!hasBody) {
+            return null;
+          }
+          const formatKeys = (object2) => snakecase_keys_default(object2, { deep: deepSnakecaseBodyParamKeys });
+          return {
+            body: JSON.stringify(Array.isArray(bodyParams) ? bodyParams.map(formatKeys) : formatKeys(bodyParams))
+          };
+        };
+        res = await runtime.fetch(finalUrl.href, {
+          method,
+          headers,
+          ...buildBody()
+        });
+      }
+      const isJSONResponse = res?.headers && res.headers?.get(constants.Headers.ContentType) === constants.ContentTypes.Json;
+      const responseBody = await (isJSONResponse ? res.json() : res.text());
+      if (!res.ok) {
+        return {
+          data: null,
+          errors: parseErrors2(responseBody),
+          status: res?.status,
+          statusText: res?.statusText,
+          clerkTraceId: getTraceId(responseBody, res?.headers),
+          retryAfter: getRetryAfter(res?.headers)
+        };
+      }
+      return {
+        ...deserialize(responseBody),
+        errors: null
+      };
+    } catch (err) {
+      if (err instanceof Error) {
+        return {
+          data: null,
+          errors: [
+            {
+              code: "unexpected_error",
+              message: err.message || "Unexpected error"
+            }
+          ],
+          clerkTraceId: getTraceId(err, res?.headers)
+        };
+      }
+      return {
+        data: null,
+        errors: parseErrors2(err),
+        status: res?.status,
+        statusText: res?.statusText,
+        clerkTraceId: getTraceId(err, res?.headers),
+        retryAfter: getRetryAfter(res?.headers)
+      };
+    }
+  };
+  return withLegacyRequestReturn(requestFn);
+}
+function getTraceId(data, headers) {
+  if (data && typeof data === "object" && "clerk_trace_id" in data && typeof data.clerk_trace_id === "string") {
+    return data.clerk_trace_id;
+  }
+  const cfRay = headers?.get("cf-ray");
+  return cfRay || "";
+}
+function getRetryAfter(headers) {
+  const retryAfter = headers?.get("Retry-After");
+  if (!retryAfter) {
+    return;
+  }
+  const value = parseInt(retryAfter, 10);
+  if (isNaN(value)) {
+    return;
+  }
+  return value;
+}
+function parseErrors2(data) {
+  if (!!data && typeof data === "object" && "errors" in data) {
+    const errors3 = data.errors;
+    return errors3.length > 0 ? errors3.map(parseError) : [];
+  }
+  return [];
+}
+function withLegacyRequestReturn(cb) {
+  return async (...args) => {
+    const { data, errors: errors3, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+    if (errors3) {
+      const error48 = new ClerkAPIResponseError(statusText || "", {
+        data: [],
+        status,
+        clerkTraceId,
+        retryAfter
+      });
+      error48.errors = errors3;
+      throw error48;
+    }
+    if (typeof totalCount !== "undefined") {
+      return { data, totalCount };
+    }
+    return data;
+  };
+}
+function createBackendApiClient(options) {
+  const request = buildRequest(options);
+  return {
+    __experimental_accountlessApplications: new AccountlessApplicationAPI(buildRequest({ ...options, requireSecretKey: false })),
+    actorTokens: new ActorTokenAPI(request),
+    allowlistIdentifiers: new AllowlistIdentifierAPI(request),
+    apiKeys: new APIKeysAPI(buildRequest({
+      ...options,
+      skipApiVersionInUrl: true
+    })),
+    betaFeatures: new BetaFeaturesAPI(request),
+    blocklistIdentifiers: new BlocklistIdentifierAPI(request),
+    billing: new BillingAPI(request),
+    clients: new ClientAPI(request),
+    domains: new DomainAPI(request),
+    emailAddresses: new EmailAddressAPI(request),
+    idPOAuthAccessToken: new IdPOAuthAccessTokenApi(buildRequest({
+      ...options,
+      skipApiVersionInUrl: true
+    })),
+    instance: new InstanceAPI(request),
+    invitations: new InvitationAPI(request),
+    jwks: new JwksAPI(request),
+    jwtTemplates: new JwtTemplatesApi(request),
+    machines: new MachineApi(request),
+    m2m: new M2MTokenApi(buildRequest({
+      ...options,
+      skipApiVersionInUrl: true,
+      requireSecretKey: false,
+      useMachineSecretKey: true
+    })),
+    oauthApplications: new OAuthApplicationsApi(request),
+    organizations: new OrganizationAPI(request),
+    phoneNumbers: new PhoneNumberAPI(request),
+    proxyChecks: new ProxyCheckAPI(request),
+    redirectUrls: new RedirectUrlAPI(request),
+    samlConnections: new SamlConnectionAPI(request),
+    sessions: new SessionAPI(request),
+    signInTokens: new SignInTokenAPI(request),
+    signUps: new SignUpAPI(request),
+    testingTokens: new TestingTokenAPI(request),
+    users: new UserAPI(request),
+    waitlistEntries: new WaitlistEntryAPI(request),
+    webhooks: new WebhookAPI(request)
+  };
+}
+var M2M_TOKEN_PREFIX = "mt_";
+var OAUTH_TOKEN_PREFIX = "oat_";
+var API_KEY_PREFIX = "ak_";
+var MACHINE_TOKEN_PREFIXES = [M2M_TOKEN_PREFIX, OAUTH_TOKEN_PREFIX, API_KEY_PREFIX];
+var JwtFormatRegExp = /^[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+$/;
+function isJwtFormat(token) {
+  return JwtFormatRegExp.test(token);
+}
+var OAUTH_ACCESS_TOKEN_TYPES = ["at+jwt", "application/at+jwt"];
+function isOAuthJwt(token) {
+  if (!isJwtFormat(token)) {
+    return false;
+  }
+  try {
+    const { data, errors: errors3 } = decodeJwt(token);
+    return !errors3 && !!data && OAUTH_ACCESS_TOKEN_TYPES.includes(data.header.typ);
+  } catch {
+    return false;
+  }
+}
+function isMachineTokenByPrefix(token) {
+  return MACHINE_TOKEN_PREFIXES.some((prefix) => token.startsWith(prefix));
+}
+function isMachineToken(token) {
+  return isMachineTokenByPrefix(token) || isOAuthJwt(token);
+}
+function getMachineTokenType(token) {
+  if (token.startsWith(M2M_TOKEN_PREFIX)) {
+    return TokenType.M2MToken;
+  }
+  if (token.startsWith(OAUTH_TOKEN_PREFIX) || isOAuthJwt(token)) {
+    return TokenType.OAuthToken;
+  }
+  if (token.startsWith(API_KEY_PREFIX)) {
+    return TokenType.ApiKey;
+  }
+  throw new Error("Unknown machine token type");
+}
+var isTokenTypeAccepted = (tokenType, acceptsToken) => {
+  if (!tokenType) {
+    return false;
+  }
+  if (acceptsToken === "any") {
+    return true;
+  }
+  const tokenTypes = Array.isArray(acceptsToken) ? acceptsToken : [acceptsToken];
+  return tokenTypes.includes(tokenType);
+};
+var createDebug = (data) => {
+  return () => {
+    const res = { ...data };
+    res.secretKey = (res.secretKey || "").substring(0, 7);
+    res.jwtKey = (res.jwtKey || "").substring(0, 7);
+    return { ...res };
+  };
+};
+function signedInAuthObject(authenticateContext, sessionToken, sessionClaims) {
+  const { actor, sessionId, sessionStatus, userId, orgId, orgRole, orgSlug, orgPermissions, factorVerificationAge } = __experimental_JWTPayloadToAuthObjectProperties(sessionClaims);
+  const apiClient = createBackendApiClient(authenticateContext);
+  const getToken = createGetToken({
+    sessionId,
+    sessionToken,
+    fetcher: async (sessionId2, template, expiresInSeconds) => (await apiClient.sessions.getToken(sessionId2, template || "", expiresInSeconds)).jwt
+  });
+  return {
+    tokenType: TokenType.SessionToken,
+    actor,
+    sessionClaims,
+    sessionId,
+    sessionStatus,
+    userId,
+    orgId,
+    orgRole,
+    orgSlug,
+    orgPermissions,
+    factorVerificationAge,
+    getToken,
+    has: createCheckAuthorization({
+      orgId,
+      orgRole,
+      orgPermissions,
+      userId,
+      factorVerificationAge,
+      features: sessionClaims.fea || "",
+      plans: sessionClaims.pla || ""
+    }),
+    debug: createDebug({ ...authenticateContext, sessionToken }),
+    isAuthenticated: true
+  };
+}
+function signedOutAuthObject(debugData, initialSessionStatus) {
+  return {
+    tokenType: TokenType.SessionToken,
+    sessionClaims: null,
+    sessionId: null,
+    sessionStatus: initialSessionStatus ?? null,
+    userId: null,
+    actor: null,
+    orgId: null,
+    orgRole: null,
+    orgSlug: null,
+    orgPermissions: null,
+    factorVerificationAge: null,
+    getToken: () => Promise.resolve(null),
+    has: () => false,
+    debug: createDebug(debugData),
+    isAuthenticated: false
+  };
+}
+function authenticatedMachineObject(tokenType, token, verificationResult, debugData) {
+  const baseObject = {
+    id: verificationResult.id,
+    subject: verificationResult.subject,
+    getToken: () => Promise.resolve(token),
+    has: () => false,
+    debug: createDebug(debugData),
+    isAuthenticated: true
+  };
+  switch (tokenType) {
+    case TokenType.ApiKey: {
+      const result = verificationResult;
+      return {
+        ...baseObject,
+        tokenType,
+        name: result.name,
+        claims: result.claims,
+        scopes: result.scopes,
+        userId: result.subject.startsWith("user_") ? result.subject : null,
+        orgId: result.subject.startsWith("org_") ? result.subject : null
+      };
+    }
+    case TokenType.M2MToken: {
+      const result = verificationResult;
+      return {
+        ...baseObject,
+        tokenType,
+        claims: result.claims,
+        scopes: result.scopes,
+        machineId: result.subject
+      };
+    }
+    case TokenType.OAuthToken: {
+      const result = verificationResult;
+      return {
+        ...baseObject,
+        tokenType,
+        scopes: result.scopes,
+        userId: result.subject,
+        clientId: result.clientId
+      };
+    }
+    default:
+      throw new Error(`Invalid token type: ${tokenType}`);
+  }
+}
+function unauthenticatedMachineObject(tokenType, debugData) {
+  const baseObject = {
+    id: null,
+    subject: null,
+    scopes: null,
+    has: () => false,
+    getToken: () => Promise.resolve(null),
+    debug: createDebug(debugData),
+    isAuthenticated: false
+  };
+  switch (tokenType) {
+    case TokenType.ApiKey: {
+      return {
+        ...baseObject,
+        tokenType,
+        name: null,
+        claims: null,
+        scopes: null,
+        userId: null,
+        orgId: null
+      };
+    }
+    case TokenType.M2MToken: {
+      return {
+        ...baseObject,
+        tokenType,
+        claims: null,
+        scopes: null,
+        machineId: null
+      };
+    }
+    case TokenType.OAuthToken: {
+      return {
+        ...baseObject,
+        tokenType,
+        scopes: null,
+        userId: null,
+        clientId: null
+      };
+    }
+    default:
+      throw new Error(`Invalid token type: ${tokenType}`);
+  }
+}
+function invalidTokenAuthObject() {
+  return {
+    isAuthenticated: false,
+    tokenType: null,
+    getToken: () => Promise.resolve(null),
+    has: () => false,
+    debug: () => ({})
+  };
+}
+var createGetToken = (params) => {
+  const { fetcher, sessionToken, sessionId } = params || {};
+  return async (options = {}) => {
+    if (!sessionId) {
+      return null;
+    }
+    if (options.template || options.expiresInSeconds !== undefined) {
+      return fetcher(sessionId, options.template, options.expiresInSeconds);
+    }
+    return sessionToken;
+  };
+};
+var AuthStatus = {
+  SignedIn: "signed-in",
+  SignedOut: "signed-out",
+  Handshake: "handshake"
+};
+var AuthErrorReason = {
+  ClientUATWithoutSessionToken: "client-uat-but-no-session-token",
+  DevBrowserMissing: "dev-browser-missing",
+  DevBrowserSync: "dev-browser-sync",
+  PrimaryRespondsToSyncing: "primary-responds-to-syncing",
+  PrimaryDomainCrossOriginSync: "primary-domain-cross-origin-sync",
+  SatelliteCookieNeedsSyncing: "satellite-needs-syncing",
+  SessionTokenAndUATMissing: "session-token-and-uat-missing",
+  SessionTokenMissing: "session-token-missing",
+  SessionTokenExpired: "session-token-expired",
+  SessionTokenIATBeforeClientUAT: "session-token-iat-before-client-uat",
+  SessionTokenNBF: "session-token-nbf",
+  SessionTokenIatInTheFuture: "session-token-iat-in-the-future",
+  SessionTokenWithoutClientUAT: "session-token-but-no-client-uat",
+  ActiveOrganizationMismatch: "active-organization-mismatch",
+  TokenTypeMismatch: "token-type-mismatch",
+  UnexpectedError: "unexpected-error"
+};
+function signedIn(params) {
+  const { authenticateContext, headers = new Headers, token } = params;
+  const toAuth = ({ treatPendingAsSignedOut = true } = {}) => {
+    if (params.tokenType === TokenType.SessionToken) {
+      const { sessionClaims } = params;
+      const authObject = signedInAuthObject(authenticateContext, token, sessionClaims);
+      if (treatPendingAsSignedOut && authObject.sessionStatus === "pending") {
+        return signedOutAuthObject(undefined, authObject.sessionStatus);
+      }
+      return authObject;
+    }
+    const { machineData } = params;
+    return authenticatedMachineObject(params.tokenType, token, machineData, authenticateContext);
+  };
+  return {
+    status: AuthStatus.SignedIn,
+    reason: null,
+    message: null,
+    proxyUrl: authenticateContext.proxyUrl || "",
+    publishableKey: authenticateContext.publishableKey || "",
+    isSatellite: authenticateContext.isSatellite || false,
+    domain: authenticateContext.domain || "",
+    signInUrl: authenticateContext.signInUrl || "",
+    signUpUrl: authenticateContext.signUpUrl || "",
+    afterSignInUrl: authenticateContext.afterSignInUrl || "",
+    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
+    isSignedIn: true,
+    isAuthenticated: true,
+    tokenType: params.tokenType,
+    toAuth,
+    headers,
+    token
+  };
+}
+function signedOut(params) {
+  const { authenticateContext, headers = new Headers, reason, message = "", tokenType } = params;
+  const toAuth = () => {
+    if (tokenType === TokenType.SessionToken) {
+      return signedOutAuthObject({ ...authenticateContext, status: AuthStatus.SignedOut, reason, message });
+    }
+    return unauthenticatedMachineObject(tokenType, { reason, message, headers });
+  };
+  return withDebugHeaders({
+    status: AuthStatus.SignedOut,
+    reason,
+    message,
+    proxyUrl: authenticateContext.proxyUrl || "",
+    publishableKey: authenticateContext.publishableKey || "",
+    isSatellite: authenticateContext.isSatellite || false,
+    domain: authenticateContext.domain || "",
+    signInUrl: authenticateContext.signInUrl || "",
+    signUpUrl: authenticateContext.signUpUrl || "",
+    afterSignInUrl: authenticateContext.afterSignInUrl || "",
+    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
+    isSignedIn: false,
+    isAuthenticated: false,
+    tokenType,
+    toAuth,
+    headers,
+    token: null
+  });
+}
+function handshake(authenticateContext, reason, message = "", headers) {
+  return withDebugHeaders({
+    status: AuthStatus.Handshake,
+    reason,
+    message,
+    publishableKey: authenticateContext.publishableKey || "",
+    isSatellite: authenticateContext.isSatellite || false,
+    domain: authenticateContext.domain || "",
+    proxyUrl: authenticateContext.proxyUrl || "",
+    signInUrl: authenticateContext.signInUrl || "",
+    signUpUrl: authenticateContext.signUpUrl || "",
+    afterSignInUrl: authenticateContext.afterSignInUrl || "",
+    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
+    isSignedIn: false,
+    isAuthenticated: false,
+    tokenType: TokenType.SessionToken,
+    toAuth: () => null,
+    headers,
+    token: null
+  });
+}
+function signedOutInvalidToken() {
+  const authObject = invalidTokenAuthObject();
+  return withDebugHeaders({
+    status: AuthStatus.SignedOut,
+    reason: AuthErrorReason.TokenTypeMismatch,
+    message: "",
+    proxyUrl: "",
+    publishableKey: "",
+    isSatellite: false,
+    domain: "",
+    signInUrl: "",
+    signUpUrl: "",
+    afterSignInUrl: "",
+    afterSignUpUrl: "",
+    isSignedIn: false,
+    isAuthenticated: false,
+    tokenType: null,
+    toAuth: () => authObject,
+    headers: new Headers,
+    token: null
+  });
+}
+var withDebugHeaders = (requestState) => {
+  const headers = new Headers(requestState.headers || {});
+  if (requestState.message) {
+    try {
+      headers.set(constants.Headers.AuthMessage, requestState.message);
+    } catch {}
+  }
+  if (requestState.reason) {
+    try {
+      headers.set(constants.Headers.AuthReason, requestState.reason);
+    } catch {}
+  }
+  if (requestState.status) {
+    try {
+      headers.set(constants.Headers.AuthStatus, requestState.status);
+    } catch {}
+  }
+  requestState.headers = headers;
+  return requestState;
+};
 var import_cookie3 = __toESM2(require_dist());
+var ClerkUrl = class extends URL {
+  isCrossOrigin(other) {
+    return this.origin !== new URL(other.toString()).origin;
+  }
+};
+var createClerkUrl = (...args) => {
+  return new ClerkUrl(...args);
+};
+var ClerkRequest = class extends Request {
+  constructor(input, init) {
+    const url2 = typeof input !== "string" && "url" in input ? input.url : String(input);
+    super(url2, init || typeof input === "string" ? undefined : input);
+    this.clerkUrl = this.deriveUrlFromHeaders(this);
+    this.cookies = this.parseCookies(this);
+  }
+  toJSON() {
+    return {
+      url: this.clerkUrl.href,
+      method: this.method,
+      headers: JSON.stringify(Object.fromEntries(this.headers)),
+      clerkUrl: this.clerkUrl.toString(),
+      cookies: JSON.stringify(Object.fromEntries(this.cookies))
+    };
+  }
+  deriveUrlFromHeaders(req) {
+    const initialUrl = new URL(req.url);
+    const forwardedProto = req.headers.get(constants.Headers.ForwardedProto);
+    const forwardedHost = req.headers.get(constants.Headers.ForwardedHost);
+    const host = req.headers.get(constants.Headers.Host);
+    const protocol = initialUrl.protocol;
+    const resolvedHost = this.getFirstValueFromHeader(forwardedHost) ?? host;
+    const resolvedProtocol = this.getFirstValueFromHeader(forwardedProto) ?? protocol?.replace(/[:/]/, "");
+    const origin = resolvedHost && resolvedProtocol ? `${resolvedProtocol}://${resolvedHost}` : initialUrl.origin;
+    if (origin === initialUrl.origin) {
+      return createClerkUrl(initialUrl);
+    }
+    return createClerkUrl(initialUrl.pathname + initialUrl.search, origin);
+  }
+  getFirstValueFromHeader(value) {
+    return value?.split(",")[0];
+  }
+  parseCookies(req) {
+    const cookiesRecord = (0, import_cookie3.parse)(this.decodeCookieValue(req.headers.get("cookie") || ""));
+    return new Map(Object.entries(cookiesRecord));
+  }
+  decodeCookieValue(str) {
+    return str ? str.replace(/(%[0-9A-Z]{2})+/g, decodeURIComponent) : str;
+  }
+};
+var createClerkRequest = (...args) => {
+  const isClerkRequest = args[0] && typeof args[0] === "object" && "clerkUrl" in args[0] && "cookies" in args[0];
+  return isClerkRequest ? args[0] : new ClerkRequest(...args);
+};
+var getCookieName = (cookieDirective) => {
+  return cookieDirective.split(";")[0]?.split("=")[0];
+};
+var getCookieValue = (cookieDirective) => {
+  return cookieDirective.split(";")[0]?.split("=")[1];
+};
 var cache = {};
 var lastUpdatedAt = 0;
 function getFromCache(kid) {
@@ -24790,6 +28933,1015 @@ async function verifyToken(token, options) {
   } catch (error48) {
     return { errors: [error48] };
   }
+}
+function handleClerkAPIError(tokenType, err, notFoundMessage) {
+  if (isClerkAPIResponseError(err)) {
+    let code;
+    let message;
+    switch (err.status) {
+      case 401:
+        code = MachineTokenVerificationErrorCode.InvalidSecretKey;
+        message = err.errors[0]?.message || "Invalid secret key";
+        break;
+      case 404:
+        code = MachineTokenVerificationErrorCode.TokenInvalid;
+        message = notFoundMessage;
+        break;
+      default:
+        code = MachineTokenVerificationErrorCode.UnexpectedError;
+        message = "Unexpected error";
+    }
+    return {
+      data: undefined,
+      tokenType,
+      errors: [
+        new MachineTokenVerificationError({
+          message,
+          code,
+          status: err.status
+        })
+      ]
+    };
+  }
+  return {
+    data: undefined,
+    tokenType,
+    errors: [
+      new MachineTokenVerificationError({
+        message: "Unexpected error",
+        code: MachineTokenVerificationErrorCode.UnexpectedError,
+        status: err.status
+      })
+    ]
+  };
+}
+async function verifyM2MToken(token, options) {
+  try {
+    const client = createBackendApiClient(options);
+    const verifiedToken = await client.m2m.verify({ token });
+    return { data: verifiedToken, tokenType: TokenType.M2MToken, errors: undefined };
+  } catch (err) {
+    return handleClerkAPIError(TokenType.M2MToken, err, "Machine token not found");
+  }
+}
+async function verifyJwtOAuthToken(accessToken, options) {
+  let decoded;
+  try {
+    decoded = decodeJwt(accessToken);
+  } catch (e) {
+    return {
+      data: undefined,
+      tokenType: TokenType.OAuthToken,
+      errors: [
+        new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenInvalid,
+          message: e.message
+        })
+      ]
+    };
+  }
+  const { data: decodedResult, errors: errors3 } = decoded;
+  if (errors3) {
+    return {
+      data: undefined,
+      tokenType: TokenType.OAuthToken,
+      errors: [
+        new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenInvalid,
+          message: errors3[0].message
+        })
+      ]
+    };
+  }
+  const { header } = decodedResult;
+  const { kid } = header;
+  let key;
+  try {
+    if (options.jwtKey) {
+      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
+    } else if (options.secretKey) {
+      key = await loadClerkJWKFromRemote({ ...options, kid });
+    } else {
+      return {
+        data: undefined,
+        tokenType: TokenType.OAuthToken,
+        errors: [
+          new MachineTokenVerificationError({
+            action: TokenVerificationErrorAction.SetClerkJWTKey,
+            message: "Failed to resolve JWK during verification.",
+            code: MachineTokenVerificationErrorCode.TokenVerificationFailed
+          })
+        ]
+      };
+    }
+    const { data: payload, errors: verifyErrors } = await verifyJwt(accessToken, {
+      ...options,
+      key,
+      headerType: OAUTH_ACCESS_TOKEN_TYPES
+    });
+    if (verifyErrors) {
+      return {
+        data: undefined,
+        tokenType: TokenType.OAuthToken,
+        errors: [
+          new MachineTokenVerificationError({
+            code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
+            message: verifyErrors[0].message
+          })
+        ]
+      };
+    }
+    const token = IdPOAuthAccessToken.fromJwtPayload(payload, options.clockSkewInMs);
+    return { data: token, tokenType: TokenType.OAuthToken, errors: undefined };
+  } catch (error48) {
+    return {
+      tokenType: TokenType.OAuthToken,
+      errors: [
+        new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
+          message: error48.message
+        })
+      ]
+    };
+  }
+}
+async function verifyOAuthToken(accessToken, options) {
+  if (isJwtFormat(accessToken)) {
+    return verifyJwtOAuthToken(accessToken, options);
+  }
+  try {
+    const client = createBackendApiClient(options);
+    const verifiedToken = await client.idPOAuthAccessToken.verify(accessToken);
+    return { data: verifiedToken, tokenType: TokenType.OAuthToken, errors: undefined };
+  } catch (err) {
+    return handleClerkAPIError(TokenType.OAuthToken, err, "OAuth token not found");
+  }
+}
+async function verifyAPIKey(secret, options) {
+  try {
+    const client = createBackendApiClient(options);
+    const verifiedToken = await client.apiKeys.verify(secret);
+    return { data: verifiedToken, tokenType: TokenType.ApiKey, errors: undefined };
+  } catch (err) {
+    return handleClerkAPIError(TokenType.ApiKey, err, "API key not found");
+  }
+}
+async function verifyMachineAuthToken(token, options) {
+  if (token.startsWith(M2M_TOKEN_PREFIX)) {
+    return verifyM2MToken(token, options);
+  }
+  if (token.startsWith(OAUTH_TOKEN_PREFIX) || isJwtFormat(token)) {
+    return verifyOAuthToken(token, options);
+  }
+  if (token.startsWith(API_KEY_PREFIX)) {
+    return verifyAPIKey(token, options);
+  }
+  throw new Error("Unknown machine token type");
+}
+async function verifyHandshakeJwt(token, { key }) {
+  const { data: decoded, errors: errors3 } = decodeJwt(token);
+  if (errors3) {
+    throw errors3[0];
+  }
+  const { header, payload } = decoded;
+  const { typ, alg } = header;
+  assertHeaderType(typ);
+  assertHeaderAlgorithm(alg);
+  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
+  if (signatureErrors) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Error verifying handshake token. ${signatureErrors[0]}`
+    });
+  }
+  if (!signatureValid) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenInvalidSignature,
+      message: "Handshake signature is invalid."
+    });
+  }
+  return payload;
+}
+async function verifyHandshakeToken(token, options) {
+  const { secretKey, apiUrl, apiVersion, jwksCacheTtlInMs, jwtKey, skipJwksCache } = options;
+  const { data, errors: errors3 } = decodeJwt(token);
+  if (errors3) {
+    throw errors3[0];
+  }
+  const { kid } = data.header;
+  let key;
+  if (jwtKey) {
+    key = loadClerkJwkFromPem({ kid, pem: jwtKey });
+  } else if (secretKey) {
+    key = await loadClerkJWKFromRemote({ secretKey, apiUrl, apiVersion, kid, jwksCacheTtlInMs, skipJwksCache });
+  } else {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkJWTKey,
+      message: "Failed to resolve JWK during handshake verification.",
+      reason: TokenVerificationErrorReason.JWKFailedToResolve
+    });
+  }
+  return verifyHandshakeJwt(token, { key });
+}
+var HandshakeService = class {
+  constructor(authenticateContext, options, organizationMatcher) {
+    this.authenticateContext = authenticateContext;
+    this.options = options;
+    this.organizationMatcher = organizationMatcher;
+  }
+  isRequestEligibleForHandshake() {
+    const { accept, secFetchDest } = this.authenticateContext;
+    if (secFetchDest === "document" || secFetchDest === "iframe") {
+      return true;
+    }
+    if (!secFetchDest && accept?.startsWith("text/html")) {
+      return true;
+    }
+    return false;
+  }
+  buildRedirectToHandshake(reason) {
+    if (!this.authenticateContext?.clerkUrl) {
+      throw new Error("Missing clerkUrl in authenticateContext");
+    }
+    const redirectUrl = this.removeDevBrowserFromURL(this.authenticateContext.clerkUrl);
+    let baseUrl = this.authenticateContext.frontendApi.startsWith("http") ? this.authenticateContext.frontendApi : `https://${this.authenticateContext.frontendApi}`;
+    baseUrl = baseUrl.replace(/\/+$/, "") + "/";
+    const url2 = new URL("v1/client/handshake", baseUrl);
+    url2.searchParams.append("redirect_url", redirectUrl?.href || "");
+    url2.searchParams.append("__clerk_api_version", SUPPORTED_BAPI_VERSION);
+    url2.searchParams.append(constants.QueryParameters.SuffixedCookies, this.authenticateContext.usesSuffixedCookies().toString());
+    url2.searchParams.append(constants.QueryParameters.HandshakeReason, reason);
+    url2.searchParams.append(constants.QueryParameters.HandshakeFormat, "nonce");
+    if (this.authenticateContext.sessionToken) {
+      url2.searchParams.append(constants.QueryParameters.Session, this.authenticateContext.sessionToken);
+    }
+    if (this.authenticateContext.instanceType === "development" && this.authenticateContext.devBrowserToken) {
+      url2.searchParams.append(constants.QueryParameters.DevBrowser, this.authenticateContext.devBrowserToken);
+    }
+    const toActivate = this.getOrganizationSyncTarget(this.authenticateContext.clerkUrl, this.organizationMatcher);
+    if (toActivate) {
+      const params = this.getOrganizationSyncQueryParams(toActivate);
+      params.forEach((value, key) => {
+        url2.searchParams.append(key, value);
+      });
+    }
+    return new Headers({ [constants.Headers.Location]: url2.href });
+  }
+  async getCookiesFromHandshake() {
+    const cookiesToSet = [];
+    if (this.authenticateContext.handshakeNonce) {
+      try {
+        const handshakePayload = await this.authenticateContext.apiClient?.clients.getHandshakePayload({
+          nonce: this.authenticateContext.handshakeNonce
+        });
+        if (handshakePayload) {
+          cookiesToSet.push(...handshakePayload.directives);
+        }
+      } catch (error48) {
+        console.error("Clerk: HandshakeService: error getting handshake payload:", error48);
+      }
+    } else if (this.authenticateContext.handshakeToken) {
+      const handshakePayload = await verifyHandshakeToken(this.authenticateContext.handshakeToken, this.authenticateContext);
+      if (handshakePayload && Array.isArray(handshakePayload.handshake)) {
+        cookiesToSet.push(...handshakePayload.handshake);
+      }
+    }
+    return cookiesToSet;
+  }
+  async resolveHandshake() {
+    const headers = new Headers({
+      "Access-Control-Allow-Origin": "null",
+      "Access-Control-Allow-Credentials": "true"
+    });
+    const cookiesToSet = await this.getCookiesFromHandshake();
+    let sessionToken = "";
+    cookiesToSet.forEach((x) => {
+      headers.append("Set-Cookie", x);
+      if (getCookieName(x).startsWith(constants.Cookies.Session)) {
+        sessionToken = getCookieValue(x);
+      }
+    });
+    if (this.authenticateContext.instanceType === "development") {
+      const newUrl = new URL(this.authenticateContext.clerkUrl);
+      newUrl.searchParams.delete(constants.QueryParameters.Handshake);
+      newUrl.searchParams.delete(constants.QueryParameters.HandshakeHelp);
+      newUrl.searchParams.delete(constants.QueryParameters.DevBrowser);
+      newUrl.searchParams.delete(constants.QueryParameters.HandshakeNonce);
+      headers.append(constants.Headers.Location, newUrl.toString());
+      headers.set(constants.Headers.CacheControl, "no-store");
+    }
+    if (sessionToken === "") {
+      return signedOut({
+        tokenType: TokenType.SessionToken,
+        authenticateContext: this.authenticateContext,
+        reason: AuthErrorReason.SessionTokenMissing,
+        message: "",
+        headers
+      });
+    }
+    const { data, errors: [error48] = [] } = await verifyToken(sessionToken, this.authenticateContext);
+    if (data) {
+      return signedIn({
+        tokenType: TokenType.SessionToken,
+        authenticateContext: this.authenticateContext,
+        sessionClaims: data,
+        headers,
+        token: sessionToken
+      });
+    }
+    if (this.authenticateContext.instanceType === "development" && (error48?.reason === TokenVerificationErrorReason.TokenExpired || error48?.reason === TokenVerificationErrorReason.TokenNotActiveYet || error48?.reason === TokenVerificationErrorReason.TokenIatInTheFuture)) {
+      const developmentError = new TokenVerificationError({
+        action: error48.action,
+        message: error48.message,
+        reason: error48.reason
+      });
+      developmentError.tokenCarrier = "cookie";
+      console.error(`Clerk: Clock skew detected. This usually means that your system clock is inaccurate. Clerk will attempt to account for the clock skew in development.
+
+To resolve this issue, make sure your system's clock is set to the correct time (e.g. turn off and on automatic time synchronization).
+
+---
+
+${developmentError.getFullMessage()}`);
+      const { data: retryResult, errors: [retryError] = [] } = await verifyToken(sessionToken, {
+        ...this.authenticateContext,
+        clockSkewInMs: 86400000
+      });
+      if (retryResult) {
+        return signedIn({
+          tokenType: TokenType.SessionToken,
+          authenticateContext: this.authenticateContext,
+          sessionClaims: retryResult,
+          headers,
+          token: sessionToken
+        });
+      }
+      throw new Error(retryError?.message || "Clerk: Handshake retry failed.");
+    }
+    throw new Error(error48?.message || "Clerk: Handshake failed.");
+  }
+  handleTokenVerificationErrorInDevelopment(error48) {
+    if (error48.reason === TokenVerificationErrorReason.TokenInvalidSignature) {
+      const msg = `Clerk: Handshake token verification failed due to an invalid signature. If you have switched Clerk keys locally, clear your cookies and try again.`;
+      throw new Error(msg);
+    }
+    throw new Error(`Clerk: Handshake token verification failed: ${error48.getFullMessage()}.`);
+  }
+  checkAndTrackRedirectLoop(headers) {
+    if (this.authenticateContext.handshakeRedirectLoopCounter === 3) {
+      return true;
+    }
+    const newCounterValue = this.authenticateContext.handshakeRedirectLoopCounter + 1;
+    const cookieName = constants.Cookies.RedirectCount;
+    headers.append("Set-Cookie", `${cookieName}=${newCounterValue}; SameSite=Lax; HttpOnly; Max-Age=2`);
+    return false;
+  }
+  removeDevBrowserFromURL(url2) {
+    const updatedURL = new URL(url2);
+    updatedURL.searchParams.delete(constants.QueryParameters.DevBrowser);
+    updatedURL.searchParams.delete(constants.QueryParameters.LegacyDevBrowser);
+    return updatedURL;
+  }
+  getOrganizationSyncTarget(url2, matchers) {
+    return matchers.findTarget(url2);
+  }
+  getOrganizationSyncQueryParams(toActivate) {
+    const ret = /* @__PURE__ */ new Map;
+    if (toActivate.type === "personalAccount") {
+      ret.set("organization_id", "");
+    }
+    if (toActivate.type === "organization") {
+      if (toActivate.organizationId) {
+        ret.set("organization_id", toActivate.organizationId);
+      }
+      if (toActivate.organizationSlug) {
+        ret.set("organization_id", toActivate.organizationSlug);
+      }
+    }
+    return ret;
+  }
+};
+var OrganizationMatcher = class {
+  constructor(options) {
+    this.organizationPattern = this.createMatcher(options?.organizationPatterns);
+    this.personalAccountPattern = this.createMatcher(options?.personalAccountPatterns);
+  }
+  createMatcher(pattern) {
+    if (!pattern) {
+      return null;
+    }
+    try {
+      return match2(pattern);
+    } catch (e) {
+      throw new Error(`Invalid pattern "${pattern}": ${e}`);
+    }
+  }
+  findTarget(url2) {
+    const orgTarget = this.findOrganizationTarget(url2);
+    if (orgTarget) {
+      return orgTarget;
+    }
+    return this.findPersonalAccountTarget(url2);
+  }
+  findOrganizationTarget(url2) {
+    if (!this.organizationPattern) {
+      return null;
+    }
+    try {
+      const result = this.organizationPattern(url2.pathname);
+      if (!result || !("params" in result)) {
+        return null;
+      }
+      const params = result.params;
+      if (params.id) {
+        return { type: "organization", organizationId: params.id };
+      }
+      if (params.slug) {
+        return { type: "organization", organizationSlug: params.slug };
+      }
+      return null;
+    } catch (e) {
+      console.error("Failed to match organization pattern:", e);
+      return null;
+    }
+  }
+  findPersonalAccountTarget(url2) {
+    if (!this.personalAccountPattern) {
+      return null;
+    }
+    try {
+      const result = this.personalAccountPattern(url2.pathname);
+      return result ? { type: "personalAccount" } : null;
+    } catch (e) {
+      console.error("Failed to match personal account pattern:", e);
+      return null;
+    }
+  }
+};
+var RefreshTokenErrorReason = {
+  NonEligibleNoCookie: "non-eligible-no-refresh-cookie",
+  NonEligibleNonGet: "non-eligible-non-get",
+  InvalidSessionToken: "invalid-session-token",
+  MissingApiClient: "missing-api-client",
+  MissingSessionToken: "missing-session-token",
+  MissingRefreshToken: "missing-refresh-token",
+  ExpiredSessionTokenDecodeFailed: "expired-session-token-decode-failed",
+  ExpiredSessionTokenMissingSidClaim: "expired-session-token-missing-sid-claim",
+  FetchError: "fetch-error",
+  UnexpectedSDKError: "unexpected-sdk-error",
+  UnexpectedBAPIError: "unexpected-bapi-error"
+};
+function assertSignInUrlExists(signInUrl, key) {
+  if (!signInUrl && isDevelopmentFromSecretKey(key)) {
+    throw new Error(`Missing signInUrl. Pass a signInUrl for dev instances if an app is satellite`);
+  }
+}
+function assertProxyUrlOrDomain(proxyUrlOrDomain) {
+  if (!proxyUrlOrDomain) {
+    throw new Error(`Missing domain and proxyUrl. A satellite application needs to specify a domain or a proxyUrl`);
+  }
+}
+function assertSignInUrlFormatAndOrigin(_signInUrl, origin) {
+  let signInUrl;
+  try {
+    signInUrl = new URL(_signInUrl);
+  } catch {
+    throw new Error(`The signInUrl needs to have a absolute url format.`);
+  }
+  if (signInUrl.origin === origin) {
+    throw new Error(`The signInUrl needs to be on a different origin than your satellite application.`);
+  }
+}
+function assertMachineSecretOrSecretKey(authenticateContext) {
+  if (!authenticateContext.machineSecretKey && !authenticateContext.secretKey) {
+    throw new Error("Machine token authentication requires either a Machine secret key or a Clerk secret key. Ensure a Clerk secret key or Machine secret key is set.");
+  }
+}
+function isRequestEligibleForRefresh(err, authenticateContext, request) {
+  return err.reason === TokenVerificationErrorReason.TokenExpired && !!authenticateContext.refreshTokenInCookie && request.method === "GET";
+}
+function checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext) {
+  const mismatch = !isTokenTypeAccepted(parsedTokenType, acceptsToken);
+  if (mismatch) {
+    const tokenTypeToReturn = typeof acceptsToken === "string" ? acceptsToken : parsedTokenType;
+    return signedOut({
+      tokenType: tokenTypeToReturn,
+      authenticateContext,
+      reason: AuthErrorReason.TokenTypeMismatch
+    });
+  }
+  return null;
+}
+function isTokenTypeInAcceptedArray(acceptsToken, authenticateContext) {
+  let parsedTokenType = null;
+  const { tokenInHeader } = authenticateContext;
+  if (tokenInHeader) {
+    if (isMachineToken(tokenInHeader)) {
+      parsedTokenType = getMachineTokenType(tokenInHeader);
+    } else {
+      parsedTokenType = TokenType.SessionToken;
+    }
+  }
+  const typeToCheck = parsedTokenType ?? TokenType.SessionToken;
+  return isTokenTypeAccepted(typeToCheck, acceptsToken);
+}
+var authenticateRequest = async (request, options) => {
+  const authenticateContext = await createAuthenticateContext(createClerkRequest(request), options);
+  const acceptsToken = options.acceptsToken ?? TokenType.SessionToken;
+  if (acceptsToken !== TokenType.M2MToken) {
+    assertValidSecretKey(authenticateContext.secretKey);
+    if (authenticateContext.isSatellite) {
+      assertSignInUrlExists(authenticateContext.signInUrl, authenticateContext.secretKey);
+      if (authenticateContext.signInUrl && authenticateContext.origin) {
+        assertSignInUrlFormatAndOrigin(authenticateContext.signInUrl, authenticateContext.origin);
+      }
+      assertProxyUrlOrDomain(authenticateContext.proxyUrl || authenticateContext.domain);
+    }
+  }
+  if (acceptsToken === TokenType.M2MToken) {
+    assertMachineSecretOrSecretKey(authenticateContext);
+  }
+  const organizationMatcher = new OrganizationMatcher(options.organizationSyncOptions);
+  const handshakeService = new HandshakeService(authenticateContext, { organizationSyncOptions: options.organizationSyncOptions }, organizationMatcher);
+  async function refreshToken(authenticateContext2) {
+    if (!options.apiClient) {
+      return {
+        data: null,
+        error: {
+          message: "An apiClient is needed to perform token refresh.",
+          cause: { reason: RefreshTokenErrorReason.MissingApiClient }
+        }
+      };
+    }
+    const { sessionToken: expiredSessionToken, refreshTokenInCookie: refreshToken2 } = authenticateContext2;
+    if (!expiredSessionToken) {
+      return {
+        data: null,
+        error: {
+          message: "Session token must be provided.",
+          cause: { reason: RefreshTokenErrorReason.MissingSessionToken }
+        }
+      };
+    }
+    if (!refreshToken2) {
+      return {
+        data: null,
+        error: {
+          message: "Refresh token must be provided.",
+          cause: { reason: RefreshTokenErrorReason.MissingRefreshToken }
+        }
+      };
+    }
+    const { data: decodeResult, errors: decodedErrors } = decodeJwt(expiredSessionToken);
+    if (!decodeResult || decodedErrors) {
+      return {
+        data: null,
+        error: {
+          message: "Unable to decode the expired session token.",
+          cause: { reason: RefreshTokenErrorReason.ExpiredSessionTokenDecodeFailed, errors: decodedErrors }
+        }
+      };
+    }
+    if (!decodeResult?.payload?.sid) {
+      return {
+        data: null,
+        error: {
+          message: "Expired session token is missing the `sid` claim.",
+          cause: { reason: RefreshTokenErrorReason.ExpiredSessionTokenMissingSidClaim }
+        }
+      };
+    }
+    try {
+      const response = await options.apiClient.sessions.refreshSession(decodeResult.payload.sid, {
+        format: "cookie",
+        suffixed_cookies: authenticateContext2.usesSuffixedCookies(),
+        expired_token: expiredSessionToken || "",
+        refresh_token: refreshToken2 || "",
+        request_origin: authenticateContext2.clerkUrl.origin,
+        request_headers: Object.fromEntries(Array.from(request.headers.entries()).map(([k, v]) => [k, [v]]))
+      });
+      return { data: response.cookies, error: null };
+    } catch (err) {
+      if (err?.errors?.length) {
+        if (err.errors[0].code === "unexpected_error") {
+          return {
+            data: null,
+            error: {
+              message: `Fetch unexpected error`,
+              cause: { reason: RefreshTokenErrorReason.FetchError, errors: err.errors }
+            }
+          };
+        }
+        return {
+          data: null,
+          error: {
+            message: err.errors[0].code,
+            cause: { reason: err.errors[0].code, errors: err.errors }
+          }
+        };
+      } else {
+        return {
+          data: null,
+          error: {
+            message: `Unexpected Server/BAPI error`,
+            cause: { reason: RefreshTokenErrorReason.UnexpectedBAPIError, errors: [err] }
+          }
+        };
+      }
+    }
+  }
+  async function attemptRefresh(authenticateContext2) {
+    const { data: cookiesToSet, error: error48 } = await refreshToken(authenticateContext2);
+    if (!cookiesToSet || cookiesToSet.length === 0) {
+      return { data: null, error: error48 };
+    }
+    const headers = new Headers;
+    let sessionToken = "";
+    cookiesToSet.forEach((x) => {
+      headers.append("Set-Cookie", x);
+      if (getCookieName(x).startsWith(constants.Cookies.Session)) {
+        sessionToken = getCookieValue(x);
+      }
+    });
+    const { data: jwtPayload, errors: errors3 } = await verifyToken(sessionToken, authenticateContext2);
+    if (errors3) {
+      return {
+        data: null,
+        error: {
+          message: `Clerk: unable to verify refreshed session token.`,
+          cause: { reason: RefreshTokenErrorReason.InvalidSessionToken, errors: errors3 }
+        }
+      };
+    }
+    return { data: { jwtPayload, sessionToken, headers }, error: null };
+  }
+  function handleMaybeHandshakeStatus(authenticateContext2, reason, message, headers) {
+    if (!handshakeService.isRequestEligibleForHandshake()) {
+      return signedOut({
+        tokenType: TokenType.SessionToken,
+        authenticateContext: authenticateContext2,
+        reason,
+        message
+      });
+    }
+    const handshakeHeaders = headers ?? handshakeService.buildRedirectToHandshake(reason);
+    if (handshakeHeaders.get(constants.Headers.Location)) {
+      handshakeHeaders.set(constants.Headers.CacheControl, "no-store");
+    }
+    const isRedirectLoop = handshakeService.checkAndTrackRedirectLoop(handshakeHeaders);
+    if (isRedirectLoop) {
+      const msg = `Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.`;
+      console.log(msg);
+      return signedOut({
+        tokenType: TokenType.SessionToken,
+        authenticateContext: authenticateContext2,
+        reason,
+        message
+      });
+    }
+    return handshake(authenticateContext2, reason, message, handshakeHeaders);
+  }
+  function handleMaybeOrganizationSyncHandshake(authenticateContext2, auth) {
+    const organizationSyncTarget = organizationMatcher.findTarget(authenticateContext2.clerkUrl);
+    if (!organizationSyncTarget) {
+      return null;
+    }
+    let mustActivate = false;
+    if (organizationSyncTarget.type === "organization") {
+      if (organizationSyncTarget.organizationSlug && organizationSyncTarget.organizationSlug !== auth.orgSlug) {
+        mustActivate = true;
+      }
+      if (organizationSyncTarget.organizationId && organizationSyncTarget.organizationId !== auth.orgId) {
+        mustActivate = true;
+      }
+    }
+    if (organizationSyncTarget.type === "personalAccount" && auth.orgId) {
+      mustActivate = true;
+    }
+    if (!mustActivate) {
+      return null;
+    }
+    if (authenticateContext2.handshakeRedirectLoopCounter >= 3) {
+      console.warn("Clerk: Organization activation handshake loop detected. This is likely due to an invalid organization ID or slug. Skipping organization activation.");
+      return null;
+    }
+    const handshakeState = handleMaybeHandshakeStatus(authenticateContext2, AuthErrorReason.ActiveOrganizationMismatch, "");
+    if (handshakeState.status !== "handshake") {
+      return null;
+    }
+    return handshakeState;
+  }
+  async function authenticateRequestWithTokenInHeader() {
+    const { tokenInHeader } = authenticateContext;
+    try {
+      const { data, errors: errors3 } = await verifyToken(tokenInHeader, authenticateContext);
+      if (errors3) {
+        throw errors3[0];
+      }
+      return signedIn({
+        tokenType: TokenType.SessionToken,
+        authenticateContext,
+        sessionClaims: data,
+        headers: new Headers,
+        token: tokenInHeader
+      });
+    } catch (err) {
+      return handleSessionTokenError(err, "header");
+    }
+  }
+  async function authenticateRequestWithTokenInCookie() {
+    const hasActiveClient = authenticateContext.clientUat;
+    const hasSessionToken = !!authenticateContext.sessionTokenInCookie;
+    const hasDevBrowserToken = !!authenticateContext.devBrowserToken;
+    if (authenticateContext.handshakeNonce || authenticateContext.handshakeToken) {
+      try {
+        return await handshakeService.resolveHandshake();
+      } catch (error48) {
+        if (error48 instanceof TokenVerificationError && authenticateContext.instanceType === "development") {
+          handshakeService.handleTokenVerificationErrorInDevelopment(error48);
+        } else {
+          console.error("Clerk: unable to resolve handshake:", error48);
+        }
+      }
+    }
+    const isRequestEligibleForMultiDomainSync = authenticateContext.isSatellite && authenticateContext.secFetchDest === "document";
+    if (authenticateContext.instanceType === "production" && isRequestEligibleForMultiDomainSync) {
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SatelliteCookieNeedsSyncing, "");
+    }
+    if (authenticateContext.instanceType === "development" && isRequestEligibleForMultiDomainSync && !authenticateContext.clerkUrl.searchParams.has(constants.QueryParameters.ClerkSynced)) {
+      const redirectURL = new URL(authenticateContext.signInUrl);
+      redirectURL.searchParams.append(constants.QueryParameters.ClerkRedirectUrl, authenticateContext.clerkUrl.toString());
+      const headers = new Headers({ [constants.Headers.Location]: redirectURL.toString() });
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SatelliteCookieNeedsSyncing, "", headers);
+    }
+    const redirectUrl = new URL(authenticateContext.clerkUrl).searchParams.get(constants.QueryParameters.ClerkRedirectUrl);
+    if (authenticateContext.instanceType === "development" && !authenticateContext.isSatellite && redirectUrl) {
+      const redirectBackToSatelliteUrl = new URL(redirectUrl);
+      if (authenticateContext.devBrowserToken) {
+        redirectBackToSatelliteUrl.searchParams.append(constants.QueryParameters.DevBrowser, authenticateContext.devBrowserToken);
+      }
+      redirectBackToSatelliteUrl.searchParams.append(constants.QueryParameters.ClerkSynced, "true");
+      const headers = new Headers({ [constants.Headers.Location]: redirectBackToSatelliteUrl.toString() });
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.PrimaryRespondsToSyncing, "", headers);
+    }
+    if (authenticateContext.instanceType === "development" && authenticateContext.clerkUrl.searchParams.has(constants.QueryParameters.DevBrowser)) {
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.DevBrowserSync, "");
+    }
+    if (authenticateContext.instanceType === "development" && !hasDevBrowserToken) {
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.DevBrowserMissing, "");
+    }
+    if (!hasActiveClient && !hasSessionToken) {
+      return signedOut({
+        tokenType: TokenType.SessionToken,
+        authenticateContext,
+        reason: AuthErrorReason.SessionTokenAndUATMissing
+      });
+    }
+    if (!hasActiveClient && hasSessionToken) {
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SessionTokenWithoutClientUAT, "");
+    }
+    if (hasActiveClient && !hasSessionToken) {
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.ClientUATWithoutSessionToken, "");
+    }
+    const { data: decodeResult, errors: decodedErrors } = decodeJwt(authenticateContext.sessionTokenInCookie);
+    if (decodedErrors) {
+      return handleSessionTokenError(decodedErrors[0], "cookie");
+    }
+    if (decodeResult.payload.iat < authenticateContext.clientUat) {
+      return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SessionTokenIATBeforeClientUAT, "");
+    }
+    try {
+      const { data, errors: errors3 } = await verifyToken(authenticateContext.sessionTokenInCookie, authenticateContext);
+      if (errors3) {
+        throw errors3[0];
+      }
+      const signedInRequestState = signedIn({
+        tokenType: TokenType.SessionToken,
+        authenticateContext,
+        sessionClaims: data,
+        headers: new Headers,
+        token: authenticateContext.sessionTokenInCookie
+      });
+      const shouldForceHandshakeForCrossDomain = !authenticateContext.isSatellite && authenticateContext.secFetchDest === "document" && authenticateContext.isCrossOriginReferrer() && !authenticateContext.isKnownClerkReferrer() && authenticateContext.handshakeRedirectLoopCounter === 0;
+      if (shouldForceHandshakeForCrossDomain) {
+        return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.PrimaryDomainCrossOriginSync, "Cross-origin request from satellite domain requires handshake");
+      }
+      const authObject = signedInRequestState.toAuth();
+      if (authObject.userId) {
+        const handshakeRequestState = handleMaybeOrganizationSyncHandshake(authenticateContext, authObject);
+        if (handshakeRequestState) {
+          return handshakeRequestState;
+        }
+      }
+      return signedInRequestState;
+    } catch (err) {
+      return handleSessionTokenError(err, "cookie");
+    }
+    return signedOut({
+      tokenType: TokenType.SessionToken,
+      authenticateContext,
+      reason: AuthErrorReason.UnexpectedError
+    });
+  }
+  async function handleSessionTokenError(err, tokenCarrier) {
+    if (!(err instanceof TokenVerificationError)) {
+      return signedOut({
+        tokenType: TokenType.SessionToken,
+        authenticateContext,
+        reason: AuthErrorReason.UnexpectedError
+      });
+    }
+    let refreshError;
+    if (isRequestEligibleForRefresh(err, authenticateContext, request)) {
+      const { data, error: error48 } = await attemptRefresh(authenticateContext);
+      if (data) {
+        return signedIn({
+          tokenType: TokenType.SessionToken,
+          authenticateContext,
+          sessionClaims: data.jwtPayload,
+          headers: data.headers,
+          token: data.sessionToken
+        });
+      }
+      if (error48?.cause?.reason) {
+        refreshError = error48.cause.reason;
+      } else {
+        refreshError = RefreshTokenErrorReason.UnexpectedSDKError;
+      }
+    } else {
+      if (request.method !== "GET") {
+        refreshError = RefreshTokenErrorReason.NonEligibleNonGet;
+      } else if (!authenticateContext.refreshTokenInCookie) {
+        refreshError = RefreshTokenErrorReason.NonEligibleNoCookie;
+      } else {
+        refreshError = null;
+      }
+    }
+    err.tokenCarrier = tokenCarrier;
+    const reasonToHandshake = [
+      TokenVerificationErrorReason.TokenExpired,
+      TokenVerificationErrorReason.TokenNotActiveYet,
+      TokenVerificationErrorReason.TokenIatInTheFuture
+    ].includes(err.reason);
+    if (reasonToHandshake) {
+      return handleMaybeHandshakeStatus(authenticateContext, convertTokenVerificationErrorReasonToAuthErrorReason({ tokenError: err.reason, refreshError }), err.getFullMessage());
+    }
+    return signedOut({
+      tokenType: TokenType.SessionToken,
+      authenticateContext,
+      reason: err.reason,
+      message: err.getFullMessage()
+    });
+  }
+  function handleMachineError(tokenType, err) {
+    if (!(err instanceof MachineTokenVerificationError)) {
+      return signedOut({
+        tokenType,
+        authenticateContext,
+        reason: AuthErrorReason.UnexpectedError
+      });
+    }
+    return signedOut({
+      tokenType,
+      authenticateContext,
+      reason: err.code,
+      message: err.getFullMessage()
+    });
+  }
+  async function authenticateMachineRequestWithTokenInHeader() {
+    const { tokenInHeader } = authenticateContext;
+    if (!tokenInHeader) {
+      return handleSessionTokenError(new Error("Missing token in header"), "header");
+    }
+    if (!isMachineToken(tokenInHeader)) {
+      return signedOut({
+        tokenType: acceptsToken,
+        authenticateContext,
+        reason: AuthErrorReason.TokenTypeMismatch,
+        message: ""
+      });
+    }
+    const parsedTokenType = getMachineTokenType(tokenInHeader);
+    const mismatchState = checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext);
+    if (mismatchState) {
+      return mismatchState;
+    }
+    const { data, tokenType, errors: errors3 } = await verifyMachineAuthToken(tokenInHeader, authenticateContext);
+    if (errors3) {
+      return handleMachineError(tokenType, errors3[0]);
+    }
+    return signedIn({
+      tokenType,
+      authenticateContext,
+      machineData: data,
+      token: tokenInHeader
+    });
+  }
+  async function authenticateAnyRequestWithTokenInHeader() {
+    const { tokenInHeader } = authenticateContext;
+    if (!tokenInHeader) {
+      return handleSessionTokenError(new Error("Missing token in header"), "header");
+    }
+    if (isMachineToken(tokenInHeader)) {
+      const parsedTokenType = getMachineTokenType(tokenInHeader);
+      const mismatchState = checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext);
+      if (mismatchState) {
+        return mismatchState;
+      }
+      const { data: data2, tokenType, errors: errors22 } = await verifyMachineAuthToken(tokenInHeader, authenticateContext);
+      if (errors22) {
+        return handleMachineError(tokenType, errors22[0]);
+      }
+      return signedIn({
+        tokenType,
+        authenticateContext,
+        machineData: data2,
+        token: tokenInHeader
+      });
+    }
+    const { data, errors: errors3 } = await verifyToken(tokenInHeader, authenticateContext);
+    if (errors3) {
+      return handleSessionTokenError(errors3[0], "header");
+    }
+    return signedIn({
+      tokenType: TokenType.SessionToken,
+      authenticateContext,
+      sessionClaims: data,
+      token: tokenInHeader
+    });
+  }
+  if (Array.isArray(acceptsToken)) {
+    if (!isTokenTypeInAcceptedArray(acceptsToken, authenticateContext)) {
+      return signedOutInvalidToken();
+    }
+  }
+  if (authenticateContext.tokenInHeader) {
+    if (acceptsToken === "any" || Array.isArray(acceptsToken)) {
+      return authenticateAnyRequestWithTokenInHeader();
+    }
+    if (acceptsToken === TokenType.SessionToken) {
+      return authenticateRequestWithTokenInHeader();
+    }
+    return authenticateMachineRequestWithTokenInHeader();
+  }
+  if (acceptsToken === TokenType.OAuthToken || acceptsToken === TokenType.ApiKey || acceptsToken === TokenType.M2MToken) {
+    return signedOut({
+      tokenType: acceptsToken,
+      authenticateContext,
+      reason: "No token in header"
+    });
+  }
+  return authenticateRequestWithTokenInCookie();
+};
+var debugRequestState = (params) => {
+  const { isSignedIn, isAuthenticated, proxyUrl, reason, message, publishableKey, isSatellite, domain: domain2 } = params;
+  return { isSignedIn, isAuthenticated, proxyUrl, reason, message, publishableKey, isSatellite, domain: domain2 };
+};
+var convertTokenVerificationErrorReasonToAuthErrorReason = ({
+  tokenError,
+  refreshError
+}) => {
+  switch (tokenError) {
+    case TokenVerificationErrorReason.TokenExpired:
+      return `${AuthErrorReason.SessionTokenExpired}-refresh-${refreshError}`;
+    case TokenVerificationErrorReason.TokenNotActiveYet:
+      return AuthErrorReason.SessionTokenNBF;
+    case TokenVerificationErrorReason.TokenIatInTheFuture:
+      return AuthErrorReason.SessionTokenIatInTheFuture;
+    default:
+      return AuthErrorReason.UnexpectedError;
+  }
+};
+var defaultOptions2 = {
+  secretKey: "",
+  machineSecretKey: "",
+  jwtKey: "",
+  apiUrl: undefined,
+  apiVersion: undefined,
+  proxyUrl: "",
+  publishableKey: "",
+  isSatellite: false,
+  domain: "",
+  audience: ""
+};
+function createAuthenticateRequest(params) {
+  const buildTimeOptions = mergePreDefinedOptions(defaultOptions2, params.options);
+  const apiClient = params.apiClient;
+  const authenticateRequest2 = (request, options = {}) => {
+    const { apiUrl, apiVersion } = buildTimeOptions;
+    const runTimeOptions = mergePreDefinedOptions(buildTimeOptions, options);
+    return authenticateRequest(request, {
+      ...options,
+      ...runTimeOptions,
+      apiUrl,
+      apiVersion,
+      apiClient
+    });
+  };
+  return {
+    authenticateRequest: authenticateRequest2,
+    debugRequestState
+  };
 }
 
 // node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs
@@ -25188,28 +30340,88 @@ var AUTH_COMPONENTS = new Set(["SignIn", "SignUp"]);
 
 // node_modules/@clerk/backend/dist/index.mjs
 var verifyToken2 = withLegacyReturn(verifyToken);
+function createClerkClient(options) {
+  const opts = { ...options };
+  const apiClient = createBackendApiClient(opts);
+  const requestState = createAuthenticateRequest({ options: opts, apiClient });
+  const telemetry = new TelemetryCollector({
+    publishableKey: opts.publishableKey,
+    secretKey: opts.secretKey,
+    samplingRate: 0.1,
+    ...opts.sdkMetadata ? { sdk: opts.sdkMetadata.name, sdkVersion: opts.sdkMetadata.version } : {},
+    ...opts.telemetry || {}
+  });
+  return {
+    ...apiClient,
+    ...requestState,
+    telemetry
+  };
+}
+
+// src/lib/master.ts
+var MASTER;
+((MASTER) => {
+  MASTER.PLAN = {
+    FREE: "\u7121\u6599\u30D7\u30E9\u30F3",
+    PAID: "\u6709\u6599\u30D7\u30E9\u30F3"
+  };
+  MASTER.getPlanId = (plan) => {
+    switch (plan) {
+      case MASTER.PLAN.FREE:
+        return 1;
+      case MASTER.PLAN.PAID:
+        return 2;
+      default:
+        throw new Error("Invalid plan");
+    }
+  };
+})(MASTER ||= {});
 
 // src/middleware.ts
-async function middleware(c, next) {
-  const path = c.req.path;
-  if (path === "/doc" || path === "/reference") {
-    await next();
-    return;
-  }
-  const authHeader = c.req.header("Authorization");
-  if (authHeader === undefined) {
-    throw new HTTPException(401, { message: "\u8A8D\u8A3C\u304C\u5FC5\u8981\u3067\u3059" });
-  }
-  const token = authHeader.replace("Bearer ", "");
-  try {
-    const payload = await verifyToken2(token, {
-      secretKey: process.env.CLERK_SECRET_KEY
-    });
-    c.set("userId", payload.sub);
-    await next();
-  } catch {
-    throw new HTTPException(401, { message: "\u8A8D\u8A3C\u306B\u5931\u6557\u3057\u307E\u3057\u305F" });
-  }
+var clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+function createMiddleware(prisma) {
+  return async function middleware(c, next) {
+    const path = c.req.path;
+    if (path === "/doc" || path === "/reference") {
+      await next();
+      return;
+    }
+    const authHeader = c.req.header("Authorization");
+    if (authHeader === undefined) {
+      throw new HTTPException(401, { message: "\u8A8D\u8A3C\u304C\u5FC5\u8981\u3067\u3059" });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    try {
+      const payload = await verifyToken2(token, {
+        secretKey: process.env.CLERK_SECRET_KEY
+      });
+      const authId = payload.sub;
+      await prisma.$transaction(async (tx) => {
+        const userCount = await tx.tUser.count({
+          where: { authId }
+        });
+        if (userCount === 0) {
+          const clerkUser = await clerkClient.users.getUser(authId);
+          const email3 = clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || "";
+          const name = clerkUser.firstName && clerkUser.lastName ? `${clerkUser.lastName} ${clerkUser.firstName}` : clerkUser.username || email3 || "Unknown User";
+          await tx.tUser.create({
+            data: {
+              authId,
+              name,
+              email: email3,
+              imageUrl: clerkUser.imageUrl,
+              planId: MASTER.getPlanId(MASTER.PLAN.FREE)
+            }
+          });
+        }
+      });
+      c.set("authId", authId);
+      await next();
+    } catch (error48) {
+      console.error("Middleware error:", error48);
+      throw new HTTPException(401, { message: "\u8A8D\u8A3C\u306B\u5931\u6557\u3057\u307E\u3057\u305F" });
+    }
+  };
 }
 
 // src/domain/model/mPlan.ts
@@ -25217,8 +30429,7 @@ var mPlanSchema = exports_external.object({
   id: exports_external.number().int().positive(),
   name: exports_external.string().min(1).max(25),
   description: exports_external.string(),
-  price: exports_external.number().int().min(0),
-  createdAt: exports_external.date()
+  price: exports_external.number().int().min(0)
 });
 
 class MPlanEntity {
@@ -25226,14 +30437,27 @@ class MPlanEntity {
   name;
   description;
   price;
-  createdAt;
-  constructor(id, name, description, price, createdAt) {
-    const validated = mPlanSchema.parse({ id, name, description, price, createdAt });
+  isSelected;
+  constructor(id, name, description, price, isSelected) {
+    const validated = mPlanSchema.parse({
+      id,
+      name,
+      description,
+      price,
+      isSelected
+    });
     this.id = validated.id;
     this.name = validated.name;
     this.description = validated.description;
     this.price = validated.price;
-    this.createdAt = validated.createdAt;
+    this.isSelected = isSelected;
+  }
+}
+
+class TAuthIdVO {
+  authId;
+  constructor(authId) {
+    this.authId = authId;
   }
 }
 
@@ -25243,26 +30467,134 @@ class MPlanRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }
-  async findAll() {
-    const plans = await this.prisma.mPlan.findMany({
-      orderBy: { id: "asc" }
+  async findAll(tx, vo) {
+    const plans = await tx.mPlan.findMany({
+      include: {
+        _count: {
+          select: {
+            users: { where: { authId: vo.authId } }
+          }
+        }
+      }
     });
-    return plans.map((plan) => new MPlanEntity(plan.id, plan.name, plan.description, plan.price, plan.createdAt));
+    return plans.map((plan) => new MPlanEntity(plan.id, plan.name, plan.description, plan.price, plan._count.users > 0));
   }
 }
 
-// src/controller/response/setting/plans.ts
-var planResponseSchema = exports_external.object({
-  id: exports_external.number().openapi({ example: 1 }),
-  name: exports_external.string().openapi({ example: "\u7121\u6599\u30D7\u30E9\u30F3" }),
-  description: exports_external.string().openapi({ example: "\u57FA\u672C\u7684\u306A\u6A5F\u80FD\u304C\u5229\u7528\u3067\u304D\u307E\u3059" }),
-  price: exports_external.number().openapi({ example: 0 })
-});
-var plansResponseSchema = exports_external.object({
-  plans: exports_external.array(planResponseSchema)
+// src/domain/model/tStripeCustomer.ts
+var stripeCustomerIdSchema = exports_external.string().min(1).startsWith("cus_");
+var tStripeCustomerEntitySchema = exports_external.object({
+  id: exports_external.number().int().positive(),
+  stripeCustomerId: stripeCustomerIdSchema
 });
 
+class TStripeCustomerEntity {
+  id;
+  stripeCustomerId;
+  constructor(id, stripeCustomerId) {
+    const validated = tStripeCustomerEntitySchema.parse({
+      id,
+      stripeCustomerId
+    });
+    this.id = validated.id;
+    this.stripeCustomerId = validated.stripeCustomerId;
+  }
+}
+var tStripeCustomerVOSchema = exports_external.object({
+  authId: required2()
+});
+
+class TStripeCustomerVO {
+  authId;
+  constructor(authId) {
+    const validated = tStripeCustomerVOSchema.parse({ authId });
+    this.authId = validated.authId;
+  }
+}
+var createTStripeCustomerVOSchema = exports_external.object({
+  userId: exports_external.number().int().positive(),
+  stripeCustomerId: stripeCustomerIdSchema
+});
+
+class CreateTStripeCustomerVO {
+  userId;
+  stripeCustomerId;
+  constructor(userId, stripeCustomerId) {
+    const validated = createTStripeCustomerVOSchema.parse({
+      userId,
+      stripeCustomerId
+    });
+    this.userId = validated.userId;
+    this.stripeCustomerId = validated.stripeCustomerId;
+  }
+}
+var tStripeCustomerAggregationSchema = exports_external.object({
+  userId: exports_external.number().int().positive(),
+  email: required2(),
+  name: required2(),
+  stripeCustomerId: stripeCustomerIdSchema.nullable()
+});
+
+class TStripeCustomerAggregation {
+  userId;
+  email;
+  name;
+  stripeCustomerId;
+  constructor(userId, email3, name, stripeCustomerId) {
+    const validated = tStripeCustomerAggregationSchema.parse({
+      userId,
+      email: email3,
+      name,
+      stripeCustomerId
+    });
+    this.userId = validated.userId;
+    this.email = validated.email;
+    this.name = validated.name;
+    this.stripeCustomerId = validated.stripeCustomerId;
+  }
+}
+
+// src/repository/tStripeCustomer.ts
+class TStripeCustomerRepository {
+  prisma;
+  constructor(prisma) {
+    this.prisma = prisma;
+  }
+  async find(tx, vo) {
+    const user = await tx.tUser.findUnique({
+      where: { authId: vo.authId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        stripeCustomer: {
+          select: {
+            stripeCustomerId: true
+          }
+        }
+      }
+    });
+    if (user === null)
+      return null;
+    return new TStripeCustomerAggregation(user.id, user.email, user.name, user.stripeCustomer?.stripeCustomerId ?? null);
+  }
+  async create(tx, vo) {
+    const result = await tx.tStripeCustomer.create({
+      data: {
+        userId: vo.userId,
+        stripeCustomerId: vo.stripeCustomerId
+      },
+      select: { id: true, stripeCustomerId: true }
+    });
+    return new TStripeCustomerEntity(result.id, result.stripeCustomerId);
+  }
+}
+
 // src/router/index.ts
+var errorResponseSchema = exports_external.object({
+  error: exports_external.string()
+});
+
 class SettingRouter {
   settingController;
   constructor(settingController) {
@@ -25283,31 +30615,5197 @@ class SettingRouter {
               schema: plansResponseSchema
             }
           }
+        },
+        500: {
+          description: "Internal Server Error",
+          content: {
+            "application/json": {
+              schema: errorResponseSchema
+            }
+          }
         }
       }
     }, async (c) => {
-      const response = await this.settingController.getPlans(c);
-      return c.json(response);
+      return await this.settingController.getPlans(c);
     });
+    app.openapi({
+      method: "post",
+      path: "/setting/checkout-session",
+      tags: ["\u8A2D\u5B9A"],
+      summary: "Checkout Session\u4F5C\u6210",
+      description: "\u30AB\u30FC\u30C9\u767B\u9332\u7528\u306ECheckout Session\u3092\u4F5C\u6210\u3057\u307E\u3059\u3002",
+      responses: {
+        200: {
+          description: "Success",
+          content: {
+            "application/json": {
+              schema: createCheckoutSessionResponseSchema
+            }
+          }
+        },
+        500: {
+          description: "Internal Server Error",
+          content: {
+            "application/json": {
+              schema: errorResponseSchema
+            }
+          }
+        }
+      }
+    }, async (c) => {
+      return await this.settingController.createCheckoutSession(c);
+    });
+    app.openapi({
+      method: "get",
+      path: "/setting/payment-methods",
+      tags: ["\u8A2D\u5B9A"],
+      summary: "\u652F\u6255\u3044\u65B9\u6CD5\u4E00\u89A7\u53D6\u5F97",
+      description: "\u767B\u9332\u6E08\u307F\u306E\u652F\u6255\u3044\u65B9\u6CD5\u4E00\u89A7\u3092\u53D6\u5F97\u3057\u307E\u3059\u3002",
+      responses: {
+        200: {
+          description: "Success",
+          content: {
+            "application/json": {
+              schema: getPaymentMethodsResponseSchema
+            }
+          }
+        },
+        500: {
+          description: "Internal Server Error",
+          content: {
+            "application/json": {
+              schema: errorResponseSchema
+            }
+          }
+        }
+      }
+    }, async (c) => {
+      return await this.settingController.getPaymentMethods(c);
+    });
+  }
+}
+
+// src/service/dto/response/setting/createCheckoutSession.ts
+class CreateCheckoutSessionResponseDTO {
+  checkoutUrl;
+  constructor(checkoutUrl) {
+    this.checkoutUrl = checkoutUrl;
+  }
+}
+
+// src/service/dto/response/setting/getPaymentMethods.ts
+class GetPaymentMethodsResponseDTO {
+  paymentMethods;
+  constructor(paymentMethods) {
+    this.paymentMethods = paymentMethods;
+  }
+}
+
+// src/service/dto/response/setting/getPlans.ts
+class GetPlansResponseDTO {
+  plans;
+  constructor(entities) {
+    this.plans = entities.map(({ ...rest }) => rest);
   }
 }
 
 // src/service/setting.ts
 class SettingService {
   planRepository;
-  constructor(planRepository) {
+  stripeRepository;
+  tStripeCustomerRepository;
+  prisma;
+  constructor(planRepository, stripeRepository, tStripeCustomerRepository, prisma) {
     this.planRepository = planRepository;
+    this.stripeRepository = stripeRepository;
+    this.tStripeCustomerRepository = tStripeCustomerRepository;
+    this.prisma = prisma;
   }
-  async getPlans() {
-    return await this.planRepository.findAll();
+  async getPlans(dto) {
+    try {
+      const entities = await this.prisma.$transaction(async (tx) => {
+        const { authId } = dto;
+        const vo = new TAuthIdVO(authId);
+        return await this.planRepository.findAll(tx, vo);
+      });
+      return new GetPlansResponseDTO(entities);
+    } catch (error48) {
+      console.error("Error in SettingService.getPlans:", error48);
+      throw error48;
+    }
+  }
+  async createCheckoutSession(dto) {
+    try {
+      const checkoutUrl = await this.prisma.$transaction(async (tx) => {
+        const { authId } = dto;
+        const vo = new TStripeCustomerVO(authId);
+        const aggregation = await this.tStripeCustomerRepository.find(tx, vo);
+        if (aggregation === null) {
+          throw new Error("User not found");
+        }
+        let stripeCustomer = aggregation.stripeCustomerId;
+        if (stripeCustomer === null) {
+          const stripeCustomerId = await this.stripeRepository.createCustomer(aggregation.email, aggregation.name);
+          const createVO = new CreateTStripeCustomerVO(aggregation.userId, stripeCustomerId);
+          await this.tStripeCustomerRepository.create(tx, createVO);
+          stripeCustomer = stripeCustomerId;
+        }
+        const successUrl = `${process.env.FRONTEND_URL}/home/setting/payment/success`;
+        const cancelUrl = `${process.env.FRONTEND_URL}/home/setting/payment`;
+        const checkoutUrl2 = await this.stripeRepository.createCheckoutSession(stripeCustomer, successUrl, cancelUrl);
+        return checkoutUrl2;
+      });
+      return new CreateCheckoutSessionResponseDTO(checkoutUrl);
+    } catch (error48) {
+      console.error("Error in SettingService.createCheckoutSession:", error48);
+      throw error48;
+    }
+  }
+  async getPaymentMethods(dto) {
+    try {
+      const paymentMethods = await this.prisma.$transaction(async (tx) => {
+        const { authId } = dto;
+        const vo = new TStripeCustomerVO(authId);
+        const aggregation = await this.tStripeCustomerRepository.find(tx, vo);
+        if (aggregation === null) {
+          throw new Error("User not found");
+        }
+        if (aggregation.stripeCustomerId === null) {
+          return [];
+        }
+        return await this.stripeRepository.getPaymentMethods(aggregation.stripeCustomerId);
+      });
+      return new GetPaymentMethodsResponseDTO(paymentMethods);
+    } catch (error48) {
+      console.error("Error in SettingService.getPaymentMethods:", error48);
+      throw error48;
+    }
+  }
+}
+
+// node_modules/stripe/esm/utils.js
+var OPTIONS_KEYS = [
+  "apiKey",
+  "idempotencyKey",
+  "stripeAccount",
+  "apiVersion",
+  "maxNetworkRetries",
+  "timeout",
+  "host",
+  "authenticator",
+  "stripeContext",
+  "additionalHeaders",
+  "streaming"
+];
+function isOptionsHash(o) {
+  return o && typeof o === "object" && OPTIONS_KEYS.some((prop) => Object.prototype.hasOwnProperty.call(o, prop));
+}
+function queryStringifyRequestData(data, _apiMode) {
+  return stringifyRequestData(data);
+}
+function encodeQueryValue(value) {
+  return encodeURIComponent(value).replace(/!/g, "%21").replace(/\*/g, "%2A").replace(/\(/g, "%28").replace(/\)/g, "%29").replace(/'/g, "%27").replace(/%5B/g, "[").replace(/%5D/g, "]");
+}
+function valueToString(value) {
+  if (value instanceof Date) {
+    return Math.floor(value.getTime() / 1000).toString();
+  }
+  if (value === null) {
+    return "";
+  }
+  return String(value);
+}
+function stringifyRequestData(data) {
+  const pairs = [];
+  function encode3(key, value) {
+    if (value === undefined) {
+      return;
+    }
+    if (value === null || typeof value !== "object" || value instanceof Date) {
+      pairs.push(encodeQueryValue(key) + "=" + encodeQueryValue(valueToString(value)));
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (let i = 0;i < value.length; i++) {
+        if (value[i] !== undefined) {
+          encode3(key + "[" + i + "]", value[i]);
+        }
+      }
+      return;
+    }
+    for (const k of Object.keys(value)) {
+      encode3(key + "[" + k + "]", value[k]);
+    }
+  }
+  if (typeof data === "object" && data !== null) {
+    for (const key of Object.keys(data)) {
+      encode3(key, data[key]);
+    }
+  }
+  return pairs.join("&");
+}
+var makeURLInterpolator = (() => {
+  const rc = {
+    "\n": "\\n",
+    '"': "\\\"",
+    "\u2028": "\\u2028",
+    "\u2029": "\\u2029"
+  };
+  return (str) => {
+    const cleanString = str.replace(/["\n\r\u2028\u2029]/g, ($0) => rc[$0]);
+    return (outputs) => {
+      return cleanString.replace(/\{([\s\S]+?)\}/g, ($0, $1) => {
+        const output = outputs[$1];
+        if (isValidEncodeUriComponentType(output))
+          return encodeURIComponent(output);
+        return "";
+      });
+    };
+  };
+})();
+function isValidEncodeUriComponentType(value) {
+  return ["number", "string", "boolean"].includes(typeof value);
+}
+function extractUrlParams(path) {
+  const params = path.match(/\{\w+\}/g);
+  if (!params) {
+    return [];
+  }
+  return params.map((param) => param.replace(/[{}]/g, ""));
+}
+function getDataFromArgs(args) {
+  if (!Array.isArray(args) || !args[0] || typeof args[0] !== "object") {
+    return {};
+  }
+  if (!isOptionsHash(args[0])) {
+    return args.shift();
+  }
+  const argKeys = Object.keys(args[0]);
+  const optionKeysInArgs = argKeys.filter((key) => OPTIONS_KEYS.includes(key));
+  if (optionKeysInArgs.length > 0 && optionKeysInArgs.length !== argKeys.length) {
+    emitWarning(`Options found in arguments (${optionKeysInArgs.join(", ")}). Did you mean to pass an options object? See https://github.com/stripe/stripe-node/wiki/Passing-Options.`);
+  }
+  return {};
+}
+function getOptionsFromArgs(args) {
+  const opts = {
+    host: null,
+    headers: {},
+    settings: {},
+    streaming: false
+  };
+  if (args.length > 0) {
+    const arg = args[args.length - 1];
+    if (typeof arg === "string") {
+      opts.authenticator = createApiKeyAuthenticator(args.pop());
+    } else if (isOptionsHash(arg)) {
+      const params = Object.assign({}, args.pop());
+      const extraKeys = Object.keys(params).filter((key) => !OPTIONS_KEYS.includes(key));
+      if (extraKeys.length) {
+        emitWarning(`Invalid options found (${extraKeys.join(", ")}); ignoring.`);
+      }
+      if (params.apiKey) {
+        opts.authenticator = createApiKeyAuthenticator(params.apiKey);
+      }
+      if (params.idempotencyKey) {
+        opts.headers["Idempotency-Key"] = params.idempotencyKey;
+      }
+      if (params.stripeAccount) {
+        opts.headers["Stripe-Account"] = params.stripeAccount;
+      }
+      if (params.stripeContext) {
+        if (opts.headers["Stripe-Account"]) {
+          throw new Error("Can't specify both stripeAccount and stripeContext.");
+        }
+        opts.headers["Stripe-Context"] = params.stripeContext;
+      }
+      if (params.apiVersion) {
+        opts.headers["Stripe-Version"] = params.apiVersion;
+      }
+      if (Number.isInteger(params.maxNetworkRetries)) {
+        opts.settings.maxNetworkRetries = params.maxNetworkRetries;
+      }
+      if (Number.isInteger(params.timeout)) {
+        opts.settings.timeout = params.timeout;
+      }
+      if (params.host) {
+        opts.host = params.host;
+      }
+      if (params.authenticator) {
+        if (params.apiKey) {
+          throw new Error("Can't specify both apiKey and authenticator.");
+        }
+        if (typeof params.authenticator !== "function") {
+          throw new Error("The authenticator must be a function " + "receiving a request as the first parameter.");
+        }
+        opts.authenticator = params.authenticator;
+      }
+      if (params.additionalHeaders) {
+        opts.headers = params.additionalHeaders;
+      }
+      if (params.streaming) {
+        opts.streaming = true;
+      }
+    }
+  }
+  return opts;
+}
+function protoExtend(sub) {
+  const Super = this;
+  const Constructor = Object.prototype.hasOwnProperty.call(sub, "constructor") ? sub.constructor : function(...args) {
+    Super.apply(this, args);
+  };
+  Object.assign(Constructor, Super);
+  Constructor.prototype = Object.create(Super.prototype);
+  Object.assign(Constructor.prototype, sub);
+  return Constructor;
+}
+function removeNullish(obj) {
+  if (typeof obj !== "object") {
+    throw new Error("Argument must be an object");
+  }
+  return Object.keys(obj).reduce((result, key) => {
+    if (obj[key] != null) {
+      result[key] = obj[key];
+    }
+    return result;
+  }, {});
+}
+function normalizeHeaders(obj) {
+  if (!(obj && typeof obj === "object")) {
+    return obj;
+  }
+  return Object.keys(obj).reduce((result, header) => {
+    result[normalizeHeader(header)] = obj[header];
+    return result;
+  }, {});
+}
+function normalizeHeader(header) {
+  return header.split("-").map((text) => text.charAt(0).toUpperCase() + text.substr(1).toLowerCase()).join("-");
+}
+function callbackifyPromiseWithTimeout(promise2, callback) {
+  if (callback) {
+    return promise2.then((res) => {
+      setTimeout(() => {
+        callback(null, res);
+      }, 0);
+    }, (err) => {
+      setTimeout(() => {
+        callback(err, null);
+      }, 0);
+    });
+  }
+  return promise2;
+}
+function pascalToCamelCase(name) {
+  if (name === "OAuth") {
+    return "oauth";
+  } else {
+    return name[0].toLowerCase() + name.substring(1);
+  }
+}
+function emitWarning(warning) {
+  if (typeof process.emitWarning !== "function") {
+    return console.warn(`Stripe: ${warning}`);
+  }
+  return process.emitWarning(warning, "Stripe");
+}
+function isObject4(obj) {
+  const type = typeof obj;
+  return (type === "function" || type === "object") && !!obj;
+}
+function flattenAndStringify(data) {
+  const result = {};
+  const step = (obj, prevKey) => {
+    Object.entries(obj).forEach(([key, value]) => {
+      const newKey = prevKey ? `${prevKey}[${key}]` : key;
+      if (isObject4(value)) {
+        if (!(value instanceof Uint8Array) && !Object.prototype.hasOwnProperty.call(value, "data")) {
+          return step(value, newKey);
+        } else {
+          result[newKey] = value;
+        }
+      } else {
+        result[newKey] = String(value);
+      }
+    });
+  };
+  step(data, null);
+  return result;
+}
+function validateInteger(name, n, defaultVal) {
+  if (!Number.isInteger(n)) {
+    if (defaultVal !== undefined) {
+      return defaultVal;
+    } else {
+      throw new Error(`${name} must be an integer`);
+    }
+  }
+  return n;
+}
+function determineProcessUserAgentProperties() {
+  return typeof process === "undefined" ? {} : {
+    lang_version: process.version,
+    platform: process.platform
+  };
+}
+function createApiKeyAuthenticator(apiKey) {
+  const authenticator = (request) => {
+    request.headers.Authorization = "Bearer " + apiKey;
+    return Promise.resolve();
+  };
+  authenticator._apiKey = apiKey;
+  return authenticator;
+}
+function dateTimeReplacer(key, value) {
+  if (this[key] instanceof Date) {
+    return Math.floor(this[key].getTime() / 1000).toString();
+  }
+  return value;
+}
+function jsonStringifyRequestData(data) {
+  return JSON.stringify(data, dateTimeReplacer);
+}
+function getAPIMode(path) {
+  if (!path) {
+    return "v1";
+  }
+  return path.startsWith("/v2") ? "v2" : "v1";
+}
+function parseHttpHeaderAsString(header) {
+  if (Array.isArray(header)) {
+    return header.join(", ");
+  }
+  return String(header);
+}
+function parseHttpHeaderAsNumber(header) {
+  const number4 = Array.isArray(header) ? header[0] : header;
+  return Number(number4);
+}
+function parseHeadersForFetch(headers) {
+  return Object.entries(headers).map(([key, value]) => {
+    return [key, parseHttpHeaderAsString(value)];
+  });
+}
+
+// node_modules/stripe/esm/net/HttpClient.js
+class HttpClient {
+  getClientName() {
+    throw new Error("getClientName not implemented.");
+  }
+  makeRequest(host, port, path, method, headers, requestData, protocol, timeout) {
+    throw new Error("makeRequest not implemented.");
+  }
+  static makeTimeoutError() {
+    const timeoutErr = new TypeError(HttpClient.TIMEOUT_ERROR_CODE);
+    timeoutErr.code = HttpClient.TIMEOUT_ERROR_CODE;
+    return timeoutErr;
+  }
+}
+HttpClient.CONNECTION_CLOSED_ERROR_CODES = ["ECONNRESET", "EPIPE"];
+HttpClient.TIMEOUT_ERROR_CODE = "ETIMEDOUT";
+
+class HttpClientResponse {
+  constructor(statusCode, headers) {
+    this._statusCode = statusCode;
+    this._headers = headers;
+  }
+  getStatusCode() {
+    return this._statusCode;
+  }
+  getHeaders() {
+    return this._headers;
+  }
+  getRawResponse() {
+    throw new Error("getRawResponse not implemented.");
+  }
+  toStream(streamCompleteCallback) {
+    throw new Error("toStream not implemented.");
+  }
+  toJSON() {
+    throw new Error("toJSON not implemented.");
+  }
+}
+
+// node_modules/stripe/esm/net/FetchHttpClient.js
+class FetchHttpClient extends HttpClient {
+  constructor(fetchFn) {
+    super();
+    if (!fetchFn) {
+      if (!globalThis.fetch) {
+        throw new Error("fetch() function not provided and is not defined in the global scope. " + "You must provide a fetch implementation.");
+      }
+      fetchFn = globalThis.fetch;
+    }
+    if (globalThis.AbortController) {
+      this._fetchFn = FetchHttpClient.makeFetchWithAbortTimeout(fetchFn);
+    } else {
+      this._fetchFn = FetchHttpClient.makeFetchWithRaceTimeout(fetchFn);
+    }
+  }
+  static makeFetchWithRaceTimeout(fetchFn) {
+    return (url2, init, timeout) => {
+      let pendingTimeoutId;
+      const timeoutPromise = new Promise((_2, reject) => {
+        pendingTimeoutId = setTimeout(() => {
+          pendingTimeoutId = null;
+          reject(HttpClient.makeTimeoutError());
+        }, timeout);
+      });
+      const fetchPromise = fetchFn(url2, init);
+      return Promise.race([fetchPromise, timeoutPromise]).finally(() => {
+        if (pendingTimeoutId) {
+          clearTimeout(pendingTimeoutId);
+        }
+      });
+    };
+  }
+  static makeFetchWithAbortTimeout(fetchFn) {
+    return async (url2, init, timeout) => {
+      const abort = new AbortController;
+      let timeoutId = setTimeout(() => {
+        timeoutId = null;
+        abort.abort(HttpClient.makeTimeoutError());
+      }, timeout);
+      try {
+        return await fetchFn(url2, Object.assign(Object.assign({}, init), { signal: abort.signal }));
+      } catch (err) {
+        if (err.name === "AbortError") {
+          throw HttpClient.makeTimeoutError();
+        } else {
+          throw err;
+        }
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+  }
+  getClientName() {
+    return "fetch";
+  }
+  async makeRequest(host, port, path, method, headers, requestData, protocol, timeout) {
+    const isInsecureConnection = protocol === "http";
+    const url2 = new URL(path, `${isInsecureConnection ? "http" : "https"}://${host}`);
+    url2.port = port;
+    const methodHasPayload = method == "POST" || method == "PUT" || method == "PATCH";
+    const body = requestData || (methodHasPayload ? "" : undefined);
+    const res = await this._fetchFn(url2.toString(), {
+      method,
+      headers: parseHeadersForFetch(headers),
+      body
+    }, timeout);
+    return new FetchHttpClientResponse(res);
+  }
+}
+
+class FetchHttpClientResponse extends HttpClientResponse {
+  constructor(res) {
+    super(res.status, FetchHttpClientResponse._transformHeadersToObject(res.headers));
+    this._res = res;
+  }
+  getRawResponse() {
+    return this._res;
+  }
+  toStream(streamCompleteCallback) {
+    streamCompleteCallback();
+    return this._res.body;
+  }
+  toJSON() {
+    return this._res.json();
+  }
+  static _transformHeadersToObject(headers) {
+    const headersObj = {};
+    for (const entry of headers) {
+      if (!Array.isArray(entry) || entry.length != 2) {
+        throw new Error("Response objects produced by the fetch function given to FetchHttpClient do not have an iterable headers map. Response#headers should be an iterable object.");
+      }
+      headersObj[entry[0]] = entry[1];
+    }
+    return headersObj;
+  }
+}
+
+// node_modules/stripe/esm/crypto/CryptoProvider.js
+class CryptoProvider {
+  computeHMACSignature(payload, secret) {
+    throw new Error("computeHMACSignature not implemented.");
+  }
+  computeHMACSignatureAsync(payload, secret) {
+    throw new Error("computeHMACSignatureAsync not implemented.");
+  }
+  computeSHA256Async(data) {
+    throw new Error("computeSHA256 not implemented.");
+  }
+}
+
+class CryptoProviderOnlySupportsAsyncError extends Error {
+}
+
+// node_modules/stripe/esm/crypto/SubtleCryptoProvider.js
+class SubtleCryptoProvider extends CryptoProvider {
+  constructor(subtleCrypto) {
+    super();
+    this.subtleCrypto = subtleCrypto || crypto.subtle;
+  }
+  computeHMACSignature(payload, secret) {
+    throw new CryptoProviderOnlySupportsAsyncError("SubtleCryptoProvider cannot be used in a synchronous context.");
+  }
+  async computeHMACSignatureAsync(payload, secret) {
+    const encoder = new TextEncoder;
+    const key = await this.subtleCrypto.importKey("raw", encoder.encode(secret), {
+      name: "HMAC",
+      hash: { name: "SHA-256" }
+    }, false, ["sign"]);
+    const signatureBuffer = await this.subtleCrypto.sign("hmac", key, encoder.encode(payload));
+    const signatureBytes = new Uint8Array(signatureBuffer);
+    const signatureHexCodes = new Array(signatureBytes.length);
+    for (let i = 0;i < signatureBytes.length; i++) {
+      signatureHexCodes[i] = byteHexMapping[signatureBytes[i]];
+    }
+    return signatureHexCodes.join("");
+  }
+  async computeSHA256Async(data) {
+    return new Uint8Array(await this.subtleCrypto.digest("SHA-256", data));
+  }
+}
+var byteHexMapping = new Array(256);
+for (let i = 0;i < byteHexMapping.length; i++) {
+  byteHexMapping[i] = i.toString(16).padStart(2, "0");
+}
+
+// node_modules/stripe/esm/platform/PlatformFunctions.js
+class PlatformFunctions {
+  constructor() {
+    this._fetchFn = null;
+    this._agent = null;
+  }
+  getUname() {
+    throw new Error("getUname not implemented.");
+  }
+  uuid4() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === "x" ? r : r & 3 | 8;
+      return v.toString(16);
+    });
+  }
+  secureCompare(a, b) {
+    if (a.length !== b.length) {
+      return false;
+    }
+    const len = a.length;
+    let result = 0;
+    for (let i = 0;i < len; ++i) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    return result === 0;
+  }
+  createEmitter() {
+    throw new Error("createEmitter not implemented.");
+  }
+  tryBufferData(data) {
+    throw new Error("tryBufferData not implemented.");
+  }
+  createNodeHttpClient(agent) {
+    throw new Error("createNodeHttpClient not implemented.");
+  }
+  createFetchHttpClient(fetchFn) {
+    return new FetchHttpClient(fetchFn);
+  }
+  createDefaultHttpClient() {
+    throw new Error("createDefaultHttpClient not implemented.");
+  }
+  createNodeCryptoProvider() {
+    throw new Error("createNodeCryptoProvider not implemented.");
+  }
+  createSubtleCryptoProvider(subtleCrypto) {
+    return new SubtleCryptoProvider(subtleCrypto);
+  }
+  createDefaultCryptoProvider() {
+    throw new Error("createDefaultCryptoProvider not implemented.");
+  }
+}
+
+// node_modules/stripe/esm/StripeEmitter.js
+class _StripeEvent extends Event {
+  constructor(eventName, data) {
+    super(eventName);
+    this.data = data;
+  }
+}
+
+class StripeEmitter {
+  constructor() {
+    this.eventTarget = new EventTarget;
+    this.listenerMapping = new Map;
+  }
+  on(eventName, listener) {
+    const listenerWrapper = (event) => {
+      listener(event.data);
+    };
+    this.listenerMapping.set(listener, listenerWrapper);
+    return this.eventTarget.addEventListener(eventName, listenerWrapper);
+  }
+  removeListener(eventName, listener) {
+    const listenerWrapper = this.listenerMapping.get(listener);
+    this.listenerMapping.delete(listener);
+    return this.eventTarget.removeEventListener(eventName, listenerWrapper);
+  }
+  once(eventName, listener) {
+    const listenerWrapper = (event) => {
+      listener(event.data);
+    };
+    this.listenerMapping.set(listener, listenerWrapper);
+    return this.eventTarget.addEventListener(eventName, listenerWrapper, {
+      once: true
+    });
+  }
+  emit(eventName, data) {
+    return this.eventTarget.dispatchEvent(new _StripeEvent(eventName, data));
+  }
+}
+
+// node_modules/stripe/esm/platform/WebPlatformFunctions.js
+class WebPlatformFunctions extends PlatformFunctions {
+  getUname() {
+    return Promise.resolve(null);
+  }
+  createEmitter() {
+    return new StripeEmitter;
+  }
+  tryBufferData(data) {
+    if (data.file.data instanceof ReadableStream) {
+      throw new Error("Uploading a file as a stream is not supported in non-Node environments. Please open or upvote an issue at github.com/stripe/stripe-node if you use this, detailing your use-case.");
+    }
+    return Promise.resolve(data);
+  }
+  createNodeHttpClient() {
+    throw new Error("Stripe: `createNodeHttpClient()` is not available in non-Node environments. Please use `createFetchHttpClient()` instead.");
+  }
+  createDefaultHttpClient() {
+    return super.createFetchHttpClient();
+  }
+  createNodeCryptoProvider() {
+    throw new Error("Stripe: `createNodeCryptoProvider()` is not available in non-Node environments. Please use `createSubtleCryptoProvider()` instead.");
+  }
+  createDefaultCryptoProvider() {
+    return this.createSubtleCryptoProvider();
+  }
+}
+
+// node_modules/stripe/esm/Error.js
+var exports_Error = {};
+__export(exports_Error, {
+  generateV2Error: () => generateV2Error,
+  generateV1Error: () => generateV1Error,
+  TemporarySessionExpiredError: () => TemporarySessionExpiredError,
+  StripeUnknownError: () => StripeUnknownError,
+  StripeSignatureVerificationError: () => StripeSignatureVerificationError,
+  StripeRateLimitError: () => StripeRateLimitError,
+  StripePermissionError: () => StripePermissionError,
+  StripeInvalidRequestError: () => StripeInvalidRequestError,
+  StripeInvalidGrantError: () => StripeInvalidGrantError,
+  StripeIdempotencyError: () => StripeIdempotencyError,
+  StripeError: () => StripeError,
+  StripeConnectionError: () => StripeConnectionError,
+  StripeCardError: () => StripeCardError,
+  StripeAuthenticationError: () => StripeAuthenticationError,
+  StripeAPIError: () => StripeAPIError
+});
+var generateV1Error = (rawStripeError) => {
+  switch (rawStripeError.type) {
+    case "card_error":
+      return new StripeCardError(rawStripeError);
+    case "invalid_request_error":
+      return new StripeInvalidRequestError(rawStripeError);
+    case "api_error":
+      return new StripeAPIError(rawStripeError);
+    case "authentication_error":
+      return new StripeAuthenticationError(rawStripeError);
+    case "rate_limit_error":
+      return new StripeRateLimitError(rawStripeError);
+    case "idempotency_error":
+      return new StripeIdempotencyError(rawStripeError);
+    case "invalid_grant":
+      return new StripeInvalidGrantError(rawStripeError);
+    default:
+      return new StripeUnknownError(rawStripeError);
+  }
+};
+var generateV2Error = (rawStripeError) => {
+  switch (rawStripeError.type) {
+    case "temporary_session_expired":
+      return new TemporarySessionExpiredError(rawStripeError);
+  }
+  switch (rawStripeError.code) {
+    case "invalid_fields":
+      return new StripeInvalidRequestError(rawStripeError);
+  }
+  return generateV1Error(rawStripeError);
+};
+
+class StripeError extends Error {
+  constructor(raw3 = {}, type = null) {
+    var _a2;
+    super(raw3.message);
+    this.type = type || this.constructor.name;
+    this.raw = raw3;
+    this.rawType = raw3.type;
+    this.code = raw3.code;
+    this.doc_url = raw3.doc_url;
+    this.param = raw3.param;
+    this.detail = raw3.detail;
+    this.headers = raw3.headers;
+    this.requestId = raw3.requestId;
+    this.statusCode = raw3.statusCode;
+    this.message = (_a2 = raw3.message) !== null && _a2 !== undefined ? _a2 : "";
+    this.userMessage = raw3.user_message;
+    this.charge = raw3.charge;
+    this.decline_code = raw3.decline_code;
+    this.payment_intent = raw3.payment_intent;
+    this.payment_method = raw3.payment_method;
+    this.payment_method_type = raw3.payment_method_type;
+    this.setup_intent = raw3.setup_intent;
+    this.source = raw3.source;
+  }
+}
+StripeError.generate = generateV1Error;
+
+class StripeCardError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeCardError");
+  }
+}
+
+class StripeInvalidRequestError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeInvalidRequestError");
+  }
+}
+
+class StripeAPIError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeAPIError");
+  }
+}
+
+class StripeAuthenticationError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeAuthenticationError");
+  }
+}
+
+class StripePermissionError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripePermissionError");
+  }
+}
+
+class StripeRateLimitError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeRateLimitError");
+  }
+}
+
+class StripeConnectionError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeConnectionError");
+  }
+}
+
+class StripeSignatureVerificationError extends StripeError {
+  constructor(header, payload, raw3 = {}) {
+    super(raw3, "StripeSignatureVerificationError");
+    this.header = header;
+    this.payload = payload;
+  }
+}
+
+class StripeIdempotencyError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeIdempotencyError");
+  }
+}
+
+class StripeInvalidGrantError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeInvalidGrantError");
+  }
+}
+
+class StripeUnknownError extends StripeError {
+  constructor(raw3 = {}) {
+    super(raw3, "StripeUnknownError");
+  }
+}
+
+class TemporarySessionExpiredError extends StripeError {
+  constructor(rawStripeError = {}) {
+    super(rawStripeError, "TemporarySessionExpiredError");
+  }
+}
+
+// node_modules/stripe/esm/RequestSender.js
+var MAX_RETRY_AFTER_WAIT = 60;
+
+class RequestSender {
+  constructor(stripe, maxBufferedRequestMetric) {
+    this._stripe = stripe;
+    this._maxBufferedRequestMetric = maxBufferedRequestMetric;
+  }
+  _normalizeStripeContext(optsContext, clientContext) {
+    if (optsContext) {
+      return optsContext.toString() || null;
+    }
+    return (clientContext === null || clientContext === undefined ? undefined : clientContext.toString()) || null;
+  }
+  _addHeadersDirectlyToObject(obj, headers) {
+    obj.requestId = headers["request-id"];
+    obj.stripeAccount = obj.stripeAccount || headers["stripe-account"];
+    obj.apiVersion = obj.apiVersion || headers["stripe-version"];
+    obj.idempotencyKey = obj.idempotencyKey || headers["idempotency-key"];
+  }
+  _makeResponseEvent(requestEvent, statusCode, headers) {
+    const requestEndTime = Date.now();
+    const requestDurationMs = requestEndTime - requestEvent.request_start_time;
+    return removeNullish({
+      api_version: headers["stripe-version"],
+      account: headers["stripe-account"],
+      idempotency_key: headers["idempotency-key"],
+      method: requestEvent.method,
+      path: requestEvent.path,
+      status: statusCode,
+      request_id: this._getRequestId(headers),
+      elapsed: requestDurationMs,
+      request_start_time: requestEvent.request_start_time,
+      request_end_time: requestEndTime
+    });
+  }
+  _getRequestId(headers) {
+    return headers["request-id"];
+  }
+  _streamingResponseHandler(requestEvent, usage, callback) {
+    return (res) => {
+      const headers = res.getHeaders();
+      const streamCompleteCallback = () => {
+        const responseEvent = this._makeResponseEvent(requestEvent, res.getStatusCode(), headers);
+        this._stripe._emitter.emit("response", responseEvent);
+        this._recordRequestMetrics(this._getRequestId(headers), responseEvent.elapsed, usage);
+      };
+      const stream = res.toStream(streamCompleteCallback);
+      this._addHeadersDirectlyToObject(stream, headers);
+      return callback(null, stream);
+    };
+  }
+  _jsonResponseHandler(requestEvent, apiMode, usage, callback) {
+    return (res) => {
+      const headers = res.getHeaders();
+      const requestId = this._getRequestId(headers);
+      const statusCode = res.getStatusCode();
+      const responseEvent = this._makeResponseEvent(requestEvent, statusCode, headers);
+      this._stripe._emitter.emit("response", responseEvent);
+      res.toJSON().then((jsonResponse) => {
+        if (jsonResponse.error) {
+          let err;
+          if (typeof jsonResponse.error === "string") {
+            jsonResponse.error = {
+              type: jsonResponse.error,
+              message: jsonResponse.error_description
+            };
+          }
+          jsonResponse.error.headers = headers;
+          jsonResponse.error.statusCode = statusCode;
+          jsonResponse.error.requestId = requestId;
+          if (statusCode === 401) {
+            err = new StripeAuthenticationError(jsonResponse.error);
+          } else if (statusCode === 403) {
+            err = new StripePermissionError(jsonResponse.error);
+          } else if (statusCode === 429) {
+            err = new StripeRateLimitError(jsonResponse.error);
+          } else if (apiMode === "v2") {
+            err = generateV2Error(jsonResponse.error);
+          } else {
+            err = generateV1Error(jsonResponse.error);
+          }
+          throw err;
+        }
+        return jsonResponse;
+      }, (e) => {
+        throw new StripeAPIError({
+          message: "Invalid JSON received from the Stripe API",
+          exception: e,
+          requestId: headers["request-id"]
+        });
+      }).then((jsonResponse) => {
+        this._recordRequestMetrics(requestId, responseEvent.elapsed, usage);
+        const rawResponse = res.getRawResponse();
+        this._addHeadersDirectlyToObject(rawResponse, headers);
+        Object.defineProperty(jsonResponse, "lastResponse", {
+          enumerable: false,
+          writable: false,
+          value: rawResponse
+        });
+        callback(null, jsonResponse);
+      }, (e) => callback(e, null));
+    };
+  }
+  static _generateConnectionErrorMessage(requestRetries) {
+    return `An error occurred with our connection to Stripe.${requestRetries > 0 ? ` Request was retried ${requestRetries} times.` : ""}`;
+  }
+  static _shouldRetry(res, numRetries, maxRetries, error48) {
+    if (error48 && numRetries === 0 && HttpClient.CONNECTION_CLOSED_ERROR_CODES.includes(error48.code)) {
+      return true;
+    }
+    if (numRetries >= maxRetries) {
+      return false;
+    }
+    if (!res) {
+      return true;
+    }
+    if (res.getHeaders()["stripe-should-retry"] === "false") {
+      return false;
+    }
+    if (res.getHeaders()["stripe-should-retry"] === "true") {
+      return true;
+    }
+    if (res.getStatusCode() === 409) {
+      return true;
+    }
+    if (res.getStatusCode() >= 500) {
+      return true;
+    }
+    return false;
+  }
+  _getSleepTimeInMS(numRetries, retryAfter = null) {
+    const initialNetworkRetryDelay = this._stripe.getInitialNetworkRetryDelay();
+    const maxNetworkRetryDelay = this._stripe.getMaxNetworkRetryDelay();
+    let sleepSeconds = Math.min(initialNetworkRetryDelay * Math.pow(2, numRetries - 1), maxNetworkRetryDelay);
+    sleepSeconds *= 0.5 * (1 + Math.random());
+    sleepSeconds = Math.max(initialNetworkRetryDelay, sleepSeconds);
+    if (Number.isInteger(retryAfter) && retryAfter <= MAX_RETRY_AFTER_WAIT) {
+      sleepSeconds = Math.max(sleepSeconds, retryAfter);
+    }
+    return sleepSeconds * 1000;
+  }
+  _getMaxNetworkRetries(settings = {}) {
+    return settings.maxNetworkRetries !== undefined && Number.isInteger(settings.maxNetworkRetries) ? settings.maxNetworkRetries : this._stripe.getMaxNetworkRetries();
+  }
+  _defaultIdempotencyKey(method, settings, apiMode) {
+    const maxRetries = this._getMaxNetworkRetries(settings);
+    const genKey = () => `stripe-node-retry-${this._stripe._platformFunctions.uuid4()}`;
+    if (apiMode === "v2") {
+      if (method === "POST" || method === "DELETE") {
+        return genKey();
+      }
+    } else if (apiMode === "v1") {
+      if (method === "POST" && maxRetries > 0) {
+        return genKey();
+      }
+    }
+    return null;
+  }
+  _makeHeaders({ contentType, contentLength, apiVersion, clientUserAgent, method, userSuppliedHeaders, userSuppliedSettings, stripeAccount, stripeContext, apiMode }) {
+    const defaultHeaders = {
+      Accept: "application/json",
+      "Content-Type": contentType,
+      "User-Agent": this._getUserAgentString(apiMode),
+      "X-Stripe-Client-User-Agent": clientUserAgent,
+      "X-Stripe-Client-Telemetry": this._getTelemetryHeader(),
+      "Stripe-Version": apiVersion,
+      "Stripe-Account": stripeAccount,
+      "Stripe-Context": stripeContext,
+      "Idempotency-Key": this._defaultIdempotencyKey(method, userSuppliedSettings, apiMode)
+    };
+    const methodHasPayload = method == "POST" || method == "PUT" || method == "PATCH";
+    if (methodHasPayload || contentLength) {
+      if (!methodHasPayload) {
+        emitWarning(`${method} method had non-zero contentLength but no payload is expected for this verb`);
+      }
+      defaultHeaders["Content-Length"] = contentLength;
+    }
+    return Object.assign(removeNullish(defaultHeaders), normalizeHeaders(userSuppliedHeaders));
+  }
+  _getUserAgentString(apiMode) {
+    const packageVersion = this._stripe.getConstant("PACKAGE_VERSION");
+    const appInfo = this._stripe._appInfo ? this._stripe.getAppInfoAsString() : "";
+    return `Stripe/${apiMode} NodeBindings/${packageVersion} ${appInfo}`.trim();
+  }
+  _getTelemetryHeader() {
+    if (this._stripe.getTelemetryEnabled() && this._stripe._prevRequestMetrics.length > 0) {
+      const metrics = this._stripe._prevRequestMetrics.shift();
+      return JSON.stringify({
+        last_request_metrics: metrics
+      });
+    }
+  }
+  _recordRequestMetrics(requestId, requestDurationMs, usage) {
+    if (this._stripe.getTelemetryEnabled() && requestId) {
+      if (this._stripe._prevRequestMetrics.length > this._maxBufferedRequestMetric) {
+        emitWarning("Request metrics buffer is full, dropping telemetry message.");
+      } else {
+        const m = {
+          request_id: requestId,
+          request_duration_ms: requestDurationMs
+        };
+        if (usage && usage.length > 0) {
+          m.usage = usage;
+        }
+        this._stripe._prevRequestMetrics.push(m);
+      }
+    }
+  }
+  _rawRequest(method, path, params, options, usage) {
+    const requestPromise = new Promise((resolve, reject) => {
+      let opts;
+      try {
+        const requestMethod = method.toUpperCase();
+        if (requestMethod !== "POST" && params && Object.keys(params).length !== 0) {
+          throw new Error("rawRequest only supports params on POST requests. Please pass null and add your parameters to path.");
+        }
+        const args = [].slice.call([params, options]);
+        const dataFromArgs = getDataFromArgs(args);
+        const data = requestMethod === "POST" ? Object.assign({}, dataFromArgs) : null;
+        const calculatedOptions = getOptionsFromArgs(args);
+        const headers2 = calculatedOptions.headers;
+        const authenticator2 = calculatedOptions.authenticator;
+        opts = {
+          requestMethod,
+          requestPath: path,
+          bodyData: data,
+          queryData: {},
+          authenticator: authenticator2,
+          headers: headers2,
+          host: calculatedOptions.host,
+          streaming: !!calculatedOptions.streaming,
+          settings: {},
+          usage: usage || ["raw_request"]
+        };
+      } catch (err) {
+        reject(err);
+        return;
+      }
+      function requestCallback(err, response) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(response);
+        }
+      }
+      const { headers, settings } = opts;
+      const authenticator = opts.authenticator;
+      this._request(opts.requestMethod, opts.host, path, opts.bodyData, authenticator, { headers, settings, streaming: opts.streaming }, opts.usage, requestCallback);
+    });
+    return requestPromise;
+  }
+  _getContentLength(data) {
+    return typeof data === "string" ? new TextEncoder().encode(data).length : data.length;
+  }
+  _request(method, host, path, data, authenticator, options, usage = [], callback, requestDataProcessor = null) {
+    var _a2;
+    let requestData;
+    authenticator = (_a2 = authenticator !== null && authenticator !== undefined ? authenticator : this._stripe._authenticator) !== null && _a2 !== undefined ? _a2 : null;
+    const apiMode = getAPIMode(path);
+    const retryRequest = (requestFn, apiVersion, headers, requestRetries, retryAfter) => {
+      return setTimeout(requestFn, this._getSleepTimeInMS(requestRetries, retryAfter), apiVersion, headers, requestRetries + 1);
+    };
+    const makeRequest = (apiVersion, headers, numRetries) => {
+      const timeout = options.settings && options.settings.timeout && Number.isInteger(options.settings.timeout) && options.settings.timeout >= 0 ? options.settings.timeout : this._stripe.getApiField("timeout");
+      const request = {
+        host: host || this._stripe.getApiField("host"),
+        port: this._stripe.getApiField("port"),
+        path,
+        method,
+        headers: Object.assign({}, headers),
+        body: requestData,
+        protocol: this._stripe.getApiField("protocol")
+      };
+      authenticator(request).then(() => {
+        const req = this._stripe.getApiField("httpClient").makeRequest(request.host, request.port, request.path, request.method, request.headers, request.body, request.protocol, timeout);
+        const requestStartTime = Date.now();
+        const requestEvent = removeNullish({
+          api_version: apiVersion,
+          account: parseHttpHeaderAsString(headers["Stripe-Account"]),
+          idempotency_key: parseHttpHeaderAsString(headers["Idempotency-Key"]),
+          method,
+          path,
+          request_start_time: requestStartTime
+        });
+        const requestRetries = numRetries || 0;
+        const maxRetries = this._getMaxNetworkRetries(options.settings || {});
+        this._stripe._emitter.emit("request", requestEvent);
+        req.then((res) => {
+          if (RequestSender._shouldRetry(res, requestRetries, maxRetries)) {
+            return retryRequest(makeRequest, apiVersion, headers, requestRetries, parseHttpHeaderAsNumber(res.getHeaders()["retry-after"]));
+          } else if (options.streaming && res.getStatusCode() < 400) {
+            return this._streamingResponseHandler(requestEvent, usage, callback)(res);
+          } else {
+            return this._jsonResponseHandler(requestEvent, apiMode, usage, callback)(res);
+          }
+        }).catch((error48) => {
+          if (RequestSender._shouldRetry(null, requestRetries, maxRetries, error48)) {
+            return retryRequest(makeRequest, apiVersion, headers, requestRetries, null);
+          } else {
+            const isTimeoutError = error48.code && error48.code === HttpClient.TIMEOUT_ERROR_CODE;
+            return callback(new StripeConnectionError({
+              message: isTimeoutError ? `Request aborted due to timeout being reached (${timeout}ms)` : RequestSender._generateConnectionErrorMessage(requestRetries),
+              detail: error48
+            }));
+          }
+        });
+      }).catch((e) => {
+        throw new StripeError({
+          message: "Unable to authenticate the request",
+          exception: e
+        });
+      });
+    };
+    const prepareAndMakeRequest = (error48, data2) => {
+      if (error48) {
+        return callback(error48);
+      }
+      requestData = data2;
+      this._stripe.getClientUserAgent((clientUserAgent) => {
+        var _a3, _b, _c;
+        const apiVersion = this._stripe.getApiField("version");
+        const headers = this._makeHeaders({
+          contentType: apiMode == "v2" ? "application/json" : "application/x-www-form-urlencoded",
+          contentLength: this._getContentLength(data2),
+          apiVersion,
+          clientUserAgent,
+          method,
+          userSuppliedHeaders: (_a3 = options.headers) !== null && _a3 !== undefined ? _a3 : null,
+          userSuppliedSettings: (_b = options.settings) !== null && _b !== undefined ? _b : {},
+          stripeAccount: (_c = options.stripeAccount) !== null && _c !== undefined ? _c : this._stripe.getApiField("stripeAccount"),
+          stripeContext: this._normalizeStripeContext(options.stripeContext, this._stripe.getApiField("stripeContext")),
+          apiMode
+        });
+        makeRequest(apiVersion, headers, 0);
+      });
+    };
+    if (requestDataProcessor) {
+      requestDataProcessor(method, data, options.headers, prepareAndMakeRequest);
+    } else {
+      let stringifiedData;
+      if (apiMode == "v2") {
+        stringifiedData = data ? jsonStringifyRequestData(data) : "";
+      } else {
+        stringifiedData = queryStringifyRequestData(data || {});
+      }
+      prepareAndMakeRequest(null, stringifiedData);
+    }
+  }
+}
+
+// node_modules/stripe/esm/autoPagination.js
+class V1Iterator {
+  constructor(firstPagePromise, requestArgs, spec, stripeResource) {
+    this.index = 0;
+    this.pagePromise = firstPagePromise;
+    this.promiseCache = { currentPromise: null };
+    this.requestArgs = requestArgs;
+    this.spec = spec;
+    this.stripeResource = stripeResource;
+  }
+  async iterate(pageResult) {
+    if (!(pageResult && pageResult.data && typeof pageResult.data.length === "number")) {
+      throw Error("Unexpected: Stripe API response does not have a well-formed `data` array.");
+    }
+    const reverseIteration = isReverseIteration(this.requestArgs);
+    if (this.index < pageResult.data.length) {
+      const idx = reverseIteration ? pageResult.data.length - 1 - this.index : this.index;
+      const value = pageResult.data[idx];
+      this.index += 1;
+      return { value, done: false };
+    } else if (pageResult.has_more) {
+      this.index = 0;
+      this.pagePromise = this.getNextPage(pageResult);
+      const nextPageResult = await this.pagePromise;
+      return this.iterate(nextPageResult);
+    }
+    return { done: true, value: undefined };
+  }
+  getNextPage(_pageResult) {
+    throw new Error("Unimplemented");
+  }
+  async _next() {
+    return this.iterate(await this.pagePromise);
+  }
+  next() {
+    if (this.promiseCache.currentPromise) {
+      return this.promiseCache.currentPromise;
+    }
+    const nextPromise = (async () => {
+      const ret = await this._next();
+      this.promiseCache.currentPromise = null;
+      return ret;
+    })();
+    this.promiseCache.currentPromise = nextPromise;
+    return nextPromise;
+  }
+}
+
+class V1ListIterator extends V1Iterator {
+  getNextPage(pageResult) {
+    const reverseIteration = isReverseIteration(this.requestArgs);
+    const lastId = getLastId(pageResult, reverseIteration);
+    return this.stripeResource._makeRequest(this.requestArgs, this.spec, {
+      [reverseIteration ? "ending_before" : "starting_after"]: lastId
+    });
+  }
+}
+
+class V1SearchIterator extends V1Iterator {
+  getNextPage(pageResult) {
+    if (!pageResult.next_page) {
+      throw Error("Unexpected: Stripe API response does not have a well-formed `next_page` field, but `has_more` was true.");
+    }
+    return this.stripeResource._makeRequest(this.requestArgs, this.spec, {
+      page: pageResult.next_page
+    });
+  }
+}
+
+class V2ListIterator {
+  constructor(firstPagePromise, requestArgs, spec, stripeResource) {
+    this.currentPageIterator = (async () => {
+      const page = await firstPagePromise;
+      return page.data[Symbol.iterator]();
+    })();
+    this.nextPageUrl = (async () => {
+      const page = await firstPagePromise;
+      return page.next_page_url || null;
+    })();
+    this.requestArgs = requestArgs;
+    this.spec = spec;
+    this.stripeResource = stripeResource;
+  }
+  async turnPage() {
+    const nextPageUrl = await this.nextPageUrl;
+    if (!nextPageUrl)
+      return null;
+    this.spec.fullPath = nextPageUrl;
+    const page = await this.stripeResource._makeRequest([], this.spec, {});
+    this.nextPageUrl = Promise.resolve(page.next_page_url);
+    this.currentPageIterator = Promise.resolve(page.data[Symbol.iterator]());
+    return this.currentPageIterator;
+  }
+  async next() {
+    {
+      const result2 = (await this.currentPageIterator).next();
+      if (!result2.done)
+        return { done: false, value: result2.value };
+    }
+    const nextPageIterator = await this.turnPage();
+    if (!nextPageIterator) {
+      return { done: true, value: undefined };
+    }
+    const result = nextPageIterator.next();
+    if (!result.done)
+      return { done: false, value: result.value };
+    return { done: true, value: undefined };
+  }
+}
+var makeAutoPaginationMethods = (stripeResource, requestArgs, spec, firstPagePromise) => {
+  const apiMode = getAPIMode(spec.fullPath || spec.path);
+  if (apiMode !== "v2" && spec.methodType === "search") {
+    return makeAutoPaginationMethodsFromIterator(new V1SearchIterator(firstPagePromise, requestArgs, spec, stripeResource));
+  }
+  if (apiMode !== "v2" && spec.methodType === "list") {
+    return makeAutoPaginationMethodsFromIterator(new V1ListIterator(firstPagePromise, requestArgs, spec, stripeResource));
+  }
+  if (apiMode === "v2" && spec.methodType === "list") {
+    return makeAutoPaginationMethodsFromIterator(new V2ListIterator(firstPagePromise, requestArgs, spec, stripeResource));
+  }
+  return null;
+};
+var makeAutoPaginationMethodsFromIterator = (iterator) => {
+  const autoPagingEach = makeAutoPagingEach((...args) => iterator.next(...args));
+  const autoPagingToArray = makeAutoPagingToArray(autoPagingEach);
+  const autoPaginationMethods = {
+    autoPagingEach,
+    autoPagingToArray,
+    next: () => iterator.next(),
+    return: () => {
+      return {};
+    },
+    [getAsyncIteratorSymbol()]: () => {
+      return autoPaginationMethods;
+    }
+  };
+  return autoPaginationMethods;
+};
+function getAsyncIteratorSymbol() {
+  if (typeof Symbol !== "undefined" && Symbol.asyncIterator) {
+    return Symbol.asyncIterator;
+  }
+  return "@@asyncIterator";
+}
+function getDoneCallback(args) {
+  if (args.length < 2) {
+    return null;
+  }
+  const onDone = args[1];
+  if (typeof onDone !== "function") {
+    throw Error(`The second argument to autoPagingEach, if present, must be a callback function; received ${typeof onDone}`);
+  }
+  return onDone;
+}
+function getItemCallback(args) {
+  if (args.length === 0) {
+    return;
+  }
+  const onItem = args[0];
+  if (typeof onItem !== "function") {
+    throw Error(`The first argument to autoPagingEach, if present, must be a callback function; received ${typeof onItem}`);
+  }
+  if (onItem.length === 2) {
+    return onItem;
+  }
+  if (onItem.length > 2) {
+    throw Error(`The \`onItem\` callback function passed to autoPagingEach must accept at most two arguments; got ${onItem}`);
+  }
+  return function _onItem(item, next) {
+    const shouldContinue = onItem(item);
+    next(shouldContinue);
+  };
+}
+function getLastId(listResult, reverseIteration) {
+  const lastIdx = reverseIteration ? 0 : listResult.data.length - 1;
+  const lastItem = listResult.data[lastIdx];
+  const lastId = lastItem && lastItem.id;
+  if (!lastId) {
+    throw Error("Unexpected: No `id` found on the last item while auto-paging a list.");
+  }
+  return lastId;
+}
+function makeAutoPagingEach(asyncIteratorNext) {
+  return function autoPagingEach() {
+    const args = [].slice.call(arguments);
+    const onItem = getItemCallback(args);
+    const onDone = getDoneCallback(args);
+    if (args.length > 2) {
+      throw Error(`autoPagingEach takes up to two arguments; received ${args}`);
+    }
+    const autoPagePromise = wrapAsyncIteratorWithCallback(asyncIteratorNext, onItem);
+    return callbackifyPromiseWithTimeout(autoPagePromise, onDone);
+  };
+}
+function makeAutoPagingToArray(autoPagingEach) {
+  return function autoPagingToArray(opts, onDone) {
+    const limit = opts && opts.limit;
+    if (!limit) {
+      throw Error("You must pass a `limit` option to autoPagingToArray, e.g., `autoPagingToArray({limit: 1000});`.");
+    }
+    if (limit > 1e4) {
+      throw Error("You cannot specify a limit of more than 10,000 items to fetch in `autoPagingToArray`; use `autoPagingEach` to iterate through longer lists.");
+    }
+    const promise2 = new Promise((resolve, reject) => {
+      const items = [];
+      autoPagingEach((item) => {
+        items.push(item);
+        if (items.length >= limit) {
+          return false;
+        }
+      }).then(() => {
+        resolve(items);
+      }).catch(reject);
+    });
+    return callbackifyPromiseWithTimeout(promise2, onDone);
+  };
+}
+function wrapAsyncIteratorWithCallback(asyncIteratorNext, onItem) {
+  return new Promise((resolve, reject) => {
+    function handleIteration(iterResult) {
+      if (iterResult.done) {
+        resolve();
+        return;
+      }
+      const item = iterResult.value;
+      return new Promise((next) => {
+        onItem(item, next);
+      }).then((shouldContinue) => {
+        if (shouldContinue === false) {
+          return handleIteration({ done: true, value: undefined });
+        } else {
+          return asyncIteratorNext().then(handleIteration);
+        }
+      });
+    }
+    asyncIteratorNext().then(handleIteration).catch(reject);
+  });
+}
+function isReverseIteration(requestArgs) {
+  const args = [].slice.call(requestArgs);
+  const dataFromArgs = getDataFromArgs(args);
+  return !!dataFromArgs.ending_before;
+}
+
+// node_modules/stripe/esm/StripeMethod.js
+function stripeMethod(spec) {
+  if (spec.path !== undefined && spec.fullPath !== undefined) {
+    throw new Error(`Method spec specified both a 'path' (${spec.path}) and a 'fullPath' (${spec.fullPath}).`);
+  }
+  return function(...args) {
+    const callback = typeof args[args.length - 1] == "function" && args.pop();
+    spec.urlParams = extractUrlParams(spec.fullPath || this.createResourcePathWithSymbols(spec.path || ""));
+    const requestPromise = callbackifyPromiseWithTimeout(this._makeRequest(args, spec, {}), callback);
+    Object.assign(requestPromise, makeAutoPaginationMethods(this, args, spec, requestPromise));
+    return requestPromise;
+  };
+}
+
+// node_modules/stripe/esm/StripeResource.js
+StripeResource.extend = protoExtend;
+StripeResource.method = stripeMethod;
+StripeResource.MAX_BUFFERED_REQUEST_METRICS = 100;
+function StripeResource(stripe, deprecatedUrlData) {
+  this._stripe = stripe;
+  if (deprecatedUrlData) {
+    throw new Error("Support for curried url params was dropped in stripe-node v7.0.0. Instead, pass two ids.");
+  }
+  this.basePath = makeURLInterpolator(this.basePath || stripe.getApiField("basePath"));
+  this.resourcePath = this.path;
+  this.path = makeURLInterpolator(this.path);
+  this.initialize(...arguments);
+}
+StripeResource.prototype = {
+  _stripe: null,
+  path: "",
+  resourcePath: "",
+  basePath: null,
+  initialize() {},
+  requestDataProcessor: null,
+  validateRequest: null,
+  createFullPath(commandPath, urlData) {
+    const urlParts = [this.basePath(urlData), this.path(urlData)];
+    if (typeof commandPath === "function") {
+      const computedCommandPath = commandPath(urlData);
+      if (computedCommandPath) {
+        urlParts.push(computedCommandPath);
+      }
+    } else {
+      urlParts.push(commandPath);
+    }
+    return this._joinUrlParts(urlParts);
+  },
+  createResourcePathWithSymbols(pathWithSymbols) {
+    if (pathWithSymbols) {
+      return `/${this._joinUrlParts([this.resourcePath, pathWithSymbols])}`;
+    } else {
+      return `/${this.resourcePath}`;
+    }
+  },
+  _joinUrlParts(parts) {
+    return parts.join("/").replace(/\/{2,}/g, "/");
+  },
+  _getRequestOpts(requestArgs, spec, overrideData) {
+    var _a2;
+    const requestMethod = (spec.method || "GET").toUpperCase();
+    const usage = spec.usage || [];
+    const urlParams = spec.urlParams || [];
+    const encode3 = spec.encode || ((data2) => data2);
+    const isUsingFullPath = !!spec.fullPath;
+    const commandPath = makeURLInterpolator(isUsingFullPath ? spec.fullPath : spec.path || "");
+    const path = isUsingFullPath ? spec.fullPath : this.createResourcePathWithSymbols(spec.path);
+    const args = [].slice.call(requestArgs);
+    const urlData = urlParams.reduce((urlData2, param) => {
+      const arg = args.shift();
+      if (typeof arg !== "string") {
+        throw new Error(`Stripe: Argument "${param}" must be a string, but got: ${arg} (on API request to \`${requestMethod} ${path}\`)`);
+      }
+      urlData2[param] = arg;
+      return urlData2;
+    }, {});
+    const dataFromArgs = getDataFromArgs(args);
+    const data = encode3(Object.assign({}, dataFromArgs, overrideData));
+    const options = getOptionsFromArgs(args);
+    const host = options.host || spec.host;
+    const streaming = !!spec.streaming || !!options.streaming;
+    if (args.filter((x) => x != null).length) {
+      throw new Error(`Stripe: Unknown arguments (${args}). Did you mean to pass an options object? See https://github.com/stripe/stripe-node/wiki/Passing-Options. (on API request to ${requestMethod} \`${path}\`)`);
+    }
+    const requestPath = isUsingFullPath ? commandPath(urlData) : this.createFullPath(commandPath, urlData);
+    const headers = Object.assign(options.headers, spec.headers);
+    if (spec.validator) {
+      spec.validator(data, { headers });
+    }
+    const dataInQuery = spec.method === "GET" || spec.method === "DELETE";
+    const bodyData = dataInQuery ? null : data;
+    const queryData = dataInQuery ? data : {};
+    return {
+      requestMethod,
+      requestPath,
+      bodyData,
+      queryData,
+      authenticator: (_a2 = options.authenticator) !== null && _a2 !== undefined ? _a2 : null,
+      headers,
+      host: host !== null && host !== undefined ? host : null,
+      streaming,
+      settings: options.settings,
+      usage
+    };
+  },
+  _makeRequest(requestArgs, spec, overrideData) {
+    return new Promise((resolve, reject) => {
+      var _a2;
+      let opts;
+      try {
+        opts = this._getRequestOpts(requestArgs, spec, overrideData);
+      } catch (err) {
+        reject(err);
+        return;
+      }
+      function requestCallback(err, response) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(spec.transformResponseData ? spec.transformResponseData(response) : response);
+        }
+      }
+      const emptyQuery = Object.keys(opts.queryData).length === 0;
+      const path = [
+        opts.requestPath,
+        emptyQuery ? "" : "?",
+        queryStringifyRequestData(opts.queryData)
+      ].join("");
+      const { headers, settings } = opts;
+      this._stripe._requestSender._request(opts.requestMethod, opts.host, path, opts.bodyData, opts.authenticator, {
+        headers,
+        settings,
+        streaming: opts.streaming
+      }, opts.usage, requestCallback, (_a2 = this.requestDataProcessor) === null || _a2 === undefined ? undefined : _a2.bind(this));
+    });
+  }
+};
+
+// node_modules/stripe/esm/StripeContext.js
+class StripeContext {
+  constructor(segments = []) {
+    this._segments = [...segments];
+  }
+  get segments() {
+    return [...this._segments];
+  }
+  push(segment) {
+    if (!segment) {
+      throw new Error("Segment cannot be null or undefined");
+    }
+    return new StripeContext([...this._segments, segment]);
+  }
+  pop() {
+    if (this._segments.length === 0) {
+      throw new Error("Cannot pop from an empty context");
+    }
+    return new StripeContext(this._segments.slice(0, -1));
+  }
+  toString() {
+    return this._segments.join("/");
+  }
+  static parse(contextStr) {
+    if (!contextStr) {
+      return new StripeContext([]);
+    }
+    return new StripeContext(contextStr.split("/"));
+  }
+}
+
+// node_modules/stripe/esm/Webhooks.js
+function createWebhooks(platformFunctions) {
+  const Webhook = {
+    DEFAULT_TOLERANCE: 300,
+    signature: null,
+    constructEvent(payload, header, secret, tolerance, cryptoProvider, receivedAt) {
+      try {
+        if (!this.signature) {
+          throw new Error("ERR: missing signature helper, unable to verify");
+        }
+        this.signature.verifyHeader(payload, header, secret, tolerance || Webhook.DEFAULT_TOLERANCE, cryptoProvider, receivedAt);
+      } catch (e) {
+        if (e instanceof CryptoProviderOnlySupportsAsyncError) {
+          e.message += "\nUse `await constructEventAsync(...)` instead of `constructEvent(...)`";
+        }
+        throw e;
+      }
+      const jsonPayload = payload instanceof Uint8Array ? JSON.parse(new TextDecoder("utf8").decode(payload)) : JSON.parse(payload);
+      return jsonPayload;
+    },
+    async constructEventAsync(payload, header, secret, tolerance, cryptoProvider, receivedAt) {
+      if (!this.signature) {
+        throw new Error("ERR: missing signature helper, unable to verify");
+      }
+      await this.signature.verifyHeaderAsync(payload, header, secret, tolerance || Webhook.DEFAULT_TOLERANCE, cryptoProvider, receivedAt);
+      const jsonPayload = payload instanceof Uint8Array ? JSON.parse(new TextDecoder("utf8").decode(payload)) : JSON.parse(payload);
+      return jsonPayload;
+    },
+    generateTestHeaderString: function(opts) {
+      const preparedOpts = prepareOptions(opts);
+      const signature2 = preparedOpts.signature || preparedOpts.cryptoProvider.computeHMACSignature(preparedOpts.payloadString, preparedOpts.secret);
+      return preparedOpts.generateHeaderString(signature2);
+    },
+    generateTestHeaderStringAsync: async function(opts) {
+      const preparedOpts = prepareOptions(opts);
+      const signature2 = preparedOpts.signature || await preparedOpts.cryptoProvider.computeHMACSignatureAsync(preparedOpts.payloadString, preparedOpts.secret);
+      return preparedOpts.generateHeaderString(signature2);
+    }
+  };
+  const signature = {
+    EXPECTED_SCHEME: "v1",
+    verifyHeader(encodedPayload, encodedHeader, secret, tolerance, cryptoProvider, receivedAt) {
+      const { decodedHeader: header, decodedPayload: payload, details, suspectPayloadType } = parseEventDetails(encodedPayload, encodedHeader, this.EXPECTED_SCHEME);
+      const secretContainsWhitespace = /\s/.test(secret);
+      cryptoProvider = cryptoProvider || getCryptoProvider();
+      const expectedSignature = cryptoProvider.computeHMACSignature(makeHMACContent(payload, details), secret);
+      validateComputedSignature(payload, header, details, expectedSignature, tolerance, suspectPayloadType, secretContainsWhitespace, receivedAt);
+      return true;
+    },
+    async verifyHeaderAsync(encodedPayload, encodedHeader, secret, tolerance, cryptoProvider, receivedAt) {
+      const { decodedHeader: header, decodedPayload: payload, details, suspectPayloadType } = parseEventDetails(encodedPayload, encodedHeader, this.EXPECTED_SCHEME);
+      const secretContainsWhitespace = /\s/.test(secret);
+      cryptoProvider = cryptoProvider || getCryptoProvider();
+      const expectedSignature = await cryptoProvider.computeHMACSignatureAsync(makeHMACContent(payload, details), secret);
+      return validateComputedSignature(payload, header, details, expectedSignature, tolerance, suspectPayloadType, secretContainsWhitespace, receivedAt);
+    }
+  };
+  function makeHMACContent(payload, details) {
+    return `${details.timestamp}.${payload}`;
+  }
+  function parseEventDetails(encodedPayload, encodedHeader, expectedScheme) {
+    if (!encodedPayload) {
+      throw new StripeSignatureVerificationError(encodedHeader, encodedPayload, {
+        message: "No webhook payload was provided."
+      });
+    }
+    const suspectPayloadType = typeof encodedPayload != "string" && !(encodedPayload instanceof Uint8Array);
+    const textDecoder = new TextDecoder("utf8");
+    const decodedPayload = encodedPayload instanceof Uint8Array ? textDecoder.decode(encodedPayload) : encodedPayload;
+    if (Array.isArray(encodedHeader)) {
+      throw new Error("Unexpected: An array was passed as a header, which should not be possible for the stripe-signature header.");
+    }
+    if (encodedHeader == null || encodedHeader == "") {
+      throw new StripeSignatureVerificationError(encodedHeader, encodedPayload, {
+        message: "No stripe-signature header value was provided."
+      });
+    }
+    const decodedHeader = encodedHeader instanceof Uint8Array ? textDecoder.decode(encodedHeader) : encodedHeader;
+    const details = parseHeader(decodedHeader, expectedScheme);
+    if (!details || details.timestamp === -1) {
+      throw new StripeSignatureVerificationError(decodedHeader, decodedPayload, {
+        message: "Unable to extract timestamp and signatures from header"
+      });
+    }
+    if (!details.signatures.length) {
+      throw new StripeSignatureVerificationError(decodedHeader, decodedPayload, {
+        message: "No signatures found with expected scheme"
+      });
+    }
+    return {
+      decodedPayload,
+      decodedHeader,
+      details,
+      suspectPayloadType
+    };
+  }
+  function validateComputedSignature(payload, header, details, expectedSignature, tolerance, suspectPayloadType, secretContainsWhitespace, receivedAt) {
+    const signatureFound = !!details.signatures.filter(platformFunctions.secureCompare.bind(platformFunctions, expectedSignature)).length;
+    const docsLocation = `
+Learn more about webhook signing and explore webhook integration examples for various frameworks at ` + "https://docs.stripe.com/webhooks/signature";
+    const whitespaceMessage = secretContainsWhitespace ? `
+
+Note: The provided signing secret contains whitespace. This often indicates an extra newline or space is in the value` : "";
+    if (!signatureFound) {
+      if (suspectPayloadType) {
+        throw new StripeSignatureVerificationError(header, payload, {
+          message: "Webhook payload must be provided as a string or a Buffer (https://nodejs.org/api/buffer.html) instance representing the _raw_ request body." + `Payload was provided as a parsed JavaScript object instead. 
+` + `Signature verification is impossible without access to the original signed material. 
+` + docsLocation + `
+` + whitespaceMessage
+        });
+      }
+      throw new StripeSignatureVerificationError(header, payload, {
+        message: "No signatures found matching the expected signature for payload." + ` Are you passing the raw request body you received from Stripe? 
+` + " If a webhook request is being forwarded by a third-party tool," + ` ensure that the exact request body, including JSON formatting and new line style, is preserved.
+` + docsLocation + `
+` + whitespaceMessage
+      });
+    }
+    const timestampAge = Math.floor((typeof receivedAt === "number" ? receivedAt : Date.now()) / 1000) - details.timestamp;
+    if (tolerance > 0 && timestampAge > tolerance) {
+      throw new StripeSignatureVerificationError(header, payload, {
+        message: "Timestamp outside the tolerance zone"
+      });
+    }
+    return true;
+  }
+  function parseHeader(header, scheme) {
+    if (typeof header !== "string") {
+      return null;
+    }
+    return header.split(",").reduce((accum, item) => {
+      const kv = item.split("=");
+      if (kv[0] === "t") {
+        accum.timestamp = parseInt(kv[1], 10);
+      }
+      if (kv[0] === scheme) {
+        accum.signatures.push(kv[1]);
+      }
+      return accum;
+    }, {
+      timestamp: -1,
+      signatures: []
+    });
+  }
+  let webhooksCryptoProviderInstance = null;
+  function getCryptoProvider() {
+    if (!webhooksCryptoProviderInstance) {
+      webhooksCryptoProviderInstance = platformFunctions.createDefaultCryptoProvider();
+    }
+    return webhooksCryptoProviderInstance;
+  }
+  function prepareOptions(opts) {
+    if (!opts) {
+      throw new StripeError({
+        message: "Options are required"
+      });
+    }
+    const timestamp = Math.floor(opts.timestamp) || Math.floor(Date.now() / 1000);
+    const scheme = opts.scheme || signature.EXPECTED_SCHEME;
+    const cryptoProvider = opts.cryptoProvider || getCryptoProvider();
+    const payloadString = `${timestamp}.${opts.payload}`;
+    const generateHeaderString = (signature2) => {
+      return `t=${timestamp},${scheme}=${signature2}`;
+    };
+    return Object.assign(Object.assign({}, opts), {
+      timestamp,
+      scheme,
+      cryptoProvider,
+      payloadString,
+      generateHeaderString
+    });
+  }
+  Webhook.signature = signature;
+  return Webhook;
+}
+
+// node_modules/stripe/esm/apiVersion.js
+var ApiVersion = "2026-01-28.clover";
+
+// node_modules/stripe/esm/resources.js
+var exports_resources = {};
+__export(exports_resources, {
+  WebhookEndpoints: () => WebhookEndpoints,
+  V2: () => V2,
+  Treasury: () => Treasury,
+  Transfers: () => Transfers,
+  Topups: () => Topups,
+  Tokens: () => Tokens2,
+  TestHelpers: () => TestHelpers,
+  Terminal: () => Terminal,
+  TaxRates: () => TaxRates,
+  TaxIds: () => TaxIds,
+  TaxCodes: () => TaxCodes,
+  Tax: () => Tax,
+  Subscriptions: () => Subscriptions,
+  SubscriptionSchedules: () => SubscriptionSchedules,
+  SubscriptionItems: () => SubscriptionItems,
+  Sources: () => Sources,
+  Sigma: () => Sigma,
+  ShippingRates: () => ShippingRates,
+  SetupIntents: () => SetupIntents,
+  SetupAttempts: () => SetupAttempts,
+  Reviews: () => Reviews,
+  Reporting: () => Reporting,
+  Refunds: () => Refunds2,
+  Radar: () => Radar,
+  Quotes: () => Quotes,
+  PromotionCodes: () => PromotionCodes,
+  Products: () => Products2,
+  Prices: () => Prices,
+  Plans: () => Plans,
+  Payouts: () => Payouts,
+  PaymentRecords: () => PaymentRecords,
+  PaymentMethods: () => PaymentMethods,
+  PaymentMethodDomains: () => PaymentMethodDomains,
+  PaymentMethodConfigurations: () => PaymentMethodConfigurations,
+  PaymentLinks: () => PaymentLinks,
+  PaymentIntents: () => PaymentIntents,
+  PaymentAttemptRecords: () => PaymentAttemptRecords,
+  OAuth: () => OAuth,
+  Mandates: () => Mandates,
+  Issuing: () => Issuing,
+  Invoices: () => Invoices,
+  InvoiceRenderingTemplates: () => InvoiceRenderingTemplates,
+  InvoicePayments: () => InvoicePayments,
+  InvoiceItems: () => InvoiceItems,
+  Identity: () => Identity,
+  Forwarding: () => Forwarding,
+  FinancialConnections: () => FinancialConnections,
+  Files: () => Files,
+  FileLinks: () => FileLinks,
+  ExchangeRates: () => ExchangeRates,
+  Events: () => Events2,
+  EphemeralKeys: () => EphemeralKeys,
+  Entitlements: () => Entitlements,
+  Disputes: () => Disputes2,
+  Customers: () => Customers2,
+  CustomerSessions: () => CustomerSessions,
+  CreditNotes: () => CreditNotes,
+  Coupons: () => Coupons,
+  CountrySpecs: () => CountrySpecs,
+  ConfirmationTokens: () => ConfirmationTokens2,
+  Climate: () => Climate,
+  Checkout: () => Checkout,
+  Charges: () => Charges,
+  BillingPortal: () => BillingPortal,
+  Billing: () => Billing,
+  BalanceTransactions: () => BalanceTransactions,
+  BalanceSettings: () => BalanceSettings,
+  Balance: () => Balance,
+  Apps: () => Apps,
+  ApplicationFees: () => ApplicationFees,
+  ApplePayDomains: () => ApplePayDomains,
+  Accounts: () => Accounts3,
+  AccountSessions: () => AccountSessions,
+  AccountLinks: () => AccountLinks2,
+  Account: () => Accounts3
+});
+
+// node_modules/stripe/esm/ResourceNamespace.js
+function ResourceNamespace(stripe, resources) {
+  for (const name in resources) {
+    if (!Object.prototype.hasOwnProperty.call(resources, name)) {
+      continue;
+    }
+    const camelCaseName = name[0].toLowerCase() + name.substring(1);
+    const resource = new resources[name](stripe);
+    this[camelCaseName] = resource;
+  }
+}
+function resourceNamespace(namespace, resources) {
+  return function(stripe) {
+    return new ResourceNamespace(stripe, resources);
+  };
+}
+
+// node_modules/stripe/esm/resources/V2/Core/AccountLinks.js
+var stripeMethod2 = StripeResource.method;
+var AccountLinks = StripeResource.extend({
+  create: stripeMethod2({ method: "POST", fullPath: "/v2/core/account_links" })
+});
+
+// node_modules/stripe/esm/resources/V2/Core/AccountTokens.js
+var stripeMethod3 = StripeResource.method;
+var AccountTokens = StripeResource.extend({
+  create: stripeMethod3({ method: "POST", fullPath: "/v2/core/account_tokens" }),
+  retrieve: stripeMethod3({
+    method: "GET",
+    fullPath: "/v2/core/account_tokens/{id}"
+  })
+});
+
+// node_modules/stripe/esm/resources/FinancialConnections/Accounts.js
+var stripeMethod4 = StripeResource.method;
+var Accounts = StripeResource.extend({
+  retrieve: stripeMethod4({
+    method: "GET",
+    fullPath: "/v1/financial_connections/accounts/{account}"
+  }),
+  list: stripeMethod4({
+    method: "GET",
+    fullPath: "/v1/financial_connections/accounts",
+    methodType: "list"
+  }),
+  disconnect: stripeMethod4({
+    method: "POST",
+    fullPath: "/v1/financial_connections/accounts/{account}/disconnect"
+  }),
+  listOwners: stripeMethod4({
+    method: "GET",
+    fullPath: "/v1/financial_connections/accounts/{account}/owners",
+    methodType: "list"
+  }),
+  refresh: stripeMethod4({
+    method: "POST",
+    fullPath: "/v1/financial_connections/accounts/{account}/refresh"
+  }),
+  subscribe: stripeMethod4({
+    method: "POST",
+    fullPath: "/v1/financial_connections/accounts/{account}/subscribe"
+  }),
+  unsubscribe: stripeMethod4({
+    method: "POST",
+    fullPath: "/v1/financial_connections/accounts/{account}/unsubscribe"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Core/Accounts/Persons.js
+var stripeMethod5 = StripeResource.method;
+var Persons = StripeResource.extend({
+  create: stripeMethod5({
+    method: "POST",
+    fullPath: "/v2/core/accounts/{account_id}/persons"
+  }),
+  retrieve: stripeMethod5({
+    method: "GET",
+    fullPath: "/v2/core/accounts/{account_id}/persons/{id}"
+  }),
+  update: stripeMethod5({
+    method: "POST",
+    fullPath: "/v2/core/accounts/{account_id}/persons/{id}"
+  }),
+  list: stripeMethod5({
+    method: "GET",
+    fullPath: "/v2/core/accounts/{account_id}/persons",
+    methodType: "list"
+  }),
+  del: stripeMethod5({
+    method: "DELETE",
+    fullPath: "/v2/core/accounts/{account_id}/persons/{id}"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Core/Accounts/PersonTokens.js
+var stripeMethod6 = StripeResource.method;
+var PersonTokens = StripeResource.extend({
+  create: stripeMethod6({
+    method: "POST",
+    fullPath: "/v2/core/accounts/{account_id}/person_tokens"
+  }),
+  retrieve: stripeMethod6({
+    method: "GET",
+    fullPath: "/v2/core/accounts/{account_id}/person_tokens/{id}"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Core/Accounts.js
+var stripeMethod7 = StripeResource.method;
+var Accounts2 = StripeResource.extend({
+  constructor: function(...args) {
+    StripeResource.apply(this, args);
+    this.persons = new Persons(...args);
+    this.personTokens = new PersonTokens(...args);
+  },
+  create: stripeMethod7({ method: "POST", fullPath: "/v2/core/accounts" }),
+  retrieve: stripeMethod7({ method: "GET", fullPath: "/v2/core/accounts/{id}" }),
+  update: stripeMethod7({ method: "POST", fullPath: "/v2/core/accounts/{id}" }),
+  list: stripeMethod7({
+    method: "GET",
+    fullPath: "/v2/core/accounts",
+    methodType: "list"
+  }),
+  close: stripeMethod7({
+    method: "POST",
+    fullPath: "/v2/core/accounts/{id}/close"
+  })
+});
+
+// node_modules/stripe/esm/resources/Entitlements/ActiveEntitlements.js
+var stripeMethod8 = StripeResource.method;
+var ActiveEntitlements = StripeResource.extend({
+  retrieve: stripeMethod8({
+    method: "GET",
+    fullPath: "/v1/entitlements/active_entitlements/{id}"
+  }),
+  list: stripeMethod8({
+    method: "GET",
+    fullPath: "/v1/entitlements/active_entitlements",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Billing/Alerts.js
+var stripeMethod9 = StripeResource.method;
+var Alerts = StripeResource.extend({
+  create: stripeMethod9({ method: "POST", fullPath: "/v1/billing/alerts" }),
+  retrieve: stripeMethod9({ method: "GET", fullPath: "/v1/billing/alerts/{id}" }),
+  list: stripeMethod9({
+    method: "GET",
+    fullPath: "/v1/billing/alerts",
+    methodType: "list"
+  }),
+  activate: stripeMethod9({
+    method: "POST",
+    fullPath: "/v1/billing/alerts/{id}/activate"
+  }),
+  archive: stripeMethod9({
+    method: "POST",
+    fullPath: "/v1/billing/alerts/{id}/archive"
+  }),
+  deactivate: stripeMethod9({
+    method: "POST",
+    fullPath: "/v1/billing/alerts/{id}/deactivate"
+  })
+});
+
+// node_modules/stripe/esm/resources/Tax/Associations.js
+var stripeMethod10 = StripeResource.method;
+var Associations = StripeResource.extend({
+  find: stripeMethod10({ method: "GET", fullPath: "/v1/tax/associations/find" })
+});
+
+// node_modules/stripe/esm/resources/Issuing/Authorizations.js
+var stripeMethod11 = StripeResource.method;
+var Authorizations = StripeResource.extend({
+  retrieve: stripeMethod11({
+    method: "GET",
+    fullPath: "/v1/issuing/authorizations/{authorization}"
+  }),
+  update: stripeMethod11({
+    method: "POST",
+    fullPath: "/v1/issuing/authorizations/{authorization}"
+  }),
+  list: stripeMethod11({
+    method: "GET",
+    fullPath: "/v1/issuing/authorizations",
+    methodType: "list"
+  }),
+  approve: stripeMethod11({
+    method: "POST",
+    fullPath: "/v1/issuing/authorizations/{authorization}/approve"
+  }),
+  decline: stripeMethod11({
+    method: "POST",
+    fullPath: "/v1/issuing/authorizations/{authorization}/decline"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Issuing/Authorizations.js
+var stripeMethod12 = StripeResource.method;
+var Authorizations2 = StripeResource.extend({
+  create: stripeMethod12({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/authorizations"
+  }),
+  capture: stripeMethod12({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/authorizations/{authorization}/capture"
+  }),
+  expire: stripeMethod12({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/authorizations/{authorization}/expire"
+  }),
+  finalizeAmount: stripeMethod12({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/authorizations/{authorization}/finalize_amount"
+  }),
+  increment: stripeMethod12({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/authorizations/{authorization}/increment"
+  }),
+  respond: stripeMethod12({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/authorizations/{authorization}/fraud_challenges/respond"
+  }),
+  reverse: stripeMethod12({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/authorizations/{authorization}/reverse"
+  })
+});
+
+// node_modules/stripe/esm/resources/Tax/Calculations.js
+var stripeMethod13 = StripeResource.method;
+var Calculations = StripeResource.extend({
+  create: stripeMethod13({ method: "POST", fullPath: "/v1/tax/calculations" }),
+  retrieve: stripeMethod13({
+    method: "GET",
+    fullPath: "/v1/tax/calculations/{calculation}"
+  }),
+  listLineItems: stripeMethod13({
+    method: "GET",
+    fullPath: "/v1/tax/calculations/{calculation}/line_items",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Issuing/Cardholders.js
+var stripeMethod14 = StripeResource.method;
+var Cardholders = StripeResource.extend({
+  create: stripeMethod14({ method: "POST", fullPath: "/v1/issuing/cardholders" }),
+  retrieve: stripeMethod14({
+    method: "GET",
+    fullPath: "/v1/issuing/cardholders/{cardholder}"
+  }),
+  update: stripeMethod14({
+    method: "POST",
+    fullPath: "/v1/issuing/cardholders/{cardholder}"
+  }),
+  list: stripeMethod14({
+    method: "GET",
+    fullPath: "/v1/issuing/cardholders",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Issuing/Cards.js
+var stripeMethod15 = StripeResource.method;
+var Cards = StripeResource.extend({
+  create: stripeMethod15({ method: "POST", fullPath: "/v1/issuing/cards" }),
+  retrieve: stripeMethod15({ method: "GET", fullPath: "/v1/issuing/cards/{card}" }),
+  update: stripeMethod15({ method: "POST", fullPath: "/v1/issuing/cards/{card}" }),
+  list: stripeMethod15({
+    method: "GET",
+    fullPath: "/v1/issuing/cards",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Issuing/Cards.js
+var stripeMethod16 = StripeResource.method;
+var Cards2 = StripeResource.extend({
+  deliverCard: stripeMethod16({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/cards/{card}/shipping/deliver"
+  }),
+  failCard: stripeMethod16({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/cards/{card}/shipping/fail"
+  }),
+  returnCard: stripeMethod16({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/cards/{card}/shipping/return"
+  }),
+  shipCard: stripeMethod16({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/cards/{card}/shipping/ship"
+  }),
+  submitCard: stripeMethod16({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/cards/{card}/shipping/submit"
+  })
+});
+
+// node_modules/stripe/esm/resources/BillingPortal/Configurations.js
+var stripeMethod17 = StripeResource.method;
+var Configurations = StripeResource.extend({
+  create: stripeMethod17({
+    method: "POST",
+    fullPath: "/v1/billing_portal/configurations"
+  }),
+  retrieve: stripeMethod17({
+    method: "GET",
+    fullPath: "/v1/billing_portal/configurations/{configuration}"
+  }),
+  update: stripeMethod17({
+    method: "POST",
+    fullPath: "/v1/billing_portal/configurations/{configuration}"
+  }),
+  list: stripeMethod17({
+    method: "GET",
+    fullPath: "/v1/billing_portal/configurations",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Terminal/Configurations.js
+var stripeMethod18 = StripeResource.method;
+var Configurations2 = StripeResource.extend({
+  create: stripeMethod18({
+    method: "POST",
+    fullPath: "/v1/terminal/configurations"
+  }),
+  retrieve: stripeMethod18({
+    method: "GET",
+    fullPath: "/v1/terminal/configurations/{configuration}"
+  }),
+  update: stripeMethod18({
+    method: "POST",
+    fullPath: "/v1/terminal/configurations/{configuration}"
+  }),
+  list: stripeMethod18({
+    method: "GET",
+    fullPath: "/v1/terminal/configurations",
+    methodType: "list"
+  }),
+  del: stripeMethod18({
+    method: "DELETE",
+    fullPath: "/v1/terminal/configurations/{configuration}"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/ConfirmationTokens.js
+var stripeMethod19 = StripeResource.method;
+var ConfirmationTokens = StripeResource.extend({
+  create: stripeMethod19({
+    method: "POST",
+    fullPath: "/v1/test_helpers/confirmation_tokens"
+  })
+});
+
+// node_modules/stripe/esm/resources/Terminal/ConnectionTokens.js
+var stripeMethod20 = StripeResource.method;
+var ConnectionTokens = StripeResource.extend({
+  create: stripeMethod20({
+    method: "POST",
+    fullPath: "/v1/terminal/connection_tokens"
+  })
+});
+
+// node_modules/stripe/esm/resources/Billing/CreditBalanceSummary.js
+var stripeMethod21 = StripeResource.method;
+var CreditBalanceSummary = StripeResource.extend({
+  retrieve: stripeMethod21({
+    method: "GET",
+    fullPath: "/v1/billing/credit_balance_summary"
+  })
+});
+
+// node_modules/stripe/esm/resources/Billing/CreditBalanceTransactions.js
+var stripeMethod22 = StripeResource.method;
+var CreditBalanceTransactions = StripeResource.extend({
+  retrieve: stripeMethod22({
+    method: "GET",
+    fullPath: "/v1/billing/credit_balance_transactions/{id}"
+  }),
+  list: stripeMethod22({
+    method: "GET",
+    fullPath: "/v1/billing/credit_balance_transactions",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Billing/CreditGrants.js
+var stripeMethod23 = StripeResource.method;
+var CreditGrants = StripeResource.extend({
+  create: stripeMethod23({ method: "POST", fullPath: "/v1/billing/credit_grants" }),
+  retrieve: stripeMethod23({
+    method: "GET",
+    fullPath: "/v1/billing/credit_grants/{id}"
+  }),
+  update: stripeMethod23({
+    method: "POST",
+    fullPath: "/v1/billing/credit_grants/{id}"
+  }),
+  list: stripeMethod23({
+    method: "GET",
+    fullPath: "/v1/billing/credit_grants",
+    methodType: "list"
+  }),
+  expire: stripeMethod23({
+    method: "POST",
+    fullPath: "/v1/billing/credit_grants/{id}/expire"
+  }),
+  voidGrant: stripeMethod23({
+    method: "POST",
+    fullPath: "/v1/billing/credit_grants/{id}/void"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/CreditReversals.js
+var stripeMethod24 = StripeResource.method;
+var CreditReversals = StripeResource.extend({
+  create: stripeMethod24({
+    method: "POST",
+    fullPath: "/v1/treasury/credit_reversals"
+  }),
+  retrieve: stripeMethod24({
+    method: "GET",
+    fullPath: "/v1/treasury/credit_reversals/{credit_reversal}"
+  }),
+  list: stripeMethod24({
+    method: "GET",
+    fullPath: "/v1/treasury/credit_reversals",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Customers.js
+var stripeMethod25 = StripeResource.method;
+var Customers = StripeResource.extend({
+  fundCashBalance: stripeMethod25({
+    method: "POST",
+    fullPath: "/v1/test_helpers/customers/{customer}/fund_cash_balance"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/DebitReversals.js
+var stripeMethod26 = StripeResource.method;
+var DebitReversals = StripeResource.extend({
+  create: stripeMethod26({
+    method: "POST",
+    fullPath: "/v1/treasury/debit_reversals"
+  }),
+  retrieve: stripeMethod26({
+    method: "GET",
+    fullPath: "/v1/treasury/debit_reversals/{debit_reversal}"
+  }),
+  list: stripeMethod26({
+    method: "GET",
+    fullPath: "/v1/treasury/debit_reversals",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Issuing/Disputes.js
+var stripeMethod27 = StripeResource.method;
+var Disputes = StripeResource.extend({
+  create: stripeMethod27({ method: "POST", fullPath: "/v1/issuing/disputes" }),
+  retrieve: stripeMethod27({
+    method: "GET",
+    fullPath: "/v1/issuing/disputes/{dispute}"
+  }),
+  update: stripeMethod27({
+    method: "POST",
+    fullPath: "/v1/issuing/disputes/{dispute}"
+  }),
+  list: stripeMethod27({
+    method: "GET",
+    fullPath: "/v1/issuing/disputes",
+    methodType: "list"
+  }),
+  submit: stripeMethod27({
+    method: "POST",
+    fullPath: "/v1/issuing/disputes/{dispute}/submit"
+  })
+});
+
+// node_modules/stripe/esm/resources/Radar/EarlyFraudWarnings.js
+var stripeMethod28 = StripeResource.method;
+var EarlyFraudWarnings = StripeResource.extend({
+  retrieve: stripeMethod28({
+    method: "GET",
+    fullPath: "/v1/radar/early_fraud_warnings/{early_fraud_warning}"
+  }),
+  list: stripeMethod28({
+    method: "GET",
+    fullPath: "/v1/radar/early_fraud_warnings",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Core/EventDestinations.js
+var stripeMethod29 = StripeResource.method;
+var EventDestinations = StripeResource.extend({
+  create: stripeMethod29({
+    method: "POST",
+    fullPath: "/v2/core/event_destinations"
+  }),
+  retrieve: stripeMethod29({
+    method: "GET",
+    fullPath: "/v2/core/event_destinations/{id}"
+  }),
+  update: stripeMethod29({
+    method: "POST",
+    fullPath: "/v2/core/event_destinations/{id}"
+  }),
+  list: stripeMethod29({
+    method: "GET",
+    fullPath: "/v2/core/event_destinations",
+    methodType: "list"
+  }),
+  del: stripeMethod29({
+    method: "DELETE",
+    fullPath: "/v2/core/event_destinations/{id}"
+  }),
+  disable: stripeMethod29({
+    method: "POST",
+    fullPath: "/v2/core/event_destinations/{id}/disable"
+  }),
+  enable: stripeMethod29({
+    method: "POST",
+    fullPath: "/v2/core/event_destinations/{id}/enable"
+  }),
+  ping: stripeMethod29({
+    method: "POST",
+    fullPath: "/v2/core/event_destinations/{id}/ping"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Core/Events.js
+var stripeMethod30 = StripeResource.method;
+var Events = StripeResource.extend({
+  retrieve(...args) {
+    const transformResponseData = (response) => {
+      return this.addFetchRelatedObjectIfNeeded(response);
+    };
+    return stripeMethod30({
+      method: "GET",
+      fullPath: "/v2/core/events/{id}",
+      transformResponseData
+    }).apply(this, args);
+  },
+  list(...args) {
+    const transformResponseData = (response) => {
+      return Object.assign(Object.assign({}, response), { data: response.data.map(this.addFetchRelatedObjectIfNeeded.bind(this)) });
+    };
+    return stripeMethod30({
+      method: "GET",
+      fullPath: "/v2/core/events",
+      methodType: "list",
+      transformResponseData
+    }).apply(this, args);
+  },
+  addFetchRelatedObjectIfNeeded(pulledEvent) {
+    if (!pulledEvent.related_object || !pulledEvent.related_object.url) {
+      return pulledEvent;
+    }
+    return Object.assign(Object.assign({}, pulledEvent), { fetchRelatedObject: () => stripeMethod30({
+      method: "GET",
+      fullPath: pulledEvent.related_object.url
+    }).apply(this, [
+      {
+        stripeContext: pulledEvent.context
+      }
+    ]) });
+  }
+});
+
+// node_modules/stripe/esm/resources/Entitlements/Features.js
+var stripeMethod31 = StripeResource.method;
+var Features = StripeResource.extend({
+  create: stripeMethod31({ method: "POST", fullPath: "/v1/entitlements/features" }),
+  retrieve: stripeMethod31({
+    method: "GET",
+    fullPath: "/v1/entitlements/features/{id}"
+  }),
+  update: stripeMethod31({
+    method: "POST",
+    fullPath: "/v1/entitlements/features/{id}"
+  }),
+  list: stripeMethod31({
+    method: "GET",
+    fullPath: "/v1/entitlements/features",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/FinancialAccounts.js
+var stripeMethod32 = StripeResource.method;
+var FinancialAccounts = StripeResource.extend({
+  create: stripeMethod32({
+    method: "POST",
+    fullPath: "/v1/treasury/financial_accounts"
+  }),
+  retrieve: stripeMethod32({
+    method: "GET",
+    fullPath: "/v1/treasury/financial_accounts/{financial_account}"
+  }),
+  update: stripeMethod32({
+    method: "POST",
+    fullPath: "/v1/treasury/financial_accounts/{financial_account}"
+  }),
+  list: stripeMethod32({
+    method: "GET",
+    fullPath: "/v1/treasury/financial_accounts",
+    methodType: "list"
+  }),
+  close: stripeMethod32({
+    method: "POST",
+    fullPath: "/v1/treasury/financial_accounts/{financial_account}/close"
+  }),
+  retrieveFeatures: stripeMethod32({
+    method: "GET",
+    fullPath: "/v1/treasury/financial_accounts/{financial_account}/features"
+  }),
+  updateFeatures: stripeMethod32({
+    method: "POST",
+    fullPath: "/v1/treasury/financial_accounts/{financial_account}/features"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Treasury/InboundTransfers.js
+var stripeMethod33 = StripeResource.method;
+var InboundTransfers = StripeResource.extend({
+  fail: stripeMethod33({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/inbound_transfers/{id}/fail"
+  }),
+  returnInboundTransfer: stripeMethod33({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/inbound_transfers/{id}/return"
+  }),
+  succeed: stripeMethod33({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/inbound_transfers/{id}/succeed"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/InboundTransfers.js
+var stripeMethod34 = StripeResource.method;
+var InboundTransfers2 = StripeResource.extend({
+  create: stripeMethod34({
+    method: "POST",
+    fullPath: "/v1/treasury/inbound_transfers"
+  }),
+  retrieve: stripeMethod34({
+    method: "GET",
+    fullPath: "/v1/treasury/inbound_transfers/{id}"
+  }),
+  list: stripeMethod34({
+    method: "GET",
+    fullPath: "/v1/treasury/inbound_transfers",
+    methodType: "list"
+  }),
+  cancel: stripeMethod34({
+    method: "POST",
+    fullPath: "/v1/treasury/inbound_transfers/{inbound_transfer}/cancel"
+  })
+});
+
+// node_modules/stripe/esm/resources/Terminal/Locations.js
+var stripeMethod35 = StripeResource.method;
+var Locations = StripeResource.extend({
+  create: stripeMethod35({ method: "POST", fullPath: "/v1/terminal/locations" }),
+  retrieve: stripeMethod35({
+    method: "GET",
+    fullPath: "/v1/terminal/locations/{location}"
+  }),
+  update: stripeMethod35({
+    method: "POST",
+    fullPath: "/v1/terminal/locations/{location}"
+  }),
+  list: stripeMethod35({
+    method: "GET",
+    fullPath: "/v1/terminal/locations",
+    methodType: "list"
+  }),
+  del: stripeMethod35({
+    method: "DELETE",
+    fullPath: "/v1/terminal/locations/{location}"
+  })
+});
+
+// node_modules/stripe/esm/resources/Billing/MeterEventAdjustments.js
+var stripeMethod36 = StripeResource.method;
+var MeterEventAdjustments = StripeResource.extend({
+  create: stripeMethod36({
+    method: "POST",
+    fullPath: "/v1/billing/meter_event_adjustments"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Billing/MeterEventAdjustments.js
+var stripeMethod37 = StripeResource.method;
+var MeterEventAdjustments2 = StripeResource.extend({
+  create: stripeMethod37({
+    method: "POST",
+    fullPath: "/v2/billing/meter_event_adjustments"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Billing/MeterEventSession.js
+var stripeMethod38 = StripeResource.method;
+var MeterEventSession = StripeResource.extend({
+  create: stripeMethod38({
+    method: "POST",
+    fullPath: "/v2/billing/meter_event_session"
+  })
+});
+
+// node_modules/stripe/esm/resources/V2/Billing/MeterEventStream.js
+var stripeMethod39 = StripeResource.method;
+var MeterEventStream = StripeResource.extend({
+  create: stripeMethod39({
+    method: "POST",
+    fullPath: "/v2/billing/meter_event_stream",
+    host: "meter-events.stripe.com"
+  })
+});
+
+// node_modules/stripe/esm/resources/Billing/MeterEvents.js
+var stripeMethod40 = StripeResource.method;
+var MeterEvents = StripeResource.extend({
+  create: stripeMethod40({ method: "POST", fullPath: "/v1/billing/meter_events" })
+});
+
+// node_modules/stripe/esm/resources/V2/Billing/MeterEvents.js
+var stripeMethod41 = StripeResource.method;
+var MeterEvents2 = StripeResource.extend({
+  create: stripeMethod41({ method: "POST", fullPath: "/v2/billing/meter_events" })
+});
+
+// node_modules/stripe/esm/resources/Billing/Meters.js
+var stripeMethod42 = StripeResource.method;
+var Meters = StripeResource.extend({
+  create: stripeMethod42({ method: "POST", fullPath: "/v1/billing/meters" }),
+  retrieve: stripeMethod42({ method: "GET", fullPath: "/v1/billing/meters/{id}" }),
+  update: stripeMethod42({ method: "POST", fullPath: "/v1/billing/meters/{id}" }),
+  list: stripeMethod42({
+    method: "GET",
+    fullPath: "/v1/billing/meters",
+    methodType: "list"
+  }),
+  deactivate: stripeMethod42({
+    method: "POST",
+    fullPath: "/v1/billing/meters/{id}/deactivate"
+  }),
+  listEventSummaries: stripeMethod42({
+    method: "GET",
+    fullPath: "/v1/billing/meters/{id}/event_summaries",
+    methodType: "list"
+  }),
+  reactivate: stripeMethod42({
+    method: "POST",
+    fullPath: "/v1/billing/meters/{id}/reactivate"
+  })
+});
+
+// node_modules/stripe/esm/resources/Terminal/OnboardingLinks.js
+var stripeMethod43 = StripeResource.method;
+var OnboardingLinks = StripeResource.extend({
+  create: stripeMethod43({
+    method: "POST",
+    fullPath: "/v1/terminal/onboarding_links"
+  })
+});
+
+// node_modules/stripe/esm/resources/Climate/Orders.js
+var stripeMethod44 = StripeResource.method;
+var Orders = StripeResource.extend({
+  create: stripeMethod44({ method: "POST", fullPath: "/v1/climate/orders" }),
+  retrieve: stripeMethod44({
+    method: "GET",
+    fullPath: "/v1/climate/orders/{order}"
+  }),
+  update: stripeMethod44({
+    method: "POST",
+    fullPath: "/v1/climate/orders/{order}"
+  }),
+  list: stripeMethod44({
+    method: "GET",
+    fullPath: "/v1/climate/orders",
+    methodType: "list"
+  }),
+  cancel: stripeMethod44({
+    method: "POST",
+    fullPath: "/v1/climate/orders/{order}/cancel"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Treasury/OutboundPayments.js
+var stripeMethod45 = StripeResource.method;
+var OutboundPayments = StripeResource.extend({
+  update: stripeMethod45({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_payments/{id}"
+  }),
+  fail: stripeMethod45({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_payments/{id}/fail"
+  }),
+  post: stripeMethod45({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_payments/{id}/post"
+  }),
+  returnOutboundPayment: stripeMethod45({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_payments/{id}/return"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/OutboundPayments.js
+var stripeMethod46 = StripeResource.method;
+var OutboundPayments2 = StripeResource.extend({
+  create: stripeMethod46({
+    method: "POST",
+    fullPath: "/v1/treasury/outbound_payments"
+  }),
+  retrieve: stripeMethod46({
+    method: "GET",
+    fullPath: "/v1/treasury/outbound_payments/{id}"
+  }),
+  list: stripeMethod46({
+    method: "GET",
+    fullPath: "/v1/treasury/outbound_payments",
+    methodType: "list"
+  }),
+  cancel: stripeMethod46({
+    method: "POST",
+    fullPath: "/v1/treasury/outbound_payments/{id}/cancel"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Treasury/OutboundTransfers.js
+var stripeMethod47 = StripeResource.method;
+var OutboundTransfers = StripeResource.extend({
+  update: stripeMethod47({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}"
+  }),
+  fail: stripeMethod47({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}/fail"
+  }),
+  post: stripeMethod47({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}/post"
+  }),
+  returnOutboundTransfer: stripeMethod47({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/outbound_transfers/{outbound_transfer}/return"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/OutboundTransfers.js
+var stripeMethod48 = StripeResource.method;
+var OutboundTransfers2 = StripeResource.extend({
+  create: stripeMethod48({
+    method: "POST",
+    fullPath: "/v1/treasury/outbound_transfers"
+  }),
+  retrieve: stripeMethod48({
+    method: "GET",
+    fullPath: "/v1/treasury/outbound_transfers/{outbound_transfer}"
+  }),
+  list: stripeMethod48({
+    method: "GET",
+    fullPath: "/v1/treasury/outbound_transfers",
+    methodType: "list"
+  }),
+  cancel: stripeMethod48({
+    method: "POST",
+    fullPath: "/v1/treasury/outbound_transfers/{outbound_transfer}/cancel"
+  })
+});
+
+// node_modules/stripe/esm/resources/Radar/PaymentEvaluations.js
+var stripeMethod49 = StripeResource.method;
+var PaymentEvaluations = StripeResource.extend({
+  create: stripeMethod49({
+    method: "POST",
+    fullPath: "/v1/radar/payment_evaluations"
+  })
+});
+
+// node_modules/stripe/esm/resources/Issuing/PersonalizationDesigns.js
+var stripeMethod50 = StripeResource.method;
+var PersonalizationDesigns = StripeResource.extend({
+  create: stripeMethod50({
+    method: "POST",
+    fullPath: "/v1/issuing/personalization_designs"
+  }),
+  retrieve: stripeMethod50({
+    method: "GET",
+    fullPath: "/v1/issuing/personalization_designs/{personalization_design}"
+  }),
+  update: stripeMethod50({
+    method: "POST",
+    fullPath: "/v1/issuing/personalization_designs/{personalization_design}"
+  }),
+  list: stripeMethod50({
+    method: "GET",
+    fullPath: "/v1/issuing/personalization_designs",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Issuing/PersonalizationDesigns.js
+var stripeMethod51 = StripeResource.method;
+var PersonalizationDesigns2 = StripeResource.extend({
+  activate: stripeMethod51({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/personalization_designs/{personalization_design}/activate"
+  }),
+  deactivate: stripeMethod51({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/personalization_designs/{personalization_design}/deactivate"
+  }),
+  reject: stripeMethod51({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/personalization_designs/{personalization_design}/reject"
+  })
+});
+
+// node_modules/stripe/esm/resources/Issuing/PhysicalBundles.js
+var stripeMethod52 = StripeResource.method;
+var PhysicalBundles = StripeResource.extend({
+  retrieve: stripeMethod52({
+    method: "GET",
+    fullPath: "/v1/issuing/physical_bundles/{physical_bundle}"
+  }),
+  list: stripeMethod52({
+    method: "GET",
+    fullPath: "/v1/issuing/physical_bundles",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Climate/Products.js
+var stripeMethod53 = StripeResource.method;
+var Products = StripeResource.extend({
+  retrieve: stripeMethod53({
+    method: "GET",
+    fullPath: "/v1/climate/products/{product}"
+  }),
+  list: stripeMethod53({
+    method: "GET",
+    fullPath: "/v1/climate/products",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Terminal/Readers.js
+var stripeMethod54 = StripeResource.method;
+var Readers = StripeResource.extend({
+  create: stripeMethod54({ method: "POST", fullPath: "/v1/terminal/readers" }),
+  retrieve: stripeMethod54({
+    method: "GET",
+    fullPath: "/v1/terminal/readers/{reader}"
+  }),
+  update: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}"
+  }),
+  list: stripeMethod54({
+    method: "GET",
+    fullPath: "/v1/terminal/readers",
+    methodType: "list"
+  }),
+  del: stripeMethod54({
+    method: "DELETE",
+    fullPath: "/v1/terminal/readers/{reader}"
+  }),
+  cancelAction: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/cancel_action"
+  }),
+  collectInputs: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/collect_inputs"
+  }),
+  collectPaymentMethod: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/collect_payment_method"
+  }),
+  confirmPaymentIntent: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/confirm_payment_intent"
+  }),
+  processPaymentIntent: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/process_payment_intent"
+  }),
+  processSetupIntent: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/process_setup_intent"
+  }),
+  refundPayment: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/refund_payment"
+  }),
+  setReaderDisplay: stripeMethod54({
+    method: "POST",
+    fullPath: "/v1/terminal/readers/{reader}/set_reader_display"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Terminal/Readers.js
+var stripeMethod55 = StripeResource.method;
+var Readers2 = StripeResource.extend({
+  presentPaymentMethod: stripeMethod55({
+    method: "POST",
+    fullPath: "/v1/test_helpers/terminal/readers/{reader}/present_payment_method"
+  }),
+  succeedInputCollection: stripeMethod55({
+    method: "POST",
+    fullPath: "/v1/test_helpers/terminal/readers/{reader}/succeed_input_collection"
+  }),
+  timeoutInputCollection: stripeMethod55({
+    method: "POST",
+    fullPath: "/v1/test_helpers/terminal/readers/{reader}/timeout_input_collection"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Treasury/ReceivedCredits.js
+var stripeMethod56 = StripeResource.method;
+var ReceivedCredits = StripeResource.extend({
+  create: stripeMethod56({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/received_credits"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/ReceivedCredits.js
+var stripeMethod57 = StripeResource.method;
+var ReceivedCredits2 = StripeResource.extend({
+  retrieve: stripeMethod57({
+    method: "GET",
+    fullPath: "/v1/treasury/received_credits/{id}"
+  }),
+  list: stripeMethod57({
+    method: "GET",
+    fullPath: "/v1/treasury/received_credits",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Treasury/ReceivedDebits.js
+var stripeMethod58 = StripeResource.method;
+var ReceivedDebits = StripeResource.extend({
+  create: stripeMethod58({
+    method: "POST",
+    fullPath: "/v1/test_helpers/treasury/received_debits"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/ReceivedDebits.js
+var stripeMethod59 = StripeResource.method;
+var ReceivedDebits2 = StripeResource.extend({
+  retrieve: stripeMethod59({
+    method: "GET",
+    fullPath: "/v1/treasury/received_debits/{id}"
+  }),
+  list: stripeMethod59({
+    method: "GET",
+    fullPath: "/v1/treasury/received_debits",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Refunds.js
+var stripeMethod60 = StripeResource.method;
+var Refunds = StripeResource.extend({
+  expire: stripeMethod60({
+    method: "POST",
+    fullPath: "/v1/test_helpers/refunds/{refund}/expire"
+  })
+});
+
+// node_modules/stripe/esm/resources/Tax/Registrations.js
+var stripeMethod61 = StripeResource.method;
+var Registrations = StripeResource.extend({
+  create: stripeMethod61({ method: "POST", fullPath: "/v1/tax/registrations" }),
+  retrieve: stripeMethod61({
+    method: "GET",
+    fullPath: "/v1/tax/registrations/{id}"
+  }),
+  update: stripeMethod61({
+    method: "POST",
+    fullPath: "/v1/tax/registrations/{id}"
+  }),
+  list: stripeMethod61({
+    method: "GET",
+    fullPath: "/v1/tax/registrations",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Reporting/ReportRuns.js
+var stripeMethod62 = StripeResource.method;
+var ReportRuns = StripeResource.extend({
+  create: stripeMethod62({ method: "POST", fullPath: "/v1/reporting/report_runs" }),
+  retrieve: stripeMethod62({
+    method: "GET",
+    fullPath: "/v1/reporting/report_runs/{report_run}"
+  }),
+  list: stripeMethod62({
+    method: "GET",
+    fullPath: "/v1/reporting/report_runs",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Reporting/ReportTypes.js
+var stripeMethod63 = StripeResource.method;
+var ReportTypes = StripeResource.extend({
+  retrieve: stripeMethod63({
+    method: "GET",
+    fullPath: "/v1/reporting/report_types/{report_type}"
+  }),
+  list: stripeMethod63({
+    method: "GET",
+    fullPath: "/v1/reporting/report_types",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Forwarding/Requests.js
+var stripeMethod64 = StripeResource.method;
+var Requests = StripeResource.extend({
+  create: stripeMethod64({ method: "POST", fullPath: "/v1/forwarding/requests" }),
+  retrieve: stripeMethod64({
+    method: "GET",
+    fullPath: "/v1/forwarding/requests/{id}"
+  }),
+  list: stripeMethod64({
+    method: "GET",
+    fullPath: "/v1/forwarding/requests",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Sigma/ScheduledQueryRuns.js
+var stripeMethod65 = StripeResource.method;
+var ScheduledQueryRuns = StripeResource.extend({
+  retrieve: stripeMethod65({
+    method: "GET",
+    fullPath: "/v1/sigma/scheduled_query_runs/{scheduled_query_run}"
+  }),
+  list: stripeMethod65({
+    method: "GET",
+    fullPath: "/v1/sigma/scheduled_query_runs",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Apps/Secrets.js
+var stripeMethod66 = StripeResource.method;
+var Secrets = StripeResource.extend({
+  create: stripeMethod66({ method: "POST", fullPath: "/v1/apps/secrets" }),
+  list: stripeMethod66({
+    method: "GET",
+    fullPath: "/v1/apps/secrets",
+    methodType: "list"
+  }),
+  deleteWhere: stripeMethod66({
+    method: "POST",
+    fullPath: "/v1/apps/secrets/delete"
+  }),
+  find: stripeMethod66({ method: "GET", fullPath: "/v1/apps/secrets/find" })
+});
+
+// node_modules/stripe/esm/resources/BillingPortal/Sessions.js
+var stripeMethod67 = StripeResource.method;
+var Sessions = StripeResource.extend({
+  create: stripeMethod67({
+    method: "POST",
+    fullPath: "/v1/billing_portal/sessions"
+  })
+});
+
+// node_modules/stripe/esm/resources/Checkout/Sessions.js
+var stripeMethod68 = StripeResource.method;
+var Sessions2 = StripeResource.extend({
+  create: stripeMethod68({ method: "POST", fullPath: "/v1/checkout/sessions" }),
+  retrieve: stripeMethod68({
+    method: "GET",
+    fullPath: "/v1/checkout/sessions/{session}"
+  }),
+  update: stripeMethod68({
+    method: "POST",
+    fullPath: "/v1/checkout/sessions/{session}"
+  }),
+  list: stripeMethod68({
+    method: "GET",
+    fullPath: "/v1/checkout/sessions",
+    methodType: "list"
+  }),
+  expire: stripeMethod68({
+    method: "POST",
+    fullPath: "/v1/checkout/sessions/{session}/expire"
+  }),
+  listLineItems: stripeMethod68({
+    method: "GET",
+    fullPath: "/v1/checkout/sessions/{session}/line_items",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/FinancialConnections/Sessions.js
+var stripeMethod69 = StripeResource.method;
+var Sessions3 = StripeResource.extend({
+  create: stripeMethod69({
+    method: "POST",
+    fullPath: "/v1/financial_connections/sessions"
+  }),
+  retrieve: stripeMethod69({
+    method: "GET",
+    fullPath: "/v1/financial_connections/sessions/{session}"
+  })
+});
+
+// node_modules/stripe/esm/resources/Tax/Settings.js
+var stripeMethod70 = StripeResource.method;
+var Settings = StripeResource.extend({
+  retrieve: stripeMethod70({ method: "GET", fullPath: "/v1/tax/settings" }),
+  update: stripeMethod70({ method: "POST", fullPath: "/v1/tax/settings" })
+});
+
+// node_modules/stripe/esm/resources/Climate/Suppliers.js
+var stripeMethod71 = StripeResource.method;
+var Suppliers = StripeResource.extend({
+  retrieve: stripeMethod71({
+    method: "GET",
+    fullPath: "/v1/climate/suppliers/{supplier}"
+  }),
+  list: stripeMethod71({
+    method: "GET",
+    fullPath: "/v1/climate/suppliers",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/TestClocks.js
+var stripeMethod72 = StripeResource.method;
+var TestClocks = StripeResource.extend({
+  create: stripeMethod72({
+    method: "POST",
+    fullPath: "/v1/test_helpers/test_clocks"
+  }),
+  retrieve: stripeMethod72({
+    method: "GET",
+    fullPath: "/v1/test_helpers/test_clocks/{test_clock}"
+  }),
+  list: stripeMethod72({
+    method: "GET",
+    fullPath: "/v1/test_helpers/test_clocks",
+    methodType: "list"
+  }),
+  del: stripeMethod72({
+    method: "DELETE",
+    fullPath: "/v1/test_helpers/test_clocks/{test_clock}"
+  }),
+  advance: stripeMethod72({
+    method: "POST",
+    fullPath: "/v1/test_helpers/test_clocks/{test_clock}/advance"
+  })
+});
+
+// node_modules/stripe/esm/resources/Issuing/Tokens.js
+var stripeMethod73 = StripeResource.method;
+var Tokens = StripeResource.extend({
+  retrieve: stripeMethod73({
+    method: "GET",
+    fullPath: "/v1/issuing/tokens/{token}"
+  }),
+  update: stripeMethod73({
+    method: "POST",
+    fullPath: "/v1/issuing/tokens/{token}"
+  }),
+  list: stripeMethod73({
+    method: "GET",
+    fullPath: "/v1/issuing/tokens",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/TransactionEntries.js
+var stripeMethod74 = StripeResource.method;
+var TransactionEntries = StripeResource.extend({
+  retrieve: stripeMethod74({
+    method: "GET",
+    fullPath: "/v1/treasury/transaction_entries/{id}"
+  }),
+  list: stripeMethod74({
+    method: "GET",
+    fullPath: "/v1/treasury/transaction_entries",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/FinancialConnections/Transactions.js
+var stripeMethod75 = StripeResource.method;
+var Transactions = StripeResource.extend({
+  retrieve: stripeMethod75({
+    method: "GET",
+    fullPath: "/v1/financial_connections/transactions/{transaction}"
+  }),
+  list: stripeMethod75({
+    method: "GET",
+    fullPath: "/v1/financial_connections/transactions",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Issuing/Transactions.js
+var stripeMethod76 = StripeResource.method;
+var Transactions2 = StripeResource.extend({
+  retrieve: stripeMethod76({
+    method: "GET",
+    fullPath: "/v1/issuing/transactions/{transaction}"
+  }),
+  update: stripeMethod76({
+    method: "POST",
+    fullPath: "/v1/issuing/transactions/{transaction}"
+  }),
+  list: stripeMethod76({
+    method: "GET",
+    fullPath: "/v1/issuing/transactions",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Tax/Transactions.js
+var stripeMethod77 = StripeResource.method;
+var Transactions3 = StripeResource.extend({
+  retrieve: stripeMethod77({
+    method: "GET",
+    fullPath: "/v1/tax/transactions/{transaction}"
+  }),
+  createFromCalculation: stripeMethod77({
+    method: "POST",
+    fullPath: "/v1/tax/transactions/create_from_calculation"
+  }),
+  createReversal: stripeMethod77({
+    method: "POST",
+    fullPath: "/v1/tax/transactions/create_reversal"
+  }),
+  listLineItems: stripeMethod77({
+    method: "GET",
+    fullPath: "/v1/tax/transactions/{transaction}/line_items",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/TestHelpers/Issuing/Transactions.js
+var stripeMethod78 = StripeResource.method;
+var Transactions4 = StripeResource.extend({
+  createForceCapture: stripeMethod78({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/transactions/create_force_capture"
+  }),
+  createUnlinkedRefund: stripeMethod78({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/transactions/create_unlinked_refund"
+  }),
+  refund: stripeMethod78({
+    method: "POST",
+    fullPath: "/v1/test_helpers/issuing/transactions/{transaction}/refund"
+  })
+});
+
+// node_modules/stripe/esm/resources/Treasury/Transactions.js
+var stripeMethod79 = StripeResource.method;
+var Transactions5 = StripeResource.extend({
+  retrieve: stripeMethod79({
+    method: "GET",
+    fullPath: "/v1/treasury/transactions/{id}"
+  }),
+  list: stripeMethod79({
+    method: "GET",
+    fullPath: "/v1/treasury/transactions",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Radar/ValueListItems.js
+var stripeMethod80 = StripeResource.method;
+var ValueListItems = StripeResource.extend({
+  create: stripeMethod80({
+    method: "POST",
+    fullPath: "/v1/radar/value_list_items"
+  }),
+  retrieve: stripeMethod80({
+    method: "GET",
+    fullPath: "/v1/radar/value_list_items/{item}"
+  }),
+  list: stripeMethod80({
+    method: "GET",
+    fullPath: "/v1/radar/value_list_items",
+    methodType: "list"
+  }),
+  del: stripeMethod80({
+    method: "DELETE",
+    fullPath: "/v1/radar/value_list_items/{item}"
+  })
+});
+
+// node_modules/stripe/esm/resources/Radar/ValueLists.js
+var stripeMethod81 = StripeResource.method;
+var ValueLists = StripeResource.extend({
+  create: stripeMethod81({ method: "POST", fullPath: "/v1/radar/value_lists" }),
+  retrieve: stripeMethod81({
+    method: "GET",
+    fullPath: "/v1/radar/value_lists/{value_list}"
+  }),
+  update: stripeMethod81({
+    method: "POST",
+    fullPath: "/v1/radar/value_lists/{value_list}"
+  }),
+  list: stripeMethod81({
+    method: "GET",
+    fullPath: "/v1/radar/value_lists",
+    methodType: "list"
+  }),
+  del: stripeMethod81({
+    method: "DELETE",
+    fullPath: "/v1/radar/value_lists/{value_list}"
+  })
+});
+
+// node_modules/stripe/esm/resources/Identity/VerificationReports.js
+var stripeMethod82 = StripeResource.method;
+var VerificationReports = StripeResource.extend({
+  retrieve: stripeMethod82({
+    method: "GET",
+    fullPath: "/v1/identity/verification_reports/{report}"
+  }),
+  list: stripeMethod82({
+    method: "GET",
+    fullPath: "/v1/identity/verification_reports",
+    methodType: "list"
+  })
+});
+
+// node_modules/stripe/esm/resources/Identity/VerificationSessions.js
+var stripeMethod83 = StripeResource.method;
+var VerificationSessions = StripeResource.extend({
+  create: stripeMethod83({
+    method: "POST",
+    fullPath: "/v1/identity/verification_sessions"
+  }),
+  retrieve: stripeMethod83({
+    method: "GET",
+    fullPath: "/v1/identity/verification_sessions/{session}"
+  }),
+  update: stripeMethod83({
+    method: "POST",
+    fullPath: "/v1/identity/verification_sessions/{session}"
+  }),
+  list: stripeMethod83({
+    method: "GET",
+    fullPath: "/v1/identity/verification_sessions",
+    methodType: "list"
+  }),
+  cancel: stripeMethod83({
+    method: "POST",
+    fullPath: "/v1/identity/verification_sessions/{session}/cancel"
+  }),
+  redact: stripeMethod83({
+    method: "POST",
+    fullPath: "/v1/identity/verification_sessions/{session}/redact"
+  })
+});
+
+// node_modules/stripe/esm/resources/Accounts.js
+var stripeMethod84 = StripeResource.method;
+var Accounts3 = StripeResource.extend({
+  create: stripeMethod84({ method: "POST", fullPath: "/v1/accounts" }),
+  retrieve(id, ...args) {
+    if (typeof id === "string") {
+      return stripeMethod84({
+        method: "GET",
+        fullPath: "/v1/accounts/{id}"
+      }).apply(this, [id, ...args]);
+    } else {
+      if (id === null || id === undefined) {
+        [].shift.apply([id, ...args]);
+      }
+      return stripeMethod84({
+        method: "GET",
+        fullPath: "/v1/account"
+      }).apply(this, [id, ...args]);
+    }
+  },
+  update: stripeMethod84({ method: "POST", fullPath: "/v1/accounts/{account}" }),
+  list: stripeMethod84({
+    method: "GET",
+    fullPath: "/v1/accounts",
+    methodType: "list"
+  }),
+  del: stripeMethod84({ method: "DELETE", fullPath: "/v1/accounts/{account}" }),
+  createExternalAccount: stripeMethod84({
+    method: "POST",
+    fullPath: "/v1/accounts/{account}/external_accounts"
+  }),
+  createLoginLink: stripeMethod84({
+    method: "POST",
+    fullPath: "/v1/accounts/{account}/login_links"
+  }),
+  createPerson: stripeMethod84({
+    method: "POST",
+    fullPath: "/v1/accounts/{account}/persons"
+  }),
+  deleteExternalAccount: stripeMethod84({
+    method: "DELETE",
+    fullPath: "/v1/accounts/{account}/external_accounts/{id}"
+  }),
+  deletePerson: stripeMethod84({
+    method: "DELETE",
+    fullPath: "/v1/accounts/{account}/persons/{person}"
+  }),
+  listCapabilities: stripeMethod84({
+    method: "GET",
+    fullPath: "/v1/accounts/{account}/capabilities",
+    methodType: "list"
+  }),
+  listExternalAccounts: stripeMethod84({
+    method: "GET",
+    fullPath: "/v1/accounts/{account}/external_accounts",
+    methodType: "list"
+  }),
+  listPersons: stripeMethod84({
+    method: "GET",
+    fullPath: "/v1/accounts/{account}/persons",
+    methodType: "list"
+  }),
+  reject: stripeMethod84({
+    method: "POST",
+    fullPath: "/v1/accounts/{account}/reject"
+  }),
+  retrieveCurrent: stripeMethod84({ method: "GET", fullPath: "/v1/account" }),
+  retrieveCapability: stripeMethod84({
+    method: "GET",
+    fullPath: "/v1/accounts/{account}/capabilities/{capability}"
+  }),
+  retrieveExternalAccount: stripeMethod84({
+    method: "GET",
+    fullPath: "/v1/accounts/{account}/external_accounts/{id}"
+  }),
+  retrievePerson: stripeMethod84({
+    method: "GET",
+    fullPath: "/v1/accounts/{account}/persons/{person}"
+  }),
+  updateCapability: stripeMethod84({
+    method: "POST",
+    fullPath: "/v1/accounts/{account}/capabilities/{capability}"
+  }),
+  updateExternalAccount: stripeMethod84({
+    method: "POST",
+    fullPath: "/v1/accounts/{account}/external_accounts/{id}"
+  }),
+  updatePerson: stripeMethod84({
+    method: "POST",
+    fullPath: "/v1/accounts/{account}/persons/{person}"
+  })
+});
+// node_modules/stripe/esm/resources/AccountLinks.js
+var stripeMethod85 = StripeResource.method;
+var AccountLinks2 = StripeResource.extend({
+  create: stripeMethod85({ method: "POST", fullPath: "/v1/account_links" })
+});
+// node_modules/stripe/esm/resources/AccountSessions.js
+var stripeMethod86 = StripeResource.method;
+var AccountSessions = StripeResource.extend({
+  create: stripeMethod86({ method: "POST", fullPath: "/v1/account_sessions" })
+});
+// node_modules/stripe/esm/resources/ApplePayDomains.js
+var stripeMethod87 = StripeResource.method;
+var ApplePayDomains = StripeResource.extend({
+  create: stripeMethod87({ method: "POST", fullPath: "/v1/apple_pay/domains" }),
+  retrieve: stripeMethod87({
+    method: "GET",
+    fullPath: "/v1/apple_pay/domains/{domain}"
+  }),
+  list: stripeMethod87({
+    method: "GET",
+    fullPath: "/v1/apple_pay/domains",
+    methodType: "list"
+  }),
+  del: stripeMethod87({
+    method: "DELETE",
+    fullPath: "/v1/apple_pay/domains/{domain}"
+  })
+});
+// node_modules/stripe/esm/resources/ApplicationFees.js
+var stripeMethod88 = StripeResource.method;
+var ApplicationFees = StripeResource.extend({
+  retrieve: stripeMethod88({
+    method: "GET",
+    fullPath: "/v1/application_fees/{id}"
+  }),
+  list: stripeMethod88({
+    method: "GET",
+    fullPath: "/v1/application_fees",
+    methodType: "list"
+  }),
+  createRefund: stripeMethod88({
+    method: "POST",
+    fullPath: "/v1/application_fees/{id}/refunds"
+  }),
+  listRefunds: stripeMethod88({
+    method: "GET",
+    fullPath: "/v1/application_fees/{id}/refunds",
+    methodType: "list"
+  }),
+  retrieveRefund: stripeMethod88({
+    method: "GET",
+    fullPath: "/v1/application_fees/{fee}/refunds/{id}"
+  }),
+  updateRefund: stripeMethod88({
+    method: "POST",
+    fullPath: "/v1/application_fees/{fee}/refunds/{id}"
+  })
+});
+// node_modules/stripe/esm/resources/Balance.js
+var stripeMethod89 = StripeResource.method;
+var Balance = StripeResource.extend({
+  retrieve: stripeMethod89({ method: "GET", fullPath: "/v1/balance" })
+});
+// node_modules/stripe/esm/resources/BalanceSettings.js
+var stripeMethod90 = StripeResource.method;
+var BalanceSettings = StripeResource.extend({
+  retrieve: stripeMethod90({ method: "GET", fullPath: "/v1/balance_settings" }),
+  update: stripeMethod90({ method: "POST", fullPath: "/v1/balance_settings" })
+});
+// node_modules/stripe/esm/resources/BalanceTransactions.js
+var stripeMethod91 = StripeResource.method;
+var BalanceTransactions = StripeResource.extend({
+  retrieve: stripeMethod91({
+    method: "GET",
+    fullPath: "/v1/balance_transactions/{id}"
+  }),
+  list: stripeMethod91({
+    method: "GET",
+    fullPath: "/v1/balance_transactions",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/Charges.js
+var stripeMethod92 = StripeResource.method;
+var Charges = StripeResource.extend({
+  create: stripeMethod92({ method: "POST", fullPath: "/v1/charges" }),
+  retrieve: stripeMethod92({ method: "GET", fullPath: "/v1/charges/{charge}" }),
+  update: stripeMethod92({ method: "POST", fullPath: "/v1/charges/{charge}" }),
+  list: stripeMethod92({
+    method: "GET",
+    fullPath: "/v1/charges",
+    methodType: "list"
+  }),
+  capture: stripeMethod92({
+    method: "POST",
+    fullPath: "/v1/charges/{charge}/capture"
+  }),
+  search: stripeMethod92({
+    method: "GET",
+    fullPath: "/v1/charges/search",
+    methodType: "search"
+  })
+});
+// node_modules/stripe/esm/resources/ConfirmationTokens.js
+var stripeMethod93 = StripeResource.method;
+var ConfirmationTokens2 = StripeResource.extend({
+  retrieve: stripeMethod93({
+    method: "GET",
+    fullPath: "/v1/confirmation_tokens/{confirmation_token}"
+  })
+});
+// node_modules/stripe/esm/resources/CountrySpecs.js
+var stripeMethod94 = StripeResource.method;
+var CountrySpecs = StripeResource.extend({
+  retrieve: stripeMethod94({
+    method: "GET",
+    fullPath: "/v1/country_specs/{country}"
+  }),
+  list: stripeMethod94({
+    method: "GET",
+    fullPath: "/v1/country_specs",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/Coupons.js
+var stripeMethod95 = StripeResource.method;
+var Coupons = StripeResource.extend({
+  create: stripeMethod95({ method: "POST", fullPath: "/v1/coupons" }),
+  retrieve: stripeMethod95({ method: "GET", fullPath: "/v1/coupons/{coupon}" }),
+  update: stripeMethod95({ method: "POST", fullPath: "/v1/coupons/{coupon}" }),
+  list: stripeMethod95({
+    method: "GET",
+    fullPath: "/v1/coupons",
+    methodType: "list"
+  }),
+  del: stripeMethod95({ method: "DELETE", fullPath: "/v1/coupons/{coupon}" })
+});
+// node_modules/stripe/esm/resources/CreditNotes.js
+var stripeMethod96 = StripeResource.method;
+var CreditNotes = StripeResource.extend({
+  create: stripeMethod96({ method: "POST", fullPath: "/v1/credit_notes" }),
+  retrieve: stripeMethod96({ method: "GET", fullPath: "/v1/credit_notes/{id}" }),
+  update: stripeMethod96({ method: "POST", fullPath: "/v1/credit_notes/{id}" }),
+  list: stripeMethod96({
+    method: "GET",
+    fullPath: "/v1/credit_notes",
+    methodType: "list"
+  }),
+  listLineItems: stripeMethod96({
+    method: "GET",
+    fullPath: "/v1/credit_notes/{credit_note}/lines",
+    methodType: "list"
+  }),
+  listPreviewLineItems: stripeMethod96({
+    method: "GET",
+    fullPath: "/v1/credit_notes/preview/lines",
+    methodType: "list"
+  }),
+  preview: stripeMethod96({ method: "GET", fullPath: "/v1/credit_notes/preview" }),
+  voidCreditNote: stripeMethod96({
+    method: "POST",
+    fullPath: "/v1/credit_notes/{id}/void"
+  })
+});
+// node_modules/stripe/esm/resources/CustomerSessions.js
+var stripeMethod97 = StripeResource.method;
+var CustomerSessions = StripeResource.extend({
+  create: stripeMethod97({ method: "POST", fullPath: "/v1/customer_sessions" })
+});
+// node_modules/stripe/esm/resources/Customers.js
+var stripeMethod98 = StripeResource.method;
+var Customers2 = StripeResource.extend({
+  create: stripeMethod98({ method: "POST", fullPath: "/v1/customers" }),
+  retrieve: stripeMethod98({ method: "GET", fullPath: "/v1/customers/{customer}" }),
+  update: stripeMethod98({ method: "POST", fullPath: "/v1/customers/{customer}" }),
+  list: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers",
+    methodType: "list"
+  }),
+  del: stripeMethod98({ method: "DELETE", fullPath: "/v1/customers/{customer}" }),
+  createBalanceTransaction: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/balance_transactions"
+  }),
+  createFundingInstructions: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/funding_instructions"
+  }),
+  createSource: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/sources"
+  }),
+  createTaxId: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/tax_ids"
+  }),
+  deleteDiscount: stripeMethod98({
+    method: "DELETE",
+    fullPath: "/v1/customers/{customer}/discount"
+  }),
+  deleteSource: stripeMethod98({
+    method: "DELETE",
+    fullPath: "/v1/customers/{customer}/sources/{id}"
+  }),
+  deleteTaxId: stripeMethod98({
+    method: "DELETE",
+    fullPath: "/v1/customers/{customer}/tax_ids/{id}"
+  }),
+  listBalanceTransactions: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/balance_transactions",
+    methodType: "list"
+  }),
+  listCashBalanceTransactions: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/cash_balance_transactions",
+    methodType: "list"
+  }),
+  listPaymentMethods: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/payment_methods",
+    methodType: "list"
+  }),
+  listSources: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/sources",
+    methodType: "list"
+  }),
+  listTaxIds: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/tax_ids",
+    methodType: "list"
+  }),
+  retrieveBalanceTransaction: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/balance_transactions/{transaction}"
+  }),
+  retrieveCashBalance: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/cash_balance"
+  }),
+  retrieveCashBalanceTransaction: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/cash_balance_transactions/{transaction}"
+  }),
+  retrievePaymentMethod: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/payment_methods/{payment_method}"
+  }),
+  retrieveSource: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/sources/{id}"
+  }),
+  retrieveTaxId: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/{customer}/tax_ids/{id}"
+  }),
+  search: stripeMethod98({
+    method: "GET",
+    fullPath: "/v1/customers/search",
+    methodType: "search"
+  }),
+  updateBalanceTransaction: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/balance_transactions/{transaction}"
+  }),
+  updateCashBalance: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/cash_balance"
+  }),
+  updateSource: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/sources/{id}"
+  }),
+  verifySource: stripeMethod98({
+    method: "POST",
+    fullPath: "/v1/customers/{customer}/sources/{id}/verify"
+  })
+});
+// node_modules/stripe/esm/resources/Disputes.js
+var stripeMethod99 = StripeResource.method;
+var Disputes2 = StripeResource.extend({
+  retrieve: stripeMethod99({ method: "GET", fullPath: "/v1/disputes/{dispute}" }),
+  update: stripeMethod99({ method: "POST", fullPath: "/v1/disputes/{dispute}" }),
+  list: stripeMethod99({
+    method: "GET",
+    fullPath: "/v1/disputes",
+    methodType: "list"
+  }),
+  close: stripeMethod99({
+    method: "POST",
+    fullPath: "/v1/disputes/{dispute}/close"
+  })
+});
+// node_modules/stripe/esm/resources/EphemeralKeys.js
+var stripeMethod100 = StripeResource.method;
+var EphemeralKeys = StripeResource.extend({
+  create: stripeMethod100({
+    method: "POST",
+    fullPath: "/v1/ephemeral_keys",
+    validator: (data, options) => {
+      if (!options.headers || !options.headers["Stripe-Version"]) {
+        throw new Error("Passing apiVersion in a separate options hash is required to create an ephemeral key. See https://stripe.com/docs/api/versioning?lang=node");
+      }
+    }
+  }),
+  del: stripeMethod100({ method: "DELETE", fullPath: "/v1/ephemeral_keys/{key}" })
+});
+// node_modules/stripe/esm/resources/Events.js
+var stripeMethod101 = StripeResource.method;
+var Events2 = StripeResource.extend({
+  retrieve: stripeMethod101({ method: "GET", fullPath: "/v1/events/{id}" }),
+  list: stripeMethod101({
+    method: "GET",
+    fullPath: "/v1/events",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/ExchangeRates.js
+var stripeMethod102 = StripeResource.method;
+var ExchangeRates = StripeResource.extend({
+  retrieve: stripeMethod102({
+    method: "GET",
+    fullPath: "/v1/exchange_rates/{rate_id}"
+  }),
+  list: stripeMethod102({
+    method: "GET",
+    fullPath: "/v1/exchange_rates",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/FileLinks.js
+var stripeMethod103 = StripeResource.method;
+var FileLinks = StripeResource.extend({
+  create: stripeMethod103({ method: "POST", fullPath: "/v1/file_links" }),
+  retrieve: stripeMethod103({ method: "GET", fullPath: "/v1/file_links/{link}" }),
+  update: stripeMethod103({ method: "POST", fullPath: "/v1/file_links/{link}" }),
+  list: stripeMethod103({
+    method: "GET",
+    fullPath: "/v1/file_links",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/multipart.js
+var multipartDataGenerator = (method, data, headers) => {
+  const segno = (Math.round(Math.random() * 10000000000000000) + Math.round(Math.random() * 10000000000000000)).toString();
+  headers["Content-Type"] = `multipart/form-data; boundary=${segno}`;
+  const textEncoder = new TextEncoder;
+  let buffer = new Uint8Array(0);
+  const endBuffer = textEncoder.encode(`\r
+`);
+  function push(l) {
+    const prevBuffer = buffer;
+    const newBuffer = l instanceof Uint8Array ? l : new Uint8Array(textEncoder.encode(l));
+    buffer = new Uint8Array(prevBuffer.length + newBuffer.length + 2);
+    buffer.set(prevBuffer);
+    buffer.set(newBuffer, prevBuffer.length);
+    buffer.set(endBuffer, buffer.length - 2);
+  }
+  function q(s2) {
+    return `"${s2.replace(/"|"/g, "%22").replace(/\r\n|\r|\n/g, " ")}"`;
+  }
+  const flattenedData = flattenAndStringify(data);
+  for (const k in flattenedData) {
+    if (!Object.prototype.hasOwnProperty.call(flattenedData, k)) {
+      continue;
+    }
+    const v = flattenedData[k];
+    push(`--${segno}`);
+    if (Object.prototype.hasOwnProperty.call(v, "data")) {
+      const typedEntry = v;
+      push(`Content-Disposition: form-data; name=${q(k)}; filename=${q(typedEntry.name || "blob")}`);
+      push(`Content-Type: ${typedEntry.type || "application/octet-stream"}`);
+      push("");
+      push(typedEntry.data);
+    } else {
+      push(`Content-Disposition: form-data; name=${q(k)}`);
+      push("");
+      push(v);
+    }
+  }
+  push(`--${segno}--`);
+  return buffer;
+};
+function multipartRequestDataProcessor(method, data, headers, callback) {
+  data = data || {};
+  if (method !== "POST") {
+    return callback(null, queryStringifyRequestData(data));
+  }
+  this._stripe._platformFunctions.tryBufferData(data).then((bufferedData) => {
+    const buffer = multipartDataGenerator(method, bufferedData, headers);
+    return callback(null, buffer);
+  }).catch((err) => callback(err, null));
+}
+
+// node_modules/stripe/esm/resources/Files.js
+var stripeMethod104 = StripeResource.method;
+var Files = StripeResource.extend({
+  create: stripeMethod104({
+    method: "POST",
+    fullPath: "/v1/files",
+    headers: {
+      "Content-Type": "multipart/form-data"
+    },
+    host: "files.stripe.com"
+  }),
+  retrieve: stripeMethod104({ method: "GET", fullPath: "/v1/files/{file}" }),
+  list: stripeMethod104({
+    method: "GET",
+    fullPath: "/v1/files",
+    methodType: "list"
+  }),
+  requestDataProcessor: multipartRequestDataProcessor
+});
+// node_modules/stripe/esm/resources/InvoiceItems.js
+var stripeMethod105 = StripeResource.method;
+var InvoiceItems = StripeResource.extend({
+  create: stripeMethod105({ method: "POST", fullPath: "/v1/invoiceitems" }),
+  retrieve: stripeMethod105({
+    method: "GET",
+    fullPath: "/v1/invoiceitems/{invoiceitem}"
+  }),
+  update: stripeMethod105({
+    method: "POST",
+    fullPath: "/v1/invoiceitems/{invoiceitem}"
+  }),
+  list: stripeMethod105({
+    method: "GET",
+    fullPath: "/v1/invoiceitems",
+    methodType: "list"
+  }),
+  del: stripeMethod105({
+    method: "DELETE",
+    fullPath: "/v1/invoiceitems/{invoiceitem}"
+  })
+});
+// node_modules/stripe/esm/resources/InvoicePayments.js
+var stripeMethod106 = StripeResource.method;
+var InvoicePayments = StripeResource.extend({
+  retrieve: stripeMethod106({
+    method: "GET",
+    fullPath: "/v1/invoice_payments/{invoice_payment}"
+  }),
+  list: stripeMethod106({
+    method: "GET",
+    fullPath: "/v1/invoice_payments",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/InvoiceRenderingTemplates.js
+var stripeMethod107 = StripeResource.method;
+var InvoiceRenderingTemplates = StripeResource.extend({
+  retrieve: stripeMethod107({
+    method: "GET",
+    fullPath: "/v1/invoice_rendering_templates/{template}"
+  }),
+  list: stripeMethod107({
+    method: "GET",
+    fullPath: "/v1/invoice_rendering_templates",
+    methodType: "list"
+  }),
+  archive: stripeMethod107({
+    method: "POST",
+    fullPath: "/v1/invoice_rendering_templates/{template}/archive"
+  }),
+  unarchive: stripeMethod107({
+    method: "POST",
+    fullPath: "/v1/invoice_rendering_templates/{template}/unarchive"
+  })
+});
+// node_modules/stripe/esm/resources/Invoices.js
+var stripeMethod108 = StripeResource.method;
+var Invoices = StripeResource.extend({
+  create: stripeMethod108({ method: "POST", fullPath: "/v1/invoices" }),
+  retrieve: stripeMethod108({ method: "GET", fullPath: "/v1/invoices/{invoice}" }),
+  update: stripeMethod108({ method: "POST", fullPath: "/v1/invoices/{invoice}" }),
+  list: stripeMethod108({
+    method: "GET",
+    fullPath: "/v1/invoices",
+    methodType: "list"
+  }),
+  del: stripeMethod108({ method: "DELETE", fullPath: "/v1/invoices/{invoice}" }),
+  addLines: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/add_lines"
+  }),
+  attachPayment: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/attach_payment"
+  }),
+  createPreview: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/create_preview"
+  }),
+  finalizeInvoice: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/finalize"
+  }),
+  listLineItems: stripeMethod108({
+    method: "GET",
+    fullPath: "/v1/invoices/{invoice}/lines",
+    methodType: "list"
+  }),
+  markUncollectible: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/mark_uncollectible"
+  }),
+  pay: stripeMethod108({ method: "POST", fullPath: "/v1/invoices/{invoice}/pay" }),
+  removeLines: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/remove_lines"
+  }),
+  search: stripeMethod108({
+    method: "GET",
+    fullPath: "/v1/invoices/search",
+    methodType: "search"
+  }),
+  sendInvoice: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/send"
+  }),
+  updateLines: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/update_lines"
+  }),
+  updateLineItem: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/lines/{line_item_id}"
+  }),
+  voidInvoice: stripeMethod108({
+    method: "POST",
+    fullPath: "/v1/invoices/{invoice}/void"
+  })
+});
+// node_modules/stripe/esm/resources/Mandates.js
+var stripeMethod109 = StripeResource.method;
+var Mandates = StripeResource.extend({
+  retrieve: stripeMethod109({ method: "GET", fullPath: "/v1/mandates/{mandate}" })
+});
+// node_modules/stripe/esm/resources/OAuth.js
+var stripeMethod110 = StripeResource.method;
+var oAuthHost = "connect.stripe.com";
+var OAuth = StripeResource.extend({
+  basePath: "/",
+  authorizeUrl(params, options) {
+    params = params || {};
+    options = options || {};
+    let path = "oauth/authorize";
+    if (options.express) {
+      path = `express/${path}`;
+    }
+    if (!params.response_type) {
+      params.response_type = "code";
+    }
+    if (!params.client_id) {
+      params.client_id = this._stripe.getClientId();
+    }
+    if (!params.scope) {
+      params.scope = "read_write";
+    }
+    return `https://${oAuthHost}/${path}?${queryStringifyRequestData(params)}`;
+  },
+  token: stripeMethod110({
+    method: "POST",
+    path: "oauth/token",
+    host: oAuthHost
+  }),
+  deauthorize(spec, ...args) {
+    if (!spec.client_id) {
+      spec.client_id = this._stripe.getClientId();
+    }
+    return stripeMethod110({
+      method: "POST",
+      path: "oauth/deauthorize",
+      host: oAuthHost
+    }).apply(this, [spec, ...args]);
+  }
+});
+// node_modules/stripe/esm/resources/PaymentAttemptRecords.js
+var stripeMethod111 = StripeResource.method;
+var PaymentAttemptRecords = StripeResource.extend({
+  retrieve: stripeMethod111({
+    method: "GET",
+    fullPath: "/v1/payment_attempt_records/{id}"
+  }),
+  list: stripeMethod111({
+    method: "GET",
+    fullPath: "/v1/payment_attempt_records",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/PaymentIntents.js
+var stripeMethod112 = StripeResource.method;
+var PaymentIntents = StripeResource.extend({
+  create: stripeMethod112({ method: "POST", fullPath: "/v1/payment_intents" }),
+  retrieve: stripeMethod112({
+    method: "GET",
+    fullPath: "/v1/payment_intents/{intent}"
+  }),
+  update: stripeMethod112({
+    method: "POST",
+    fullPath: "/v1/payment_intents/{intent}"
+  }),
+  list: stripeMethod112({
+    method: "GET",
+    fullPath: "/v1/payment_intents",
+    methodType: "list"
+  }),
+  applyCustomerBalance: stripeMethod112({
+    method: "POST",
+    fullPath: "/v1/payment_intents/{intent}/apply_customer_balance"
+  }),
+  cancel: stripeMethod112({
+    method: "POST",
+    fullPath: "/v1/payment_intents/{intent}/cancel"
+  }),
+  capture: stripeMethod112({
+    method: "POST",
+    fullPath: "/v1/payment_intents/{intent}/capture"
+  }),
+  confirm: stripeMethod112({
+    method: "POST",
+    fullPath: "/v1/payment_intents/{intent}/confirm"
+  }),
+  incrementAuthorization: stripeMethod112({
+    method: "POST",
+    fullPath: "/v1/payment_intents/{intent}/increment_authorization"
+  }),
+  listAmountDetailsLineItems: stripeMethod112({
+    method: "GET",
+    fullPath: "/v1/payment_intents/{intent}/amount_details_line_items",
+    methodType: "list"
+  }),
+  search: stripeMethod112({
+    method: "GET",
+    fullPath: "/v1/payment_intents/search",
+    methodType: "search"
+  }),
+  verifyMicrodeposits: stripeMethod112({
+    method: "POST",
+    fullPath: "/v1/payment_intents/{intent}/verify_microdeposits"
+  })
+});
+// node_modules/stripe/esm/resources/PaymentLinks.js
+var stripeMethod113 = StripeResource.method;
+var PaymentLinks = StripeResource.extend({
+  create: stripeMethod113({ method: "POST", fullPath: "/v1/payment_links" }),
+  retrieve: stripeMethod113({
+    method: "GET",
+    fullPath: "/v1/payment_links/{payment_link}"
+  }),
+  update: stripeMethod113({
+    method: "POST",
+    fullPath: "/v1/payment_links/{payment_link}"
+  }),
+  list: stripeMethod113({
+    method: "GET",
+    fullPath: "/v1/payment_links",
+    methodType: "list"
+  }),
+  listLineItems: stripeMethod113({
+    method: "GET",
+    fullPath: "/v1/payment_links/{payment_link}/line_items",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/PaymentMethodConfigurations.js
+var stripeMethod114 = StripeResource.method;
+var PaymentMethodConfigurations = StripeResource.extend({
+  create: stripeMethod114({
+    method: "POST",
+    fullPath: "/v1/payment_method_configurations"
+  }),
+  retrieve: stripeMethod114({
+    method: "GET",
+    fullPath: "/v1/payment_method_configurations/{configuration}"
+  }),
+  update: stripeMethod114({
+    method: "POST",
+    fullPath: "/v1/payment_method_configurations/{configuration}"
+  }),
+  list: stripeMethod114({
+    method: "GET",
+    fullPath: "/v1/payment_method_configurations",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/PaymentMethodDomains.js
+var stripeMethod115 = StripeResource.method;
+var PaymentMethodDomains = StripeResource.extend({
+  create: stripeMethod115({
+    method: "POST",
+    fullPath: "/v1/payment_method_domains"
+  }),
+  retrieve: stripeMethod115({
+    method: "GET",
+    fullPath: "/v1/payment_method_domains/{payment_method_domain}"
+  }),
+  update: stripeMethod115({
+    method: "POST",
+    fullPath: "/v1/payment_method_domains/{payment_method_domain}"
+  }),
+  list: stripeMethod115({
+    method: "GET",
+    fullPath: "/v1/payment_method_domains",
+    methodType: "list"
+  }),
+  validate: stripeMethod115({
+    method: "POST",
+    fullPath: "/v1/payment_method_domains/{payment_method_domain}/validate"
+  })
+});
+// node_modules/stripe/esm/resources/PaymentMethods.js
+var stripeMethod116 = StripeResource.method;
+var PaymentMethods = StripeResource.extend({
+  create: stripeMethod116({ method: "POST", fullPath: "/v1/payment_methods" }),
+  retrieve: stripeMethod116({
+    method: "GET",
+    fullPath: "/v1/payment_methods/{payment_method}"
+  }),
+  update: stripeMethod116({
+    method: "POST",
+    fullPath: "/v1/payment_methods/{payment_method}"
+  }),
+  list: stripeMethod116({
+    method: "GET",
+    fullPath: "/v1/payment_methods",
+    methodType: "list"
+  }),
+  attach: stripeMethod116({
+    method: "POST",
+    fullPath: "/v1/payment_methods/{payment_method}/attach"
+  }),
+  detach: stripeMethod116({
+    method: "POST",
+    fullPath: "/v1/payment_methods/{payment_method}/detach"
+  })
+});
+// node_modules/stripe/esm/resources/PaymentRecords.js
+var stripeMethod117 = StripeResource.method;
+var PaymentRecords = StripeResource.extend({
+  retrieve: stripeMethod117({ method: "GET", fullPath: "/v1/payment_records/{id}" }),
+  reportPayment: stripeMethod117({
+    method: "POST",
+    fullPath: "/v1/payment_records/report_payment"
+  }),
+  reportPaymentAttempt: stripeMethod117({
+    method: "POST",
+    fullPath: "/v1/payment_records/{id}/report_payment_attempt"
+  }),
+  reportPaymentAttemptCanceled: stripeMethod117({
+    method: "POST",
+    fullPath: "/v1/payment_records/{id}/report_payment_attempt_canceled"
+  }),
+  reportPaymentAttemptFailed: stripeMethod117({
+    method: "POST",
+    fullPath: "/v1/payment_records/{id}/report_payment_attempt_failed"
+  }),
+  reportPaymentAttemptGuaranteed: stripeMethod117({
+    method: "POST",
+    fullPath: "/v1/payment_records/{id}/report_payment_attempt_guaranteed"
+  }),
+  reportPaymentAttemptInformational: stripeMethod117({
+    method: "POST",
+    fullPath: "/v1/payment_records/{id}/report_payment_attempt_informational"
+  }),
+  reportRefund: stripeMethod117({
+    method: "POST",
+    fullPath: "/v1/payment_records/{id}/report_refund"
+  })
+});
+// node_modules/stripe/esm/resources/Payouts.js
+var stripeMethod118 = StripeResource.method;
+var Payouts = StripeResource.extend({
+  create: stripeMethod118({ method: "POST", fullPath: "/v1/payouts" }),
+  retrieve: stripeMethod118({ method: "GET", fullPath: "/v1/payouts/{payout}" }),
+  update: stripeMethod118({ method: "POST", fullPath: "/v1/payouts/{payout}" }),
+  list: stripeMethod118({
+    method: "GET",
+    fullPath: "/v1/payouts",
+    methodType: "list"
+  }),
+  cancel: stripeMethod118({
+    method: "POST",
+    fullPath: "/v1/payouts/{payout}/cancel"
+  }),
+  reverse: stripeMethod118({
+    method: "POST",
+    fullPath: "/v1/payouts/{payout}/reverse"
+  })
+});
+// node_modules/stripe/esm/resources/Plans.js
+var stripeMethod119 = StripeResource.method;
+var Plans = StripeResource.extend({
+  create: stripeMethod119({ method: "POST", fullPath: "/v1/plans" }),
+  retrieve: stripeMethod119({ method: "GET", fullPath: "/v1/plans/{plan}" }),
+  update: stripeMethod119({ method: "POST", fullPath: "/v1/plans/{plan}" }),
+  list: stripeMethod119({
+    method: "GET",
+    fullPath: "/v1/plans",
+    methodType: "list"
+  }),
+  del: stripeMethod119({ method: "DELETE", fullPath: "/v1/plans/{plan}" })
+});
+// node_modules/stripe/esm/resources/Prices.js
+var stripeMethod120 = StripeResource.method;
+var Prices = StripeResource.extend({
+  create: stripeMethod120({ method: "POST", fullPath: "/v1/prices" }),
+  retrieve: stripeMethod120({ method: "GET", fullPath: "/v1/prices/{price}" }),
+  update: stripeMethod120({ method: "POST", fullPath: "/v1/prices/{price}" }),
+  list: stripeMethod120({
+    method: "GET",
+    fullPath: "/v1/prices",
+    methodType: "list"
+  }),
+  search: stripeMethod120({
+    method: "GET",
+    fullPath: "/v1/prices/search",
+    methodType: "search"
+  })
+});
+// node_modules/stripe/esm/resources/Products.js
+var stripeMethod121 = StripeResource.method;
+var Products2 = StripeResource.extend({
+  create: stripeMethod121({ method: "POST", fullPath: "/v1/products" }),
+  retrieve: stripeMethod121({ method: "GET", fullPath: "/v1/products/{id}" }),
+  update: stripeMethod121({ method: "POST", fullPath: "/v1/products/{id}" }),
+  list: stripeMethod121({
+    method: "GET",
+    fullPath: "/v1/products",
+    methodType: "list"
+  }),
+  del: stripeMethod121({ method: "DELETE", fullPath: "/v1/products/{id}" }),
+  createFeature: stripeMethod121({
+    method: "POST",
+    fullPath: "/v1/products/{product}/features"
+  }),
+  deleteFeature: stripeMethod121({
+    method: "DELETE",
+    fullPath: "/v1/products/{product}/features/{id}"
+  }),
+  listFeatures: stripeMethod121({
+    method: "GET",
+    fullPath: "/v1/products/{product}/features",
+    methodType: "list"
+  }),
+  retrieveFeature: stripeMethod121({
+    method: "GET",
+    fullPath: "/v1/products/{product}/features/{id}"
+  }),
+  search: stripeMethod121({
+    method: "GET",
+    fullPath: "/v1/products/search",
+    methodType: "search"
+  })
+});
+// node_modules/stripe/esm/resources/PromotionCodes.js
+var stripeMethod122 = StripeResource.method;
+var PromotionCodes = StripeResource.extend({
+  create: stripeMethod122({ method: "POST", fullPath: "/v1/promotion_codes" }),
+  retrieve: stripeMethod122({
+    method: "GET",
+    fullPath: "/v1/promotion_codes/{promotion_code}"
+  }),
+  update: stripeMethod122({
+    method: "POST",
+    fullPath: "/v1/promotion_codes/{promotion_code}"
+  }),
+  list: stripeMethod122({
+    method: "GET",
+    fullPath: "/v1/promotion_codes",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/Quotes.js
+var stripeMethod123 = StripeResource.method;
+var Quotes = StripeResource.extend({
+  create: stripeMethod123({ method: "POST", fullPath: "/v1/quotes" }),
+  retrieve: stripeMethod123({ method: "GET", fullPath: "/v1/quotes/{quote}" }),
+  update: stripeMethod123({ method: "POST", fullPath: "/v1/quotes/{quote}" }),
+  list: stripeMethod123({
+    method: "GET",
+    fullPath: "/v1/quotes",
+    methodType: "list"
+  }),
+  accept: stripeMethod123({ method: "POST", fullPath: "/v1/quotes/{quote}/accept" }),
+  cancel: stripeMethod123({ method: "POST", fullPath: "/v1/quotes/{quote}/cancel" }),
+  finalizeQuote: stripeMethod123({
+    method: "POST",
+    fullPath: "/v1/quotes/{quote}/finalize"
+  }),
+  listComputedUpfrontLineItems: stripeMethod123({
+    method: "GET",
+    fullPath: "/v1/quotes/{quote}/computed_upfront_line_items",
+    methodType: "list"
+  }),
+  listLineItems: stripeMethod123({
+    method: "GET",
+    fullPath: "/v1/quotes/{quote}/line_items",
+    methodType: "list"
+  }),
+  pdf: stripeMethod123({
+    method: "GET",
+    fullPath: "/v1/quotes/{quote}/pdf",
+    host: "files.stripe.com",
+    streaming: true
+  })
+});
+// node_modules/stripe/esm/resources/Refunds.js
+var stripeMethod124 = StripeResource.method;
+var Refunds2 = StripeResource.extend({
+  create: stripeMethod124({ method: "POST", fullPath: "/v1/refunds" }),
+  retrieve: stripeMethod124({ method: "GET", fullPath: "/v1/refunds/{refund}" }),
+  update: stripeMethod124({ method: "POST", fullPath: "/v1/refunds/{refund}" }),
+  list: stripeMethod124({
+    method: "GET",
+    fullPath: "/v1/refunds",
+    methodType: "list"
+  }),
+  cancel: stripeMethod124({
+    method: "POST",
+    fullPath: "/v1/refunds/{refund}/cancel"
+  })
+});
+// node_modules/stripe/esm/resources/Reviews.js
+var stripeMethod125 = StripeResource.method;
+var Reviews = StripeResource.extend({
+  retrieve: stripeMethod125({ method: "GET", fullPath: "/v1/reviews/{review}" }),
+  list: stripeMethod125({
+    method: "GET",
+    fullPath: "/v1/reviews",
+    methodType: "list"
+  }),
+  approve: stripeMethod125({
+    method: "POST",
+    fullPath: "/v1/reviews/{review}/approve"
+  })
+});
+// node_modules/stripe/esm/resources/SetupAttempts.js
+var stripeMethod126 = StripeResource.method;
+var SetupAttempts = StripeResource.extend({
+  list: stripeMethod126({
+    method: "GET",
+    fullPath: "/v1/setup_attempts",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/SetupIntents.js
+var stripeMethod127 = StripeResource.method;
+var SetupIntents = StripeResource.extend({
+  create: stripeMethod127({ method: "POST", fullPath: "/v1/setup_intents" }),
+  retrieve: stripeMethod127({
+    method: "GET",
+    fullPath: "/v1/setup_intents/{intent}"
+  }),
+  update: stripeMethod127({
+    method: "POST",
+    fullPath: "/v1/setup_intents/{intent}"
+  }),
+  list: stripeMethod127({
+    method: "GET",
+    fullPath: "/v1/setup_intents",
+    methodType: "list"
+  }),
+  cancel: stripeMethod127({
+    method: "POST",
+    fullPath: "/v1/setup_intents/{intent}/cancel"
+  }),
+  confirm: stripeMethod127({
+    method: "POST",
+    fullPath: "/v1/setup_intents/{intent}/confirm"
+  }),
+  verifyMicrodeposits: stripeMethod127({
+    method: "POST",
+    fullPath: "/v1/setup_intents/{intent}/verify_microdeposits"
+  })
+});
+// node_modules/stripe/esm/resources/ShippingRates.js
+var stripeMethod128 = StripeResource.method;
+var ShippingRates = StripeResource.extend({
+  create: stripeMethod128({ method: "POST", fullPath: "/v1/shipping_rates" }),
+  retrieve: stripeMethod128({
+    method: "GET",
+    fullPath: "/v1/shipping_rates/{shipping_rate_token}"
+  }),
+  update: stripeMethod128({
+    method: "POST",
+    fullPath: "/v1/shipping_rates/{shipping_rate_token}"
+  }),
+  list: stripeMethod128({
+    method: "GET",
+    fullPath: "/v1/shipping_rates",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/Sources.js
+var stripeMethod129 = StripeResource.method;
+var Sources = StripeResource.extend({
+  create: stripeMethod129({ method: "POST", fullPath: "/v1/sources" }),
+  retrieve: stripeMethod129({ method: "GET", fullPath: "/v1/sources/{source}" }),
+  update: stripeMethod129({ method: "POST", fullPath: "/v1/sources/{source}" }),
+  listSourceTransactions: stripeMethod129({
+    method: "GET",
+    fullPath: "/v1/sources/{source}/source_transactions",
+    methodType: "list"
+  }),
+  verify: stripeMethod129({
+    method: "POST",
+    fullPath: "/v1/sources/{source}/verify"
+  })
+});
+// node_modules/stripe/esm/resources/SubscriptionItems.js
+var stripeMethod130 = StripeResource.method;
+var SubscriptionItems = StripeResource.extend({
+  create: stripeMethod130({ method: "POST", fullPath: "/v1/subscription_items" }),
+  retrieve: stripeMethod130({
+    method: "GET",
+    fullPath: "/v1/subscription_items/{item}"
+  }),
+  update: stripeMethod130({
+    method: "POST",
+    fullPath: "/v1/subscription_items/{item}"
+  }),
+  list: stripeMethod130({
+    method: "GET",
+    fullPath: "/v1/subscription_items",
+    methodType: "list"
+  }),
+  del: stripeMethod130({
+    method: "DELETE",
+    fullPath: "/v1/subscription_items/{item}"
+  })
+});
+// node_modules/stripe/esm/resources/SubscriptionSchedules.js
+var stripeMethod131 = StripeResource.method;
+var SubscriptionSchedules = StripeResource.extend({
+  create: stripeMethod131({
+    method: "POST",
+    fullPath: "/v1/subscription_schedules"
+  }),
+  retrieve: stripeMethod131({
+    method: "GET",
+    fullPath: "/v1/subscription_schedules/{schedule}"
+  }),
+  update: stripeMethod131({
+    method: "POST",
+    fullPath: "/v1/subscription_schedules/{schedule}"
+  }),
+  list: stripeMethod131({
+    method: "GET",
+    fullPath: "/v1/subscription_schedules",
+    methodType: "list"
+  }),
+  cancel: stripeMethod131({
+    method: "POST",
+    fullPath: "/v1/subscription_schedules/{schedule}/cancel"
+  }),
+  release: stripeMethod131({
+    method: "POST",
+    fullPath: "/v1/subscription_schedules/{schedule}/release"
+  })
+});
+// node_modules/stripe/esm/resources/Subscriptions.js
+var stripeMethod132 = StripeResource.method;
+var Subscriptions = StripeResource.extend({
+  create: stripeMethod132({ method: "POST", fullPath: "/v1/subscriptions" }),
+  retrieve: stripeMethod132({
+    method: "GET",
+    fullPath: "/v1/subscriptions/{subscription_exposed_id}"
+  }),
+  update: stripeMethod132({
+    method: "POST",
+    fullPath: "/v1/subscriptions/{subscription_exposed_id}"
+  }),
+  list: stripeMethod132({
+    method: "GET",
+    fullPath: "/v1/subscriptions",
+    methodType: "list"
+  }),
+  cancel: stripeMethod132({
+    method: "DELETE",
+    fullPath: "/v1/subscriptions/{subscription_exposed_id}"
+  }),
+  deleteDiscount: stripeMethod132({
+    method: "DELETE",
+    fullPath: "/v1/subscriptions/{subscription_exposed_id}/discount"
+  }),
+  migrate: stripeMethod132({
+    method: "POST",
+    fullPath: "/v1/subscriptions/{subscription}/migrate"
+  }),
+  resume: stripeMethod132({
+    method: "POST",
+    fullPath: "/v1/subscriptions/{subscription}/resume"
+  }),
+  search: stripeMethod132({
+    method: "GET",
+    fullPath: "/v1/subscriptions/search",
+    methodType: "search"
+  })
+});
+// node_modules/stripe/esm/resources/TaxCodes.js
+var stripeMethod133 = StripeResource.method;
+var TaxCodes = StripeResource.extend({
+  retrieve: stripeMethod133({ method: "GET", fullPath: "/v1/tax_codes/{id}" }),
+  list: stripeMethod133({
+    method: "GET",
+    fullPath: "/v1/tax_codes",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/TaxIds.js
+var stripeMethod134 = StripeResource.method;
+var TaxIds = StripeResource.extend({
+  create: stripeMethod134({ method: "POST", fullPath: "/v1/tax_ids" }),
+  retrieve: stripeMethod134({ method: "GET", fullPath: "/v1/tax_ids/{id}" }),
+  list: stripeMethod134({
+    method: "GET",
+    fullPath: "/v1/tax_ids",
+    methodType: "list"
+  }),
+  del: stripeMethod134({ method: "DELETE", fullPath: "/v1/tax_ids/{id}" })
+});
+// node_modules/stripe/esm/resources/TaxRates.js
+var stripeMethod135 = StripeResource.method;
+var TaxRates = StripeResource.extend({
+  create: stripeMethod135({ method: "POST", fullPath: "/v1/tax_rates" }),
+  retrieve: stripeMethod135({ method: "GET", fullPath: "/v1/tax_rates/{tax_rate}" }),
+  update: stripeMethod135({ method: "POST", fullPath: "/v1/tax_rates/{tax_rate}" }),
+  list: stripeMethod135({
+    method: "GET",
+    fullPath: "/v1/tax_rates",
+    methodType: "list"
+  })
+});
+// node_modules/stripe/esm/resources/Tokens.js
+var stripeMethod136 = StripeResource.method;
+var Tokens2 = StripeResource.extend({
+  create: stripeMethod136({ method: "POST", fullPath: "/v1/tokens" }),
+  retrieve: stripeMethod136({ method: "GET", fullPath: "/v1/tokens/{token}" })
+});
+// node_modules/stripe/esm/resources/Topups.js
+var stripeMethod137 = StripeResource.method;
+var Topups = StripeResource.extend({
+  create: stripeMethod137({ method: "POST", fullPath: "/v1/topups" }),
+  retrieve: stripeMethod137({ method: "GET", fullPath: "/v1/topups/{topup}" }),
+  update: stripeMethod137({ method: "POST", fullPath: "/v1/topups/{topup}" }),
+  list: stripeMethod137({
+    method: "GET",
+    fullPath: "/v1/topups",
+    methodType: "list"
+  }),
+  cancel: stripeMethod137({ method: "POST", fullPath: "/v1/topups/{topup}/cancel" })
+});
+// node_modules/stripe/esm/resources/Transfers.js
+var stripeMethod138 = StripeResource.method;
+var Transfers = StripeResource.extend({
+  create: stripeMethod138({ method: "POST", fullPath: "/v1/transfers" }),
+  retrieve: stripeMethod138({ method: "GET", fullPath: "/v1/transfers/{transfer}" }),
+  update: stripeMethod138({ method: "POST", fullPath: "/v1/transfers/{transfer}" }),
+  list: stripeMethod138({
+    method: "GET",
+    fullPath: "/v1/transfers",
+    methodType: "list"
+  }),
+  createReversal: stripeMethod138({
+    method: "POST",
+    fullPath: "/v1/transfers/{id}/reversals"
+  }),
+  listReversals: stripeMethod138({
+    method: "GET",
+    fullPath: "/v1/transfers/{id}/reversals",
+    methodType: "list"
+  }),
+  retrieveReversal: stripeMethod138({
+    method: "GET",
+    fullPath: "/v1/transfers/{transfer}/reversals/{id}"
+  }),
+  updateReversal: stripeMethod138({
+    method: "POST",
+    fullPath: "/v1/transfers/{transfer}/reversals/{id}"
+  })
+});
+// node_modules/stripe/esm/resources/WebhookEndpoints.js
+var stripeMethod139 = StripeResource.method;
+var WebhookEndpoints = StripeResource.extend({
+  create: stripeMethod139({ method: "POST", fullPath: "/v1/webhook_endpoints" }),
+  retrieve: stripeMethod139({
+    method: "GET",
+    fullPath: "/v1/webhook_endpoints/{webhook_endpoint}"
+  }),
+  update: stripeMethod139({
+    method: "POST",
+    fullPath: "/v1/webhook_endpoints/{webhook_endpoint}"
+  }),
+  list: stripeMethod139({
+    method: "GET",
+    fullPath: "/v1/webhook_endpoints",
+    methodType: "list"
+  }),
+  del: stripeMethod139({
+    method: "DELETE",
+    fullPath: "/v1/webhook_endpoints/{webhook_endpoint}"
+  })
+});
+
+// node_modules/stripe/esm/resources.js
+var Apps = resourceNamespace("apps", { Secrets });
+var Billing = resourceNamespace("billing", {
+  Alerts,
+  CreditBalanceSummary,
+  CreditBalanceTransactions,
+  CreditGrants,
+  MeterEventAdjustments,
+  MeterEvents,
+  Meters
+});
+var BillingPortal = resourceNamespace("billingPortal", {
+  Configurations,
+  Sessions
+});
+var Checkout = resourceNamespace("checkout", {
+  Sessions: Sessions2
+});
+var Climate = resourceNamespace("climate", {
+  Orders,
+  Products,
+  Suppliers
+});
+var Entitlements = resourceNamespace("entitlements", {
+  ActiveEntitlements,
+  Features
+});
+var FinancialConnections = resourceNamespace("financialConnections", {
+  Accounts,
+  Sessions: Sessions3,
+  Transactions
+});
+var Forwarding = resourceNamespace("forwarding", {
+  Requests
+});
+var Identity = resourceNamespace("identity", {
+  VerificationReports,
+  VerificationSessions
+});
+var Issuing = resourceNamespace("issuing", {
+  Authorizations,
+  Cardholders,
+  Cards,
+  Disputes,
+  PersonalizationDesigns,
+  PhysicalBundles,
+  Tokens,
+  Transactions: Transactions2
+});
+var Radar = resourceNamespace("radar", {
+  EarlyFraudWarnings,
+  PaymentEvaluations,
+  ValueListItems,
+  ValueLists
+});
+var Reporting = resourceNamespace("reporting", {
+  ReportRuns,
+  ReportTypes
+});
+var Sigma = resourceNamespace("sigma", {
+  ScheduledQueryRuns
+});
+var Tax = resourceNamespace("tax", {
+  Associations,
+  Calculations,
+  Registrations,
+  Settings,
+  Transactions: Transactions3
+});
+var Terminal = resourceNamespace("terminal", {
+  Configurations: Configurations2,
+  ConnectionTokens,
+  Locations,
+  OnboardingLinks,
+  Readers
+});
+var TestHelpers = resourceNamespace("testHelpers", {
+  ConfirmationTokens,
+  Customers,
+  Refunds,
+  TestClocks,
+  Issuing: resourceNamespace("issuing", {
+    Authorizations: Authorizations2,
+    Cards: Cards2,
+    PersonalizationDesigns: PersonalizationDesigns2,
+    Transactions: Transactions4
+  }),
+  Terminal: resourceNamespace("terminal", {
+    Readers: Readers2
+  }),
+  Treasury: resourceNamespace("treasury", {
+    InboundTransfers,
+    OutboundPayments,
+    OutboundTransfers,
+    ReceivedCredits,
+    ReceivedDebits
+  })
+});
+var Treasury = resourceNamespace("treasury", {
+  CreditReversals,
+  DebitReversals,
+  FinancialAccounts,
+  InboundTransfers: InboundTransfers2,
+  OutboundPayments: OutboundPayments2,
+  OutboundTransfers: OutboundTransfers2,
+  ReceivedCredits: ReceivedCredits2,
+  ReceivedDebits: ReceivedDebits2,
+  TransactionEntries,
+  Transactions: Transactions5
+});
+var V2 = resourceNamespace("v2", {
+  Billing: resourceNamespace("billing", {
+    MeterEventAdjustments: MeterEventAdjustments2,
+    MeterEventSession,
+    MeterEventStream,
+    MeterEvents: MeterEvents2
+  }),
+  Core: resourceNamespace("core", {
+    AccountLinks,
+    AccountTokens,
+    Accounts: Accounts2,
+    EventDestinations,
+    Events
+  })
+});
+
+// node_modules/stripe/esm/stripe.core.js
+var DEFAULT_HOST = "api.stripe.com";
+var DEFAULT_PORT = "443";
+var DEFAULT_BASE_PATH = "/v1/";
+var DEFAULT_API_VERSION = ApiVersion;
+var DEFAULT_TIMEOUT = 80000;
+var MAX_NETWORK_RETRY_DELAY_SEC = 5;
+var INITIAL_NETWORK_RETRY_DELAY_SEC = 0.5;
+var APP_INFO_PROPERTIES = ["name", "version", "url", "partner_id"];
+var ALLOWED_CONFIG_PROPERTIES = [
+  "authenticator",
+  "apiVersion",
+  "typescript",
+  "maxNetworkRetries",
+  "httpAgent",
+  "httpClient",
+  "timeout",
+  "host",
+  "port",
+  "protocol",
+  "telemetry",
+  "appInfo",
+  "stripeAccount",
+  "stripeContext"
+];
+var defaultRequestSenderFactory = (stripe) => new RequestSender(stripe, StripeResource.MAX_BUFFERED_REQUEST_METRICS);
+function createStripe(platformFunctions, requestSender = defaultRequestSenderFactory) {
+  Stripe.PACKAGE_VERSION = "20.3.0";
+  Stripe.API_VERSION = ApiVersion;
+  Stripe.USER_AGENT = Object.assign({ bindings_version: Stripe.PACKAGE_VERSION, lang: "node", publisher: "stripe", uname: null, typescript: false }, determineProcessUserAgentProperties());
+  Stripe.StripeResource = StripeResource;
+  Stripe.StripeContext = StripeContext;
+  Stripe.resources = exports_resources;
+  Stripe.HttpClient = HttpClient;
+  Stripe.HttpClientResponse = HttpClientResponse;
+  Stripe.CryptoProvider = CryptoProvider;
+  Stripe.webhooks = createWebhooks(platformFunctions);
+  function Stripe(key, config2 = {}) {
+    if (!(this instanceof Stripe)) {
+      return new Stripe(key, config2);
+    }
+    const props = this._getPropsFromConfig(config2);
+    this._platformFunctions = platformFunctions;
+    Object.defineProperty(this, "_emitter", {
+      value: this._platformFunctions.createEmitter(),
+      enumerable: false,
+      configurable: false,
+      writable: false
+    });
+    this.VERSION = Stripe.PACKAGE_VERSION;
+    this.on = this._emitter.on.bind(this._emitter);
+    this.once = this._emitter.once.bind(this._emitter);
+    this.off = this._emitter.removeListener.bind(this._emitter);
+    const agent = props.httpAgent || null;
+    this._api = {
+      host: props.host || DEFAULT_HOST,
+      port: props.port || DEFAULT_PORT,
+      protocol: props.protocol || "https",
+      basePath: DEFAULT_BASE_PATH,
+      version: props.apiVersion || DEFAULT_API_VERSION,
+      timeout: validateInteger("timeout", props.timeout, DEFAULT_TIMEOUT),
+      maxNetworkRetries: validateInteger("maxNetworkRetries", props.maxNetworkRetries, 2),
+      agent,
+      httpClient: props.httpClient || (agent ? this._platformFunctions.createNodeHttpClient(agent) : this._platformFunctions.createDefaultHttpClient()),
+      dev: false,
+      stripeAccount: props.stripeAccount || null,
+      stripeContext: props.stripeContext || null
+    };
+    const typescript = props.typescript || false;
+    if (typescript !== Stripe.USER_AGENT.typescript) {
+      Stripe.USER_AGENT.typescript = typescript;
+    }
+    if (props.appInfo) {
+      this._setAppInfo(props.appInfo);
+    }
+    this._prepResources();
+    this._setAuthenticator(key, props.authenticator);
+    this.errors = exports_Error;
+    this.webhooks = Stripe.webhooks;
+    this._prevRequestMetrics = [];
+    this._enableTelemetry = props.telemetry !== false;
+    this._requestSender = requestSender(this);
+    this.StripeResource = Stripe.StripeResource;
+  }
+  Stripe.errors = exports_Error;
+  Stripe.createNodeHttpClient = platformFunctions.createNodeHttpClient;
+  Stripe.createFetchHttpClient = platformFunctions.createFetchHttpClient;
+  Stripe.createNodeCryptoProvider = platformFunctions.createNodeCryptoProvider;
+  Stripe.createSubtleCryptoProvider = platformFunctions.createSubtleCryptoProvider;
+  Stripe.prototype = {
+    _appInfo: undefined,
+    on: null,
+    off: null,
+    once: null,
+    VERSION: null,
+    StripeResource: null,
+    webhooks: null,
+    errors: null,
+    _api: null,
+    _prevRequestMetrics: null,
+    _emitter: null,
+    _enableTelemetry: null,
+    _requestSender: null,
+    _platformFunctions: null,
+    rawRequest(method, path, params, options) {
+      return this._requestSender._rawRequest(method, path, params, options);
+    },
+    _setAuthenticator(key, authenticator) {
+      if (key && authenticator) {
+        throw new Error("Can't specify both apiKey and authenticator");
+      }
+      if (!key && !authenticator) {
+        throw new Error("Neither apiKey nor config.authenticator provided");
+      }
+      this._authenticator = key ? createApiKeyAuthenticator(key) : authenticator;
+    },
+    _setAppInfo(info) {
+      if (info && typeof info !== "object") {
+        throw new Error("AppInfo must be an object.");
+      }
+      if (info && !info.name) {
+        throw new Error("AppInfo.name is required");
+      }
+      info = info || {};
+      this._appInfo = APP_INFO_PROPERTIES.reduce((accum, prop) => {
+        if (typeof info[prop] == "string") {
+          accum = accum || {};
+          accum[prop] = info[prop];
+        }
+        return accum;
+      }, {});
+    },
+    _setApiField(key, value) {
+      this._api[key] = value;
+    },
+    getApiField(key) {
+      return this._api[key];
+    },
+    setClientId(clientId) {
+      this._clientId = clientId;
+    },
+    getClientId() {
+      return this._clientId;
+    },
+    getConstant: (c) => {
+      switch (c) {
+        case "DEFAULT_HOST":
+          return DEFAULT_HOST;
+        case "DEFAULT_PORT":
+          return DEFAULT_PORT;
+        case "DEFAULT_BASE_PATH":
+          return DEFAULT_BASE_PATH;
+        case "DEFAULT_API_VERSION":
+          return DEFAULT_API_VERSION;
+        case "DEFAULT_TIMEOUT":
+          return DEFAULT_TIMEOUT;
+        case "MAX_NETWORK_RETRY_DELAY_SEC":
+          return MAX_NETWORK_RETRY_DELAY_SEC;
+        case "INITIAL_NETWORK_RETRY_DELAY_SEC":
+          return INITIAL_NETWORK_RETRY_DELAY_SEC;
+      }
+      return Stripe[c];
+    },
+    getMaxNetworkRetries() {
+      return this.getApiField("maxNetworkRetries");
+    },
+    _setApiNumberField(prop, n, defaultVal) {
+      const val = validateInteger(prop, n, defaultVal);
+      this._setApiField(prop, val);
+    },
+    getMaxNetworkRetryDelay() {
+      return MAX_NETWORK_RETRY_DELAY_SEC;
+    },
+    getInitialNetworkRetryDelay() {
+      return INITIAL_NETWORK_RETRY_DELAY_SEC;
+    },
+    getClientUserAgent(cb) {
+      return this.getClientUserAgentSeeded(Stripe.USER_AGENT, cb);
+    },
+    getClientUserAgentSeeded(seed, cb) {
+      this._platformFunctions.getUname().then((uname) => {
+        var _a2;
+        const userAgent = {};
+        for (const field in seed) {
+          if (!Object.prototype.hasOwnProperty.call(seed, field)) {
+            continue;
+          }
+          userAgent[field] = encodeURIComponent((_a2 = seed[field]) !== null && _a2 !== undefined ? _a2 : "null");
+        }
+        userAgent.uname = encodeURIComponent(uname || "UNKNOWN");
+        const client = this.getApiField("httpClient");
+        if (client) {
+          userAgent.httplib = encodeURIComponent(client.getClientName());
+        }
+        if (this._appInfo) {
+          userAgent.application = this._appInfo;
+        }
+        cb(JSON.stringify(userAgent));
+      });
+    },
+    getAppInfoAsString() {
+      if (!this._appInfo) {
+        return "";
+      }
+      let formatted = this._appInfo.name;
+      if (this._appInfo.version) {
+        formatted += `/${this._appInfo.version}`;
+      }
+      if (this._appInfo.url) {
+        formatted += ` (${this._appInfo.url})`;
+      }
+      return formatted;
+    },
+    getTelemetryEnabled() {
+      return this._enableTelemetry;
+    },
+    _prepResources() {
+      for (const name in exports_resources) {
+        if (!Object.prototype.hasOwnProperty.call(exports_resources, name)) {
+          continue;
+        }
+        this[pascalToCamelCase(name)] = new exports_resources[name](this);
+      }
+    },
+    _getPropsFromConfig(config2) {
+      if (!config2) {
+        return {};
+      }
+      const isString2 = typeof config2 === "string";
+      const isObject5 = config2 === Object(config2) && !Array.isArray(config2);
+      if (!isObject5 && !isString2) {
+        throw new Error("Config must either be an object or a string");
+      }
+      if (isString2) {
+        return {
+          apiVersion: config2
+        };
+      }
+      const values = Object.keys(config2).filter((value) => !ALLOWED_CONFIG_PROPERTIES.includes(value));
+      if (values.length > 0) {
+        throw new Error(`Config object may only contain the following: ${ALLOWED_CONFIG_PROPERTIES.join(", ")}`);
+      }
+      return config2;
+    },
+    parseEventNotification(payload, header, secret, tolerance, cryptoProvider, receivedAt) {
+      const eventNotification = this.webhooks.constructEvent(payload, header, secret, tolerance, cryptoProvider, receivedAt);
+      if (eventNotification.context) {
+        eventNotification.context = StripeContext.parse(eventNotification.context);
+      }
+      eventNotification.fetchEvent = () => {
+        return this._requestSender._rawRequest("GET", `/v2/core/events/${eventNotification.id}`, undefined, {
+          stripeContext: eventNotification.context
+        }, ["fetch_event"]);
+      };
+      eventNotification.fetchRelatedObject = () => {
+        if (!eventNotification.related_object) {
+          return Promise.resolve(null);
+        }
+        return this._requestSender._rawRequest("GET", eventNotification.related_object.url, undefined, {
+          stripeContext: eventNotification.context
+        }, ["fetch_related_object"]);
+      };
+      return eventNotification;
+    }
+  };
+  return Stripe;
+}
+
+// node_modules/stripe/esm/stripe.esm.worker.js
+var Stripe = createStripe(new WebPlatformFunctions);
+var stripe_esm_worker_default = Stripe;
+
+// src/stripe/client.ts
+if (process.env.STRIPE_SECRET_KEY === undefined) {
+  throw new Error("STRIPE_SECRET_KEY is not defined");
+}
+var stripe = new stripe_esm_worker_default(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2026-01-28.clover"
+});
+
+// src/stripe/index.ts
+class StripeRepository {
+  async createCustomer(email3, name) {
+    const customer = await stripe.customers.create({
+      email: email3,
+      name
+    });
+    return customer.id;
+  }
+  async createCheckoutSession(customerId, successUrl, cancelUrl) {
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: "setup",
+      payment_method_types: ["card"],
+      success_url: successUrl,
+      cancel_url: cancelUrl
+    });
+    if (session.url === null) {
+      throw new Error("Checkout Session URL is null");
+    }
+    return session.url;
+  }
+  async getPaymentMethods(customerId) {
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: customerId,
+      type: "card"
+    });
+    return paymentMethods.data.map((pm) => ({
+      id: pm.id,
+      brand: pm.card?.brand ?? "",
+      last4: pm.card?.last4 ?? "",
+      expMonth: pm.card?.exp_month ?? 0,
+      expYear: pm.card?.exp_year ?? 0
+    }));
   }
 }
 
 // src/index.ts
-var prisma = new import_client.PrismaClient;
+var prisma = new import_client2.PrismaClient;
 var app = new OpenAPIHono;
 var planRepository = new MPlanRepository(prisma);
-var settingService = new SettingService(planRepository);
+var stripeRepository = new StripeRepository;
+var tStripeCustomerRepository = new TStripeCustomerRepository(prisma);
+var settingService = new SettingService(planRepository, stripeRepository, tStripeCustomerRepository, prisma);
 var settingController = new SettingController(settingService);
 var settingRouter = new SettingRouter(settingController);
 app.use("*", cors({
@@ -25315,7 +35813,7 @@ app.use("*", cors({
   allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 }));
-app.use("/*", middleware);
+app.use("/*", createMiddleware(prisma));
 settingRouter.registerRoutes(app);
 app.doc("/doc", {
   openapi: "3.0.0",

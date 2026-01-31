@@ -21,6 +21,7 @@
     "@scalar/hono-api-reference": "^0.9.37",
     "hono": "^4.11.6",
     "ioredis": "^5.9.2",
+    "stripe": "^20.3.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

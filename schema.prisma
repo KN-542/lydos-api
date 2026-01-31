@@ -31,7 +31,40 @@ model TUser {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  plan MPlan @relation(fields: [planId], references: [id])
+  plan           MPlan            @relation(fields: [planId], references: [id])
+  stripeCustomer TStripeCustomer?
 
   @@map("t_user")
+}
+
+/// Stripe顧客情報
+model TStripeCustomer {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique
+  stripeCustomerId String   @unique @db.VarChar(255) // Stripe Customer ID (cus_xxx)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user           TUser            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethods TPaymentMethod[]
+
+  @@map("t_stripe_customer")
+}
+
+/// 支払い方法
+model TPaymentMethod {
+  id                    Int      @id @default(autoincrement())
+  stripeCustomerId      Int
+  stripePaymentMethodId String   @unique @db.VarChar(255) // Stripe Payment Method ID (pm_xxx)
+  brand                 String   @db.VarChar(50) // visa, mastercard, etc.
+  last4                 String   @db.VarChar(4) // カード下4桁
+  expMonth              Int // 有効期限月
+  expYear               Int // 有効期限年
+  isDefault             Boolean  @default(false) // デフォルト支払い方法
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  stripeCustomer TStripeCustomer @relation(fields: [stripeCustomerId], references: [id], onDelete: Cascade)
+
+  @@map("t_payment_method")
 }
