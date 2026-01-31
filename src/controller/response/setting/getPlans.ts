@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { GetPlansResponseDTO } from '../../../service/dto/response/setting/getPlans'
 
 const planResponseSchema = z.object({
   id: z.number().openapi({ example: 1 }),
@@ -12,4 +13,16 @@ export const plansResponseSchema = z.object({
   plans: z.array(planResponseSchema),
 })
 
-export type PlansResponse = z.infer<typeof plansResponseSchema>
+export class GetPlansResponse {
+  readonly plans: Array<{
+    id: number
+    name: string
+    description: string
+    price: number
+    isSelected: boolean
+  }>
+
+  constructor(dto: GetPlansResponseDTO) {
+    this.plans = dto.plans
+  }
+}

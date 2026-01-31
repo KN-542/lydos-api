@@ -1,7 +1,12 @@
 import type { OpenAPIHono } from '@hono/zod-openapi'
+import { z } from 'zod'
 import type { AppEnv } from '..'
-import { plansResponseSchema } from '../controller/response/setting/plans'
+import { plansResponseSchema } from '../controller/response/setting/getPlans'
 import type { SettingController } from '../controller/setting'
+
+const errorResponseSchema = z.object({
+  error: z.string(),
+})
 
 export class SettingRouter {
   readonly settingController: SettingController
@@ -27,11 +32,18 @@ export class SettingRouter {
               },
             },
           },
+          500: {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
         },
       },
       async (c) => {
-        const response = await this.settingController.getPlans(c)
-        return c.json(response)
+        return await this.settingController.getPlans(c)
       }
     )
   }

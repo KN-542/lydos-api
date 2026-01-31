@@ -1,7 +1,8 @@
 import type { HonoContext } from '..'
-import { GetPlansDTO } from '../service/dto/setting/plans'
+import { GetPlansRequestDTO } from '../service/dto/request/setting/getPlans'
 import type { SettingService } from '../service/setting'
-import type { PlansResponse } from './response/setting/plans'
+import { toRequestDTO } from './request/setting/context'
+import { GetPlansResponse } from './response/setting/getPlans'
 
 export class SettingController {
   readonly settingService: SettingService
@@ -11,20 +12,16 @@ export class SettingController {
   }
 
   // プラン一覧取得
-  async getPlans(c: HonoContext): Promise<PlansResponse> {
-    const authId = c.get('authId')
+  async getPlans(c: HonoContext) {
+    try {
+      const requestDTO = toRequestDTO(c, GetPlansRequestDTO)
+      const responseDTO = await this.settingService.getPlans(requestDTO)
+      const response = new GetPlansResponse(responseDTO)
 
-    const dto = new GetPlansDTO(authId)
-    const plans = await this.settingService.getPlans(dto)
-
-    return {
-      plans: plans.map((plan) => ({
-        id: plan.id,
-        name: plan.name,
-        description: plan.description,
-        price: plan.price,
-        isSelected: plan.isSelected,
-      })),
+      return c.json(response, 200)
+    } catch (error) {
+      console.error('Error in SettingController.getPlans:', error)
+      return c.json({ error: 'Internal Server Error' }, 500)
     }
   }
 }

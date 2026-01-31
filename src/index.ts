@@ -4,7 +4,7 @@ import { Scalar } from '@scalar/hono-api-reference'
 import type { Context } from 'hono'
 import { cors } from 'hono/cors'
 import { SettingController } from './controller/setting'
-import { middleware } from './middleware'
+import { createMiddleware } from './middleware'
 import { MPlanRepository } from './repository/mPlan'
 import { SettingRouter } from './router'
 import { SettingService } from './service/setting'
@@ -23,7 +23,7 @@ const app = new OpenAPIHono<AppEnv>()
 
 // DI: 依存性注入
 const planRepository = new MPlanRepository(prisma)
-const settingService = new SettingService(planRepository)
+const settingService = new SettingService(planRepository, prisma)
 const settingController = new SettingController(settingService)
 const settingRouter = new SettingRouter(settingController)
 
@@ -37,7 +37,7 @@ app.use(
   })
 )
 
-app.use('/*', middleware)
+app.use('/*', createMiddleware(prisma))
 
 // ルート登録
 settingRouter.registerRoutes(app)
