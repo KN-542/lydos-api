@@ -6,8 +6,10 @@ import { cors } from 'hono/cors'
 import { SettingController } from './controller/setting'
 import { createMiddleware } from './middleware'
 import { MPlanRepository } from './repository/mPlan'
+import { TStripeCustomerRepository } from './repository/tStripeCustomer'
 import { SettingRouter } from './router'
 import { SettingService } from './service/setting'
+import { StripeRepository } from './stripe'
 
 const prisma = new PrismaClient()
 
@@ -23,7 +25,14 @@ const app = new OpenAPIHono<AppEnv>()
 
 // DI: 依存性注入
 const planRepository = new MPlanRepository(prisma)
-const settingService = new SettingService(planRepository, prisma)
+const stripeRepository = new StripeRepository()
+const tStripeCustomerRepository = new TStripeCustomerRepository(prisma)
+const settingService = new SettingService(
+  planRepository,
+  stripeRepository,
+  tStripeCustomerRepository,
+  prisma
+)
 const settingController = new SettingController(settingService)
 const settingRouter = new SettingRouter(settingController)
 
