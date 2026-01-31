@@ -18,8 +18,15 @@ RUN bunx prisma generate --schema=./schema.prisma
 # ソースコードをコピー
 COPY src ./src
 COPY tsconfig.json ./
+COPY biome.json ./
 
-# アプリケーションをビルド（静的解析も実行）
+# 型チェック
+RUN bun run typecheck
+
+# Lint（--writeなしでチェックのみ）
+RUN bunx biome check .
+
+# アプリケーションをビルド
 RUN bun run build
 
 # ===================================
