@@ -48,6 +48,12 @@ COPY --from=builder --chown=bunuser:nodejs /app/package.json ./
 
 # Prismaマイグレーション用のファイルもコピー（必要に応じて）
 COPY --chown=bunuser:nodejs migrations ./migrations
+COPY --chown=bunuser:nodejs seed.ts ./seed.ts
+COPY --chown=bunuser:nodejs src/lib/master.ts ./src/lib/master.ts
+
+# エントリーポイントスクリプトをコピー
+COPY --chown=bunuser:nodejs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 USER bunuser
 
@@ -63,5 +69,5 @@ ENV NODE_ENV=production \
     PORT=3001 \
     HOSTNAME=0.0.0.0
 
-# アプリケーション起動
-CMD ["bun", "run", "dist/index.js"]
+# アプリケーション起動（エントリーポイントスクリプト経由）
+ENTRYPOINT ["./docker-entrypoint.sh"]
