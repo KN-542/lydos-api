@@ -1,10 +1,42 @@
 # Lydos API
 
 LydosのバックエンドAPIサーバーです。
-Lydosで何を作るかは未定です。
-とりあえず現状はHonoフレームワーク練習用
+Honoフレームワークのプロジェクト。
 
 **前提**: PostgreSQL & Redis起動済み（`lydos-setup`で`docker compose up -d`）
+
+## 技術スタック
+
+- **Runtime**: Bun
+- **フレームワーク**: Hono + OpenAPI (Zod)
+- **データベース**: PostgreSQL (Prisma ORM)
+- **キャッシュ**: Redis (ioredis)
+- **認証**: Clerk
+- **決済**: Stripe
+- **リンター/フォーマッター**: Biome
+
+## アーキテクチャ
+
+オニオンアーキテクチャを採用:
+
+```
+src/
+├── controller/     # コントローラー層
+├── service/        # サービス層（ビジネスロジック）
+├── repository/     # リポジトリ層（データアクセス）
+├── router/         # ルーティング
+├── middleware/     # ミドルウェア（認証など）
+├── domain/model/   # ドメインモデル
+├── lib/            # ユーティリティ（Redis、Zodなど）
+└── stripe/         # Stripe関連
+```
+
+## データベーススキーマ
+
+- `MPlan` - プランマスタ（無料版/有料版）
+- `TUser` - ユーザー情報
+- `TStripeCustomer` - Stripe顧客情報
+- `TPaymentMethod` - 支払い方法
 
 ## セットアップ
 
