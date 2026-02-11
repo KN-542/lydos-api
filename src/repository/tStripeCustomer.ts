@@ -1,11 +1,11 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
+import type { ITStripeCustomerRepository } from '../domain/interface/tStripeCustomer'
 import {
   type CreateTStripeCustomerVO,
   TStripeCustomerAggregation,
   TStripeCustomerEntity,
   type TStripeCustomerVO,
 } from '../domain/model/tStripeCustomer'
-import type { ITStripeCustomerRepository } from '../service/interface/tStripeCustomer'
 
 export class TStripeCustomerRepository implements ITStripeCustomerRepository {
   readonly prisma: PrismaClient

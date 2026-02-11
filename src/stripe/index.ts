@@ -1,5 +1,5 @@
 import type Stripe from 'stripe'
-import type { IStripeRepository } from '../service/interface/stripe'
+import type { IStripeRepository } from '../domain/interface/stripe'
 import { stripe } from './client'
 
 export class StripeRepository implements IStripeRepository {
