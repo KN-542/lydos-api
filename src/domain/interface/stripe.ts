@@ -8,7 +8,12 @@ export interface IStripeRepository {
       last4: string
       expMonth: number
       expYear: number
+      isDefault: boolean
     }>
   >
   detachPaymentMethod(paymentMethodId: string): Promise<void>
+  setDefaultPaymentMethod(customerId: string, paymentMethodId: string): Promise<void>
+  createSubscription(customerId: string, priceId: string, paymentMethodId: string): Promise<string>
+  updateSubscription(subscriptionId: string, priceId: string): Promise<void>
+  cancelSubscription(subscriptionId: string): Promise<void>
 }

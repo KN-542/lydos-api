@@ -56,12 +56,19 @@ export class StripeRepository implements IStripeRepository {
       last4: string
       expMonth: number
       expYear: number
+      isDefault: boolean
     }>
   > {
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customerId,
-      type: 'card',
-    })
+    const [customer, paymentMethods] = await Promise.all([
+      stripe.customers.retrieve(customerId),
+      stripe.paymentMethods.list({ customer: customerId, type: 'card' }),
+    ])
+
+    const defaultPmId =
+      customer.deleted !== true &&
+      typeof (customer as Stripe.Customer).invoice_settings?.default_payment_method === 'string'
+        ? ((customer as Stripe.Customer).invoice_settings?.default_payment_method as string)
+        : null
 
     return paymentMethods.data.map((pm) => ({
       id: pm.id,
@@ -69,14 +76,61 @@ export class StripeRepository implements IStripeRepository {
       last4: pm.card?.last4 ?? '',
       expMonth: pm.card?.exp_month ?? 0,
       expYear: pm.card?.exp_year ?? 0,
+      isDefault: pm.id === defaultPmId,
     }))
   }
 
   /**
    * 支払い方法をCustomerから切り離す
-   * @param paymentMethodId Stripe Payment Method ID (pm_xxx)
    */
   async detachPaymentMethod(paymentMethodId: string): Promise<void> {
     await stripe.paymentMethods.detach(paymentMethodId)
+  }
+
+  /**
+   * CustomerのデフォルトPayment Methodを設定する
+   */
+  async setDefaultPaymentMethod(customerId: string, paymentMethodId: string): Promise<void> {
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    })
+  }
+
+  /**
+   * サブスクリプションを新規作成する
+   * @returns Stripe Subscription ID (sub_xxx)
+   */
+  async createSubscription(
+    customerId: string,
+    priceId: string,
+    paymentMethodId: string
+  ): Promise<string> {
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      default_payment_method: paymentMethodId,
+    })
+    return subscription.id
+  }
+
+  /**
+   * 既存サブスクリプションのプランを変更する
+   */
+  async updateSubscription(subscriptionId: string, priceId: string): Promise<void> {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    const itemId = subscription.items.data[0]?.id
+    if (!itemId) {
+      throw new Error('Subscription item not found')
+    }
+    await stripe.subscriptions.update(subscriptionId, {
+      items: [{ id: itemId, price: priceId }],
+    })
+  }
+
+  /**
+   * サブスクリプションをキャンセルする
+   */
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    await stripe.subscriptions.cancel(subscriptionId)
   }
 }

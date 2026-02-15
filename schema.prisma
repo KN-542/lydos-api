@@ -9,11 +9,12 @@ datasource db {
 
 /// プラン
 model MPlan {
-  id        Int      @id @default(autoincrement()) // 1: 無料版, 2: 有料版
-  name      String   @db.VarChar(25)
-  description String   @db.Text
-  price     Int
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement()) // 1: 無料版, 2: 有料版
+  name          String   @db.VarChar(25)
+  description   String   @db.Text
+  price         Int
+  stripePriceId String?  @db.VarChar(255) // Stripe Price ID (price_xxx)。無料プランはnull
+  createdAt     DateTime @default(now())
 
   users TUser[]
 
@@ -27,9 +28,10 @@ model TUser {
   name        String   @db.VarChar(100)
   email       String   @unique @db.VarChar(255)
   imageUrl    String?  @db.VarChar(500) // プロフィール画像URL
-  planId      Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  planId               Int
+  stripeSubscriptionId String?  @unique @db.VarChar(255) // Stripe Subscription ID (sub_xxx)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   plan           MPlan            @relation(fields: [planId], references: [id])
   stripeCustomer TStripeCustomer?

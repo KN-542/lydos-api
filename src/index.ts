@@ -7,6 +7,7 @@ import { SettingController } from './controller/setting'
 import { createMiddleware } from './middleware'
 import { MPlanRepository } from './repository/mPlan'
 import { TStripeCustomerRepository } from './repository/tStripeCustomer'
+import { TUserRepository } from './repository/tUser'
 import { SettingRouter } from './router'
 import { SettingService } from './service/setting'
 import { StripeRepository } from './stripe'
@@ -27,10 +28,12 @@ const app = new OpenAPIHono<AppEnv>()
 const planRepository = new MPlanRepository(prisma)
 const stripeRepository = new StripeRepository()
 const tStripeCustomerRepository = new TStripeCustomerRepository(prisma)
+const tUserRepository = new TUserRepository(prisma)
 const settingService = new SettingService(
   planRepository,
   stripeRepository,
   tStripeCustomerRepository,
+  tUserRepository,
   prisma
 )
 const settingController = new SettingController(settingService)

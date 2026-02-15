@@ -1,10 +1,12 @@
 import type { HonoContext } from '..'
+import { ChangePlanRequestDTO } from '../service/dto/request/setting/changePlan'
 import { CreateCheckoutSessionRequestDTO } from '../service/dto/request/setting/createCheckoutSession'
 import { DeletePaymentMethodRequestDTO } from '../service/dto/request/setting/deletePaymentMethod'
 import { GetPaymentMethodsRequestDTO } from '../service/dto/request/setting/getPaymentMethods'
 import { GetPlansRequestDTO } from '../service/dto/request/setting/getPlans'
 import type { SettingService } from '../service/setting'
 import { toRequestDTO } from './request/setting/context'
+import { ChangePlanResponse } from './response/setting/changePlan'
 import { CreateCheckoutSessionResponse } from './response/setting/createCheckoutSession'
 import { GetPaymentMethodsResponse } from './response/setting/getPaymentMethods'
 import { GetPlansResponse } from './response/setting/getPlans'
@@ -59,6 +61,21 @@ export class SettingController {
       return c.json(response, 200)
     } catch (error) {
       console.error('Error in SettingController.getPaymentMethods:', error)
+      return c.json({ error: 'Internal Server Error' }, 500)
+    }
+  }
+
+  // プラン変更
+  async changePlan(c: HonoContext) {
+    try {
+      const authId = c.get('authId')
+      const { planId, paymentMethodId } = await c.req.json()
+      const requestDTO = new ChangePlanRequestDTO(authId, planId, paymentMethodId)
+      await this.settingService.changePlan(requestDTO)
+
+      return c.json(new ChangePlanResponse(), 200)
+    } catch (error) {
+      console.error('Error in SettingController.changePlan:', error)
       return c.json({ error: 'Internal Server Error' }, 500)
     }
   }

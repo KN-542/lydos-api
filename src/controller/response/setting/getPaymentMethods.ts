@@ -7,6 +7,7 @@ const paymentMethodSchema = z.object({
   last4: z.string().describe('Last 4 digits of card'),
   expMonth: z.number().describe('Expiration month'),
   expYear: z.number().describe('Expiration year'),
+  isDefault: z.boolean().describe('Whether this is the default payment method'),
 })
 
 export const getPaymentMethodsResponseSchema = z.object({
@@ -20,6 +21,7 @@ export class GetPaymentMethodsResponse {
     last4: string
     expMonth: number
     expYear: number
+    isDefault: boolean
   }>
 
   constructor(dto: GetPaymentMethodsResponseDTO) {
@@ -29,6 +31,7 @@ export class GetPaymentMethodsResponse {
       last4: pm.last4,
       expMonth: pm.expMonth,
       expYear: pm.expYear,
+      isDefault: pm.isDefault,
     }))
   }
 }

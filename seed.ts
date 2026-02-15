@@ -11,25 +11,37 @@ async function main() {
   try {
     await prisma.$transaction(async (tx) => {
       // m_planのマスタデータ
+      const paidPlanPriceId = process.env.STRIPE_PAID_PLAN_PRICE_ID
+      if (!paidPlanPriceId) {
+        throw new Error('STRIPE_PAID_PLAN_PRICE_ID is not set')
+      }
+
       const plans = [
         {
           id: MASTER.getPlanId(MASTER.PLAN.FREE),
           name: MASTER.PLAN.FREE,
           description: '基本的な機能が利用できます',
           price: 0,
+          stripePriceId: null,
         },
         {
           id: MASTER.getPlanId(MASTER.PLAN.PAID),
           name: MASTER.PLAN.PAID,
           description: 'すべての機能が利用できます',
           price: 500,
+          stripePriceId: paidPlanPriceId,
         },
       ]
 
       for (const plan of plans) {
         await tx.mPlan.upsert({
           where: { id: plan.id },
-          update: { name: plan.name, description: plan.description, price: plan.price },
+          update: {
+            name: plan.name,
+            description: plan.description,
+            price: plan.price,
+            stripePriceId: plan.stripePriceId,
+          },
           create: plan,
         })
         console.log(`Created/Updated plan: ${plan.name}`)

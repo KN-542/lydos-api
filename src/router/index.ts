@@ -1,7 +1,9 @@
 import type { OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
 import type { AppEnv } from '..'
+import { changePlanBodySchema } from '../controller/request/setting/changePlan'
 import { deletePaymentMethodParamsSchema } from '../controller/request/setting/deletePaymentMethod'
+import { changePlanResponseSchema } from '../controller/response/setting/changePlan'
 import { createCheckoutSessionResponseSchema } from '../controller/response/setting/createCheckoutSession'
 import { getPaymentMethodsResponseSchema } from '../controller/response/setting/getPaymentMethods'
 import { plansResponseSchema } from '../controller/response/setting/getPlans'
@@ -146,6 +148,46 @@ export class SettingRouter {
       },
       async (c) => {
         return await this.settingController.deletePaymentMethod(c)
+      }
+    )
+
+    app.openapi(
+      {
+        method: 'post',
+        path: '/setting/plan',
+        tags: ['設定'],
+        summary: 'プラン変更',
+        description: '支払い方法を指定してプランを変更します。',
+        request: {
+          body: {
+            content: {
+              'application/json': {
+                schema: changePlanBodySchema,
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: changePlanResponseSchema,
+              },
+            },
+          },
+          500: {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
+        },
+      },
+      async (c) => {
+        return await this.settingController.changePlan(c)
       }
     )
   }
