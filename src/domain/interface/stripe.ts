@@ -10,4 +10,5 @@ export interface IStripeRepository {
       expYear: number
     }>
   >
+  detachPaymentMethod(paymentMethodId: string): Promise<void>
 }

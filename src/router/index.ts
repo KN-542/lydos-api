@@ -1,6 +1,7 @@
 import type { OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
 import type { AppEnv } from '..'
+import { deletePaymentMethodParamsSchema } from '../controller/request/setting/deletePaymentMethod'
 import { createCheckoutSessionResponseSchema } from '../controller/response/setting/createCheckoutSession'
 import { getPaymentMethodsResponseSchema } from '../controller/response/setting/getPaymentMethods'
 import { plansResponseSchema } from '../controller/response/setting/getPlans'
@@ -65,6 +66,14 @@ export class SettingRouter {
               },
             },
           },
+          400: {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
           500: {
             description: 'Internal Server Error',
             content: {
@@ -108,6 +117,35 @@ export class SettingRouter {
       },
       async (c) => {
         return await this.settingController.getPaymentMethods(c)
+      }
+    )
+
+    app.openapi(
+      {
+        method: 'delete',
+        path: '/setting/payment-methods/{paymentMethodId}',
+        tags: ['設定'],
+        summary: '支払い方法削除',
+        description: '指定した支払い方法を削除します。',
+        request: {
+          params: deletePaymentMethodParamsSchema,
+        },
+        responses: {
+          204: {
+            description: 'No Content',
+          },
+          500: {
+            description: 'Internal Server Error',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
+        },
+      },
+      async (c) => {
+        return await this.settingController.deletePaymentMethod(c)
       }
     )
   }

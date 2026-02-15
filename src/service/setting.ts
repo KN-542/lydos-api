@@ -5,11 +5,15 @@ import type { ITStripeCustomerRepository } from '../domain/interface/tStripeCust
 import { TAuthIdVO } from '../domain/model/mPlan'
 import { CreateTStripeCustomerVO, TStripeCustomerVO } from '../domain/model/tStripeCustomer'
 import type { CreateCheckoutSessionRequestDTO } from './dto/request/setting/createCheckoutSession'
+import type { DeletePaymentMethodRequestDTO } from './dto/request/setting/deletePaymentMethod'
 import type { GetPaymentMethodsRequestDTO } from './dto/request/setting/getPaymentMethods'
 import type { GetPlansRequestDTO } from './dto/request/setting/getPlans'
 import { CreateCheckoutSessionResponseDTO } from './dto/response/setting/createCheckoutSession'
+import { DeletePaymentMethodResponseDTO } from './dto/response/setting/deletePaymentMethod'
 import { GetPaymentMethodsResponseDTO } from './dto/response/setting/getPaymentMethods'
 import { GetPlansResponseDTO } from './dto/response/setting/getPlans'
+
+const MAX_PAYMENT_METHODS = 5
 
 export class SettingService {
   readonly planRepository: IMPlanRepository
@@ -68,6 +72,14 @@ export class SettingService {
           const createVO = new CreateTStripeCustomerVO(aggregation.userId, stripeCustomerId)
           await this.tStripeCustomerRepository.create(tx, createVO)
           stripeCustomer = stripeCustomerId
+        } else {
+          const existing = await this.stripeRepository.getPaymentMethods(stripeCustomer)
+          if (existing.length >= MAX_PAYMENT_METHODS) {
+            throw Object.assign(
+              new Error(`支払い方法の登録上限（${MAX_PAYMENT_METHODS}件）に達しています`),
+              { code: 'PAYMENT_METHOD_LIMIT_EXCEEDED' }
+            )
+          }
         }
 
         const successUrl = `${process.env.FRONTEND_URL}/home/setting/payment/success`
@@ -111,6 +123,41 @@ export class SettingService {
       return new GetPaymentMethodsResponseDTO(paymentMethods)
     } catch (error) {
       console.error('Error in SettingService.getPaymentMethods:', error)
+      throw error
+    }
+  }
+
+  async deletePaymentMethod(
+    dto: DeletePaymentMethodRequestDTO
+  ): Promise<DeletePaymentMethodResponseDTO> {
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const { authId, paymentMethodId } = dto
+        const vo = new TStripeCustomerVO(authId)
+
+        const aggregation = await this.tStripeCustomerRepository.find(tx, vo)
+        if (aggregation === null) {
+          throw new Error('User not found')
+        }
+        if (aggregation.stripeCustomerId === null) {
+          throw new Error('Stripe customer not found')
+        }
+
+        // 所有権の確認: 該当ユーザーのCustomerに紐づくPayment Methodか検証
+        const paymentMethods = await this.stripeRepository.getPaymentMethods(
+          aggregation.stripeCustomerId
+        )
+        const owns = paymentMethods.some((pm) => pm.id === paymentMethodId)
+        if (!owns) {
+          throw new Error('Payment method not found')
+        }
+
+        await this.stripeRepository.detachPaymentMethod(paymentMethodId)
+      })
+
+      return new DeletePaymentMethodResponseDTO()
+    } catch (error) {
+      console.error('Error in SettingService.deletePaymentMethod:', error)
       throw error
     }
   }

@@ -1,5 +1,6 @@
 import type { HonoContext } from '..'
 import { CreateCheckoutSessionRequestDTO } from '../service/dto/request/setting/createCheckoutSession'
+import { DeletePaymentMethodRequestDTO } from '../service/dto/request/setting/deletePaymentMethod'
 import { GetPaymentMethodsRequestDTO } from '../service/dto/request/setting/getPaymentMethods'
 import { GetPlansRequestDTO } from '../service/dto/request/setting/getPlans'
 import type { SettingService } from '../service/setting'
@@ -34,10 +35,15 @@ export class SettingController {
     try {
       const requestDTO = toRequestDTO(c, CreateCheckoutSessionRequestDTO)
       const responseDTO = await this.settingService.createCheckoutSession(requestDTO)
-      const response = new CreateCheckoutSessionResponse(responseDTO)
 
-      return c.json(response, 200)
+      return c.json(new CreateCheckoutSessionResponse(responseDTO), 200)
     } catch (error) {
+      if (
+        error instanceof Error &&
+        (error as Error & { code?: string }).code === 'PAYMENT_METHOD_LIMIT_EXCEEDED'
+      ) {
+        return c.json({ error: error.message }, 400)
+      }
       console.error('Error in SettingController.createCheckoutSession:', error)
       return c.json({ error: 'Internal Server Error' }, 500)
     }
@@ -53,6 +59,21 @@ export class SettingController {
       return c.json(response, 200)
     } catch (error) {
       console.error('Error in SettingController.getPaymentMethods:', error)
+      return c.json({ error: 'Internal Server Error' }, 500)
+    }
+  }
+
+  // 支払い方法削除
+  async deletePaymentMethod(c: HonoContext) {
+    try {
+      const authId = c.get('authId')
+      const { paymentMethodId } = c.req.param()
+      const requestDTO = new DeletePaymentMethodRequestDTO(authId, paymentMethodId)
+      await this.settingService.deletePaymentMethod(requestDTO)
+
+      return c.body(null, 204)
+    } catch (error) {
+      console.error('Error in SettingController.deletePaymentMethod:', error)
       return c.json({ error: 'Internal Server Error' }, 500)
     }
   }

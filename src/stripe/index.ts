@@ -71,4 +71,12 @@ export class StripeRepository implements IStripeRepository {
       expYear: pm.card?.exp_year ?? 0,
     }))
   }
+
+  /**
+   * 支払い方法をCustomerから切り離す
+   * @param paymentMethodId Stripe Payment Method ID (pm_xxx)
+   */
+  async detachPaymentMethod(paymentMethodId: string): Promise<void> {
+    await stripe.paymentMethods.detach(paymentMethodId)
+  }
 }
