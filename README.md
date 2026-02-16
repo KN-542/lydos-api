@@ -2,7 +2,7 @@
 
 LydosのバックエンドAPIサーバーです。
 Honoフレームワークのプロジェクト。
-何を作るかは不明です。
+簡易AIチャットアプリになりました。
 
 **前提**: PostgreSQL & Redis起動済み（`lydos-setup`で`docker compose up -d`）
 
