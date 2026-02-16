@@ -35,7 +35,13 @@ export class SettingController {
   // Checkout Session作成
   async createCheckoutSession(c: HonoContext) {
     try {
-      const requestDTO = toRequestDTO(c, CreateCheckoutSessionRequestDTO)
+      const authId = c.get('authId')
+      const body = await c.req.json().catch(() => ({}))
+      const requestDTO = new CreateCheckoutSessionRequestDTO(
+        authId,
+        body.successUrl,
+        body.cancelUrl
+      )
       const responseDTO = await this.settingService.createCheckoutSession(requestDTO)
 
       return c.json(new CreateCheckoutSessionResponse(responseDTO), 200)

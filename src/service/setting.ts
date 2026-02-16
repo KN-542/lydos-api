@@ -89,8 +89,9 @@ export class SettingService {
           }
         }
 
-        const successUrl = `${process.env.FRONTEND_URL}/home/setting/payment/success`
-        const cancelUrl = `${process.env.FRONTEND_URL}/home/setting/payment`
+        const successUrl =
+          dto.successUrl ?? `${process.env.FRONTEND_URL}/home/setting/payment/success`
+        const cancelUrl = dto.cancelUrl ?? `${process.env.FRONTEND_URL}/home/setting/payment`
 
         const checkoutUrl = await this.stripeRepository.createCheckoutSession(
           stripeCustomer,

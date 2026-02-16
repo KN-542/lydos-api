@@ -2,6 +2,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi'
 import { z } from 'zod'
 import type { AppEnv } from '..'
 import { changePlanBodySchema } from '../controller/request/setting/changePlan'
+import { createCheckoutSessionBodySchema } from '../controller/request/setting/createCheckoutSession'
 import { deletePaymentMethodParamsSchema } from '../controller/request/setting/deletePaymentMethod'
 import { changePlanResponseSchema } from '../controller/response/setting/changePlan'
 import { createCheckoutSessionResponseSchema } from '../controller/response/setting/createCheckoutSession'
@@ -59,6 +60,16 @@ export class SettingRouter {
         tags: ['設定'],
         summary: 'Checkout Session作成',
         description: 'カード登録用のCheckout Sessionを作成します。',
+        request: {
+          body: {
+            content: {
+              'application/json': {
+                schema: createCheckoutSessionBodySchema,
+              },
+            },
+            required: false,
+          },
+        },
         responses: {
           200: {
             description: 'Success',
