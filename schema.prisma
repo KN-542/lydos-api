@@ -21,6 +21,22 @@ model MPlan {
   @@map("m_plan")
 }
 
+/// モデル
+model MModel {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  description String   @db.Text
+  modelId     String   @unique @db.VarChar(100) // API に渡すモデルID (例: "gemini-2.0-flash")
+  provider    String   @db.VarChar(50) // "gemini" | "groq"
+  color       String   @db.VarChar(7) // example: #RRGGBB
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  chatSessions TChatSession[]
+
+  @@map("m_model")
+}
+
 /// ユーザー
 model TUser {
   id          Int      @id @default(autoincrement())
@@ -35,6 +51,7 @@ model TUser {
 
   plan           MPlan            @relation(fields: [planId], references: [id])
   stripeCustomer TStripeCustomer?
+  chatSessions   TChatSession[]
 
   @@map("t_user")
 }
@@ -69,4 +86,35 @@ model TPaymentMethod {
   stripeCustomer TStripeCustomer @relation(fields: [stripeCustomerId], references: [id], onDelete: Cascade)
 
   @@map("t_payment_method")
+}
+
+/// チャットセッション
+model TChatSession {
+  id        String   @id @default(cuid())
+  userId    Int
+  modelId   Int
+  title     String   @db.VarChar(255) // デフォルト: "新しいチャット"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     TUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model    MModel         @relation(fields: [modelId], references: [id])
+  messages TChatHistory[]
+
+  @@map("t_chat_session")
+}
+
+/// チャット履歴
+model TChatHistory {
+  id           Int      @id @default(autoincrement())
+  sessionId    String
+  role         String   @db.VarChar(20) // "user" | "assistant"
+  content      String   @db.Text
+  inputTokens  Int? // LLM へ送信したトークン数。assistantメッセージ行のみ格納
+  outputTokens Int? // LLM から返ってきたトークン数。assistantメッセージ行のみ格納
+  createdAt    DateTime @default(now())
+
+  session TChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("t_chat_history")
 }

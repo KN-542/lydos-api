@@ -3,12 +3,18 @@ import { PrismaClient } from '@prisma/client'
 import { Scalar } from '@scalar/hono-api-reference'
 import type { Context } from 'hono'
 import { cors } from 'hono/cors'
+import { ChatController } from './controller/chat'
 import { SettingController } from './controller/setting'
 import { createMiddleware } from './middleware'
+import { MModelRepository } from './repository/mModel'
 import { MPlanRepository } from './repository/mPlan'
+import { TChatHistoryRepository } from './repository/tChatHistory'
+import { TChatSessionRepository } from './repository/tChatSession'
 import { TStripeCustomerRepository } from './repository/tStripeCustomer'
 import { TUserRepository } from './repository/tUser'
 import { SettingRouter } from './router'
+import { ChatRouter } from './router/chatRouter'
+import { ChatService } from './service/chat'
 import { SettingService } from './service/setting'
 import { StripeRepository } from './stripe'
 
@@ -39,6 +45,18 @@ const settingService = new SettingService(
 const settingController = new SettingController(settingService)
 const settingRouter = new SettingRouter(settingController)
 
+const modelRepository = new MModelRepository(prisma)
+const chatSessionRepository = new TChatSessionRepository(prisma)
+const chatHistoryRepository = new TChatHistoryRepository(prisma)
+const chatService = new ChatService(
+  modelRepository,
+  chatSessionRepository,
+  chatHistoryRepository,
+  prisma
+)
+const chatController = new ChatController(chatService)
+const chatRouter = new ChatRouter(chatController)
+
 // CORSを有効にする
 app.use(
   '*',
@@ -53,6 +71,7 @@ app.use('/*', createMiddleware(prisma))
 
 // ルート登録
 settingRouter.registerRoutes(app)
+chatRouter.registerRoutes(app)
 
 // OpenAPI仕様のJSONエンドポイント
 app.doc('/doc', {

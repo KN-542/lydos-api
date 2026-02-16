@@ -16,9 +16,11 @@
   },
   "dependencies": {
     "@clerk/backend": "^2.29.5",
+    "@google/genai": "^1.41.0",
     "@hono/zod-openapi": "^1.2.0",
     "@prisma/client": "^6.2.0",
     "@scalar/hono-api-reference": "^0.9.37",
+    "groq-sdk": "^0.37.0",
     "hono": "^4.11.6",
     "ioredis": "^5.9.2",
     "stripe": "^20.3.0",
