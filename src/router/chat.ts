@@ -34,7 +34,7 @@ export class ChatRouter {
             content: { 'application/json': { schema: getModelsResponseSchema } },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
@@ -56,7 +56,7 @@ export class ChatRouter {
             content: { 'application/json': { schema: getSessionsResponseSchema } },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
@@ -91,7 +91,7 @@ export class ChatRouter {
             content: { 'application/json': { schema: errorResponseSchema } },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
@@ -114,7 +114,7 @@ export class ChatRouter {
             content: { 'application/json': { schema: getMessagesResponseSchema } },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
@@ -139,7 +139,7 @@ export class ChatRouter {
         responses: {
           204: { description: 'No Content' },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },

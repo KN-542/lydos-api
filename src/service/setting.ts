@@ -3,7 +3,6 @@ import type { IMPlanRepository } from '../domain/interface/mPlan'
 import type { IStripeRepository } from '../domain/interface/stripe'
 import type { ITStripeCustomerRepository } from '../domain/interface/tStripeCustomer'
 import type { ITUserRepository } from '../domain/interface/tUser'
-import { TAuthIdVO } from '../domain/model/mPlan'
 import { CreateTStripeCustomerVO, TStripeCustomerVO } from '../domain/model/tStripeCustomer'
 import { TUserPlanChangeVO, UpdateUserPlanVO } from '../domain/model/tUser'
 import type { ChangePlanRequestDTO } from './dto/request/setting/changePlan'
@@ -40,13 +39,15 @@ export class SettingService {
     this.prisma = prisma
   }
 
+  /**
+   * プラン一覧取得
+   */
   async getPlans(dto: GetPlansRequestDTO): Promise<GetPlansResponseDTO> {
     try {
       const entities = await this.prisma.$transaction(async (tx) => {
         const { authId } = dto
-        const vo = new TAuthIdVO(authId)
 
-        return await this.planRepository.findAll(tx, vo)
+        return await this.planRepository.findAllByAuthId(tx, authId)
       })
 
       return new GetPlansResponseDTO(entities)

@@ -30,7 +30,7 @@ export class SettingController {
       return c.json(response, 200)
     } catch (error) {
       console.error('Error in SettingController.getPlans:', error)
-      return c.json({ error: 'Internal Server Error' }, 500)
+      return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }
   }
 
@@ -55,7 +55,7 @@ export class SettingController {
         return c.json({ error: error.message }, 400)
       }
       console.error('Error in SettingController.createCheckoutSession:', error)
-      return c.json({ error: 'Internal Server Error' }, 500)
+      return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }
   }
 
@@ -69,7 +69,7 @@ export class SettingController {
       return c.json(response, 200)
     } catch (error) {
       console.error('Error in SettingController.getPaymentMethods:', error)
-      return c.json({ error: 'Internal Server Error' }, 500)
+      return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }
   }
 
@@ -84,7 +84,7 @@ export class SettingController {
       return c.json(new ChangePlanResponse(), 200)
     } catch (error) {
       console.error('Error in SettingController.changePlan:', error)
-      return c.json({ error: 'Internal Server Error' }, 500)
+      return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }
   }
 
@@ -99,7 +99,7 @@ export class SettingController {
       return c.body(null, 204)
     } catch (error) {
       console.error('Error in SettingController.deletePaymentMethod:', error)
-      return c.json({ error: 'Internal Server Error' }, 500)
+      return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }
   }
 }

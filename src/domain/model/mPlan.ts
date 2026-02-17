@@ -1,13 +1,12 @@
 import { z } from 'zod'
 
+// ユーザープランEntity
 const mPlanSchema = z.object({
   id: z.number().int().positive(),
   name: z.string().min(1).max(25),
   description: z.string(),
   price: z.number().int().min(0),
 })
-
-// Entity: ユーザープラン
 export class MPlanEntity {
   readonly id: number
   readonly name: string
@@ -32,7 +31,7 @@ export class MPlanEntity {
   }
 }
 
-// authId VO
+// authId VO 消す予定
 export class TAuthIdVO {
   readonly authId: string
 

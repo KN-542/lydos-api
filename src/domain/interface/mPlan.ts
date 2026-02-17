@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client'
-import type { MPlanEntity, TAuthIdVO } from '../../domain/model/mPlan'
+import type { MPlanEntity } from '../../domain/model/mPlan'
 
 export interface IMPlanRepository {
-  findAll(tx: Prisma.TransactionClient, vo: TAuthIdVO): Promise<MPlanEntity[]>
+  findAllByAuthId(tx: Prisma.TransactionClient, authId: string): Promise<MPlanEntity[]>
 }

@@ -39,7 +39,7 @@ export class SettingRouter {
             },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: {
               'application/json': {
                 schema: errorResponseSchema,
@@ -88,7 +88,7 @@ export class SettingRouter {
             },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: {
               'application/json': {
                 schema: errorResponseSchema,
@@ -119,7 +119,7 @@ export class SettingRouter {
             },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: {
               'application/json': {
                 schema: errorResponseSchema,
@@ -148,7 +148,7 @@ export class SettingRouter {
             description: 'No Content',
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: {
               'application/json': {
                 schema: errorResponseSchema,
@@ -188,7 +188,7 @@ export class SettingRouter {
             },
           },
           500: {
-            description: 'Internal Server Error',
+            description: '予期せぬエラーが発生しました',
             content: {
               'application/json': {
                 schema: errorResponseSchema,
