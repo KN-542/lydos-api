@@ -1,7 +1,8 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { ITChatSessionRepository, TChatSessionWithModel } from '../domain/interface/chat'
-import type { ChatAuthVO, CreateSessionVO, SessionOwnerVO } from '../domain/model/chat'
-import { MModelEntity, TChatSessionCreateEntity, TChatSessionEntity } from '../domain/model/chat'
+import { MModelEntity } from '../domain/model/mModel'
+import type { ChatAuthVO, CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
+import { CreateTChatSessionEntity, TChatSessionEntity } from '../domain/model/tChatSession'
 
 export class TChatSessionRepository implements ITChatSessionRepository {
   readonly prisma: PrismaClient
@@ -10,15 +11,16 @@ export class TChatSessionRepository implements ITChatSessionRepository {
     this.prisma = prisma
   }
 
+  // 登録
   async create(
     tx: Prisma.TransactionClient,
     vo: CreateSessionVO
-  ): Promise<TChatSessionCreateEntity> {
+  ): Promise<CreateTChatSessionEntity> {
     const s = await tx.tChatSession.create({
       data: { userId: vo.userId, modelId: vo.modelId, title: vo.title },
       select: { id: true },
     })
-    return new TChatSessionCreateEntity(s.id)
+    return new CreateTChatSessionEntity(s.id)
   }
 
   async findAll(tx: Prisma.TransactionClient, vo: ChatAuthVO): Promise<TChatSessionEntity[]> {
@@ -48,7 +50,7 @@ export class TChatSessionRepository implements ITChatSessionRepository {
 
   async findWithModel(
     tx: Prisma.TransactionClient,
-    vo: SessionOwnerVO
+    vo: DeleteSessionVO
   ): Promise<TChatSessionWithModel | null> {
     const s = await tx.tChatSession.findFirst({
       where: { id: vo.sessionId, user: { authId: vo.authId } },
@@ -89,7 +91,8 @@ export class TChatSessionRepository implements ITChatSessionRepository {
     })
   }
 
-  async delete(tx: Prisma.TransactionClient, vo: SessionOwnerVO): Promise<void> {
+  // 削除
+  async delete(tx: Prisma.TransactionClient, vo: DeleteSessionVO): Promise<void> {
     await tx.tChatSession.deleteMany({
       where: { id: vo.sessionId, user: { authId: vo.authId } },
     })

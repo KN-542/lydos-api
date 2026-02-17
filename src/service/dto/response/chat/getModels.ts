@@ -1,4 +1,4 @@
-import type { MModelEntity } from '../../../../domain/model/chat'
+import type { MModelEntity } from '../../../../domain/model/mModel'
 
 export class GetModelsResponseDTO {
   readonly models: Array<{

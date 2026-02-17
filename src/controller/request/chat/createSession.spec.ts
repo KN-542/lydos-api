@@ -37,6 +37,18 @@ describe('createSessionBodySchema', () => {
       expect(result.success).toBe(false)
       expect(result.error?.issues[0].message).toBe('AIモデルIDは整数で指定してください')
     })
+
+    it('undefinedは無効', () => {
+      const result = createSessionBodySchema.safeParse({ modelId: undefined })
+      expect(result.success).toBe(false)
+      expect(result.error?.issues[0].message).toBe('AIモデルIDは数値で指定してください')
+    })
+
+    it('nullは無効', () => {
+      const result = createSessionBodySchema.safeParse({ modelId: null })
+      expect(result.success).toBe(false)
+      expect(result.error?.issues[0].message).toBe('AIモデルIDは数値で指定してください')
+    })
   })
 
   describe('title', () => {
@@ -69,6 +81,17 @@ describe('createSessionBodySchema', () => {
       expect(result.error?.issues[0].message).toBe(
         'セッションタイトルは255文字以内で入力してください'
       )
+    })
+
+    it('undefinedは有効 (optional)', () => {
+      const result = createSessionBodySchema.safeParse({ modelId: 1, title: undefined })
+      expect(result.success).toBe(true)
+    })
+
+    it('nullは無効', () => {
+      const result = createSessionBodySchema.safeParse({ modelId: 1, title: null })
+      expect(result.success).toBe(false)
+      expect(result.error?.issues[0].message).toBe('セッションタイトルは文字列で指定してください')
     })
   })
 })

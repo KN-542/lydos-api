@@ -1,14 +1,13 @@
 import type { Prisma } from '@prisma/client'
+import type { MModelEntity } from '../model/mModel'
+import type { CreateMessageVO, TChatHistoryEntity } from '../model/tChatHistory'
 import type {
   ChatAuthVO,
-  CreateMessageVO,
   CreateSessionVO,
-  MModelEntity,
-  SessionOwnerVO,
-  TChatHistoryEntity,
-  TChatSessionCreateEntity,
+  CreateTChatSessionEntity,
+  DeleteSessionVO,
   TChatSessionEntity,
-} from '../model/chat'
+} from '../model/tChatSession'
 
 export type TChatSessionWithModel = {
   session: TChatSessionEntity
@@ -22,16 +21,16 @@ export interface IMModelRepository {
 
 export interface ITChatSessionRepository {
   findAll(tx: Prisma.TransactionClient, vo: ChatAuthVO): Promise<TChatSessionEntity[]>
-  create(tx: Prisma.TransactionClient, vo: CreateSessionVO): Promise<TChatSessionCreateEntity>
+  create(tx: Prisma.TransactionClient, vo: CreateSessionVO): Promise<CreateTChatSessionEntity>
   findWithModel(
     tx: Prisma.TransactionClient,
-    vo: SessionOwnerVO
+    vo: DeleteSessionVO
   ): Promise<TChatSessionWithModel | null>
   touchUpdatedAt(tx: Prisma.TransactionClient, sessionId: string): Promise<void>
-  delete(tx: Prisma.TransactionClient, vo: SessionOwnerVO): Promise<void>
+  delete(tx: Prisma.TransactionClient, vo: DeleteSessionVO): Promise<void>
 }
 
 export interface ITChatHistoryRepository {
-  findBySession(tx: Prisma.TransactionClient, vo: SessionOwnerVO): Promise<TChatHistoryEntity[]>
+  findBySession(tx: Prisma.TransactionClient, vo: DeleteSessionVO): Promise<TChatHistoryEntity[]>
   create(tx: Prisma.TransactionClient, vo: CreateMessageVO): Promise<TChatHistoryEntity>
 }

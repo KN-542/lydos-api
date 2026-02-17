@@ -1,4 +1,4 @@
-import type { TChatSessionEntity } from '../../../../domain/model/chat'
+import type { TChatSessionEntity } from '../../../../domain/model/tChatSession'
 
 export class GetSessionsResponseDTO {
   readonly sessions: Array<{

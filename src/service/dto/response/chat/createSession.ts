@@ -1,9 +1,9 @@
-import type { TChatSessionCreateEntity } from '../../../../domain/model/chat'
+import type { CreateTChatSessionEntity } from '../../../../domain/model/tChatSession'
 
 export class CreateSessionResponseDTO {
   readonly id: string
 
-  constructor(entity: TChatSessionCreateEntity) {
+  constructor(entity: CreateTChatSessionEntity) {
     this.id = entity.id
   }
 }

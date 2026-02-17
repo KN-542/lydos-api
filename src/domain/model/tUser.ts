@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { required } from '../../lib/zod'
 
-// Entity: ユーザー基本情報
+// ユーザーEntity
 const tUserEntitySchema = z.object({
   id: z.number().int().positive(),
   authId: required(),

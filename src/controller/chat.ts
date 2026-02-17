@@ -49,6 +49,20 @@ export class ChatController {
     }
   }
 
+  // メッセージ一覧取得
+  async getMessages(c: HonoContext) {
+    try {
+      const authId = c.get('authId')
+      const { sessionId } = c.req.param()
+      const requestDTO = new GetMessagesRequestDTO(authId, sessionId)
+      const responseDTO = await this.chatService.getMessages(requestDTO)
+      return c.json(new GetMessagesResponse(responseDTO), 200)
+    } catch (error) {
+      console.error('Error in ChatController.getMessages:', error)
+      return c.json({ error: 'Internal Server Error' }, 500)
+    }
+  }
+
   /**
    * チャットセッション作成
    */
@@ -69,16 +83,18 @@ export class ChatController {
     }
   }
 
-  // メッセージ一覧取得
-  async getMessages(c: HonoContext) {
+  /**
+   * チャットセッション削除
+   */
+  async deleteSession(c: HonoContext) {
     try {
       const authId = c.get('authId')
       const { sessionId } = c.req.param()
-      const requestDTO = new GetMessagesRequestDTO(authId, sessionId)
-      const responseDTO = await this.chatService.getMessages(requestDTO)
-      return c.json(new GetMessagesResponse(responseDTO), 200)
+      const requestDTO = new DeleteSessionRequestDTO(authId, sessionId)
+      await this.chatService.deleteSession(requestDTO)
+      return c.body(null, 204)
     } catch (error) {
-      console.error('Error in ChatController.getMessages:', error)
+      console.error('Error in ChatController.deleteSession:', error)
       return c.json({ error: 'Internal Server Error' }, 500)
     }
   }
@@ -114,19 +130,5 @@ export class ChatController {
         })
       }
     })
-  }
-
-  // セッション削除
-  async deleteSession(c: HonoContext) {
-    try {
-      const authId = c.get('authId')
-      const { sessionId } = c.req.param()
-      const requestDTO = new DeleteSessionRequestDTO(authId, sessionId)
-      await this.chatService.deleteSession(requestDTO)
-      return c.body(null, 204)
-    } catch (error) {
-      console.error('Error in ChatController.deleteSession:', error)
-      return c.json({ error: 'Internal Server Error' }, 500)
-    }
   }
 }

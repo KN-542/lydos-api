@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { IMModelRepository } from '../domain/interface/chat'
-import { MModelEntity } from '../domain/model/chat'
+import { MModelEntity } from '../domain/model/mModel'
 
 export class MModelRepository implements IMModelRepository {
   readonly prisma: PrismaClient

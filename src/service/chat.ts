@@ -5,7 +5,8 @@ import type {
   ITChatSessionRepository,
 } from '../domain/interface/chat'
 import type { ITUserRepository } from '../domain/interface/tUser'
-import { ChatAuthVO, CreateMessageVO, CreateSessionVO, SessionOwnerVO } from '../domain/model/chat'
+import { CreateMessageVO } from '../domain/model/tChatHistory'
+import { ChatAuthVO, CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
 import { AppError } from '../lib/error'
 import { streamChat } from '../lib/llm'
 import type { CreateSessionRequestDTO } from './dto/request/chat/createSession'
@@ -15,7 +16,6 @@ import type { GetModelsRequestDTO } from './dto/request/chat/getModels'
 import type { GetSessionsRequestDTO } from './dto/request/chat/getSessions'
 import type { StreamMessageRequestDTO } from './dto/request/chat/streamMessage'
 import { CreateSessionResponseDTO } from './dto/response/chat/createSession'
-import { DeleteSessionResponseDTO } from './dto/response/chat/deleteSession'
 import { GetMessagesResponseDTO } from './dto/response/chat/getMessages'
 import { GetModelsResponseDTO } from './dto/response/chat/getModels'
 import { GetSessionsResponseDTO } from './dto/response/chat/getSessions'
@@ -67,6 +67,19 @@ export class ChatService {
     }
   }
 
+  async getMessages(dto: GetMessagesRequestDTO): Promise<GetMessagesResponseDTO> {
+    try {
+      const entities = await this.prisma.$transaction(async (tx) => {
+        const vo = new DeleteSessionVO(dto.authId, dto.sessionId)
+        return await this.chatHistoryRepository.findBySession(tx, vo)
+      })
+      return new GetMessagesResponseDTO(entities)
+    } catch (error) {
+      console.error('Error in ChatService.getMessages:', error)
+      throw error
+    }
+  }
+
   /**
    * チャットセッション作成
    */
@@ -92,15 +105,17 @@ export class ChatService {
     }
   }
 
-  async getMessages(dto: GetMessagesRequestDTO): Promise<GetMessagesResponseDTO> {
+  /**
+   * チャットセッション削除
+   */
+  async deleteSession(dto: DeleteSessionRequestDTO): Promise<void> {
     try {
-      const entities = await this.prisma.$transaction(async (tx) => {
-        const vo = new SessionOwnerVO(dto.authId, dto.sessionId)
-        return await this.chatHistoryRepository.findBySession(tx, vo)
+      await this.prisma.$transaction(async (tx) => {
+        const vo = new DeleteSessionVO(dto.authId, dto.sessionId)
+        await this.chatSessionRepository.delete(tx, vo)
       })
-      return new GetMessagesResponseDTO(entities)
     } catch (error) {
-      console.error('Error in ChatService.getMessages:', error)
+      console.error('Error in ChatService.deleteSession:', error)
       throw error
     }
   }
@@ -110,7 +125,7 @@ export class ChatService {
     onToken: (token: string) => Promise<void>
   ): Promise<StreamMessageResponseDTO> {
     try {
-      const sessionVO = new SessionOwnerVO(dto.authId, dto.sessionId)
+      const sessionVO = new DeleteSessionVO(dto.authId, dto.sessionId)
 
       // 1. セッション + モデル情報 + 会話履歴を取得
       const { model, history } = await this.prisma.$transaction(async (tx) => {
@@ -159,19 +174,6 @@ export class ChatService {
       return new StreamMessageResponseDTO(assistantMessage.id, inputTokens, outputTokens)
     } catch (error) {
       console.error('Error in ChatService.streamMessage:', error)
-      throw error
-    }
-  }
-
-  async deleteSession(dto: DeleteSessionRequestDTO): Promise<DeleteSessionResponseDTO> {
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        const vo = new SessionOwnerVO(dto.authId, dto.sessionId)
-        await this.chatSessionRepository.delete(tx, vo)
-      })
-      return new DeleteSessionResponseDTO()
-    } catch (error) {
-      console.error('Error in ChatService.deleteSession:', error)
       throw error
     }
   }

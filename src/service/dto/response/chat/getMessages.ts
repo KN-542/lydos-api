@@ -1,4 +1,4 @@
-import type { TChatHistoryEntity } from '../../../../domain/model/chat'
+import type { TChatHistoryEntity } from '../../../../domain/model/tChatHistory'
 
 export class GetMessagesResponseDTO {
   readonly messages: Array<{
