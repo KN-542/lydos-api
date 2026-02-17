@@ -16,7 +16,7 @@ import { ChatRouter } from './router/chat'
 import { SettingRouter } from './router/setting'
 import { ChatService } from './service/chat'
 import { SettingService } from './service/setting'
-import { StripeRepository } from './stripe'
+import { Stripe } from './stripe'
 
 const prisma = new PrismaClient()
 
@@ -32,12 +32,12 @@ const app = new OpenAPIHono<AppEnv>()
 
 // DI: 依存性注入
 const planRepository = new MPlanRepository(prisma)
-const stripeRepository = new StripeRepository()
+const stripe = new Stripe()
 const tStripeCustomerRepository = new TStripeCustomerRepository(prisma)
 const tUserRepository = new TUserRepository(prisma)
 const settingService = new SettingService(
   planRepository,
-  stripeRepository,
+  stripe,
   tStripeCustomerRepository,
   tUserRepository,
   prisma

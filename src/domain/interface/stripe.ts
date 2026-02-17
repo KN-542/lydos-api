@@ -1,4 +1,4 @@
-export interface IStripeRepository {
+export interface IStripe {
   createCustomer(email: string, name: string): Promise<string>
   createCheckoutSession(customerId: string, successUrl: string, cancelUrl: string): Promise<string>
   getPaymentMethods(customerId: string): Promise<

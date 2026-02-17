@@ -1,10 +1,11 @@
 import type { PrismaClient } from '@prisma/client'
 import type { IMPlanRepository } from '../domain/interface/mPlan'
-import type { IStripeRepository } from '../domain/interface/stripe'
+import type { IStripe } from '../domain/interface/stripe'
 import type { ITStripeCustomerRepository } from '../domain/interface/tStripeCustomer'
 import type { ITUserRepository } from '../domain/interface/tUser'
-import { CreateTStripeCustomerVO, TStripeCustomerVO } from '../domain/model/tStripeCustomer'
+import { CreateTStripeCustomerVO } from '../domain/model/tStripeCustomer'
 import { TUserPlanChangeVO, UpdateUserPlanVO } from '../domain/model/tUser'
+import { AppError } from '../lib/error'
 import type { ChangePlanRequestDTO } from './dto/request/setting/changePlan'
 import type { CreateCheckoutSessionRequestDTO } from './dto/request/setting/createCheckoutSession'
 import type { DeletePaymentMethodRequestDTO } from './dto/request/setting/deletePaymentMethod'
@@ -20,20 +21,20 @@ const MAX_PAYMENT_METHODS = 5
 
 export class SettingService {
   readonly planRepository: IMPlanRepository
-  readonly stripeRepository: IStripeRepository
+  readonly stripe: IStripe
   readonly tStripeCustomerRepository: ITStripeCustomerRepository
   readonly tUserRepository: ITUserRepository
   readonly prisma: PrismaClient
 
   constructor(
     planRepository: IMPlanRepository,
-    stripeRepository: IStripeRepository,
+    stripe: IStripe,
     tStripeCustomerRepository: ITStripeCustomerRepository,
     tUserRepository: ITUserRepository,
     prisma: PrismaClient
   ) {
     this.planRepository = planRepository
-    this.stripeRepository = stripeRepository
+    this.stripe = stripe
     this.tStripeCustomerRepository = tStripeCustomerRepository
     this.tUserRepository = tUserRepository
     this.prisma = prisma
@@ -57,22 +58,24 @@ export class SettingService {
     }
   }
 
+  /**
+   * Checkout Session作成
+   */
   async createCheckoutSession(
     dto: CreateCheckoutSessionRequestDTO
   ): Promise<CreateCheckoutSessionResponseDTO> {
     try {
       const checkoutUrl = await this.prisma.$transaction(async (tx) => {
         const { authId } = dto
-        const vo = new TStripeCustomerVO(authId)
 
-        const aggregation = await this.tStripeCustomerRepository.find(tx, vo)
+        const aggregation = await this.tStripeCustomerRepository.findByAuthId(tx, authId)
         if (aggregation === null) {
-          throw new Error('User not found')
+          throw new AppError('ユーザーが見つかりません', 401)
         }
 
         let stripeCustomer = aggregation.stripeCustomerId
         if (stripeCustomer === null) {
-          const stripeCustomerId = await this.stripeRepository.createCustomer(
+          const stripeCustomerId = await this.stripe.createCustomer(
             aggregation.email,
             aggregation.name
           )
@@ -81,11 +84,11 @@ export class SettingService {
           await this.tStripeCustomerRepository.create(tx, createVO)
           stripeCustomer = stripeCustomerId
         } else {
-          const existing = await this.stripeRepository.getPaymentMethods(stripeCustomer)
-          if (existing.length >= MAX_PAYMENT_METHODS) {
-            throw Object.assign(
-              new Error(`支払い方法の登録上限（${MAX_PAYMENT_METHODS}件）に達しています`),
-              { code: 'PAYMENT_METHOD_LIMIT_EXCEEDED' }
+          const cards = await this.stripe.getPaymentMethods(stripeCustomer)
+          if (cards.length >= MAX_PAYMENT_METHODS) {
+            throw new AppError(
+              `支払い方法の登録上限（${MAX_PAYMENT_METHODS}件）に達しています`,
+              400
             )
           }
         }
@@ -94,7 +97,7 @@ export class SettingService {
           dto.successUrl ?? `${process.env.FRONTEND_URL}/home/setting/payment/success`
         const cancelUrl = dto.cancelUrl ?? `${process.env.FRONTEND_URL}/home/setting/payment`
 
-        const checkoutUrl = await this.stripeRepository.createCheckoutSession(
+        const checkoutUrl = await this.stripe.createCheckoutSession(
           stripeCustomer,
           successUrl,
           cancelUrl
@@ -114,11 +117,10 @@ export class SettingService {
     try {
       const paymentMethods = await this.prisma.$transaction(async (tx) => {
         const { authId } = dto
-        const vo = new TStripeCustomerVO(authId)
 
-        const aggregation = await this.tStripeCustomerRepository.find(tx, vo)
+        const aggregation = await this.tStripeCustomerRepository.findByAuthId(tx, authId)
         if (aggregation === null) {
-          throw new Error('User not found')
+          throw new AppError('ユーザーが見つかりません', 401)
         }
 
         // Stripe Customerが未作成の場合は空配列を返す
@@ -126,7 +128,7 @@ export class SettingService {
           return []
         }
 
-        return await this.stripeRepository.getPaymentMethods(aggregation.stripeCustomerId)
+        return await this.stripe.getPaymentMethods(aggregation.stripeCustomerId)
       })
 
       return new GetPaymentMethodsResponseDTO(paymentMethods)
@@ -144,35 +146,30 @@ export class SettingService {
 
         const userAgg = await this.tUserRepository.findForPlanChange(tx, vo)
         if (userAgg === null) {
-          throw new Error('User not found')
+          throw new AppError('ユーザーが見つかりません', 401)
         }
         if (userAgg.currentPlanId === planId) {
-          throw new Error('Already on this plan')
+          throw new AppError('すでにこのプランに加入しています', 400)
         }
         if (userAgg.stripeCustomerId === null) {
-          throw new Error('Stripe customer not found')
+          throw new AppError('Stripeカスタマーが見つかりません', 400)
         }
 
         // 支払い方法の所有権確認
-        const paymentMethods = await this.stripeRepository.getPaymentMethods(
-          userAgg.stripeCustomerId
-        )
+        const paymentMethods = await this.stripe.getPaymentMethods(userAgg.stripeCustomerId)
         const owns = paymentMethods.some((pm) => pm.id === paymentMethodId)
         if (!owns) {
-          throw new Error('Payment method not found')
+          throw new AppError('支払い方法が見つかりません', 400)
         }
 
         // 変更先プランの取得
         const targetPlan = await tx.mPlan.findUnique({ where: { id: planId } })
         if (targetPlan === null) {
-          throw new Error('Plan not found')
+          throw new AppError('プランが見つかりません', 400)
         }
 
         // Stripe: デフォルト支払い方法を設定
-        await this.stripeRepository.setDefaultPaymentMethod(
-          userAgg.stripeCustomerId,
-          paymentMethodId
-        )
+        await this.stripe.setDefaultPaymentMethod(userAgg.stripeCustomerId, paymentMethodId)
 
         // Stripe: サブスクリプション操作
         let newSubscriptionId: string | null = userAgg.stripeSubscriptionId
@@ -180,13 +177,13 @@ export class SettingService {
         if (targetPlan.stripePriceId !== null) {
           // 有料プランへの変更
           if (userAgg.stripeSubscriptionId === null) {
-            newSubscriptionId = await this.stripeRepository.createSubscription(
+            newSubscriptionId = await this.stripe.createSubscription(
               userAgg.stripeCustomerId,
               targetPlan.stripePriceId,
               paymentMethodId
             )
           } else {
-            await this.stripeRepository.updateSubscription(
+            await this.stripe.updateSubscription(
               userAgg.stripeSubscriptionId,
               targetPlan.stripePriceId
             )
@@ -194,7 +191,7 @@ export class SettingService {
         } else {
           // 無料プランへのダウングレード
           if (userAgg.stripeSubscriptionId !== null) {
-            await this.stripeRepository.cancelSubscription(userAgg.stripeSubscriptionId)
+            await this.stripe.cancelSubscription(userAgg.stripeSubscriptionId)
             newSubscriptionId = null
           }
         }
@@ -223,26 +220,23 @@ export class SettingService {
     try {
       await this.prisma.$transaction(async (tx) => {
         const { authId, paymentMethodId } = dto
-        const vo = new TStripeCustomerVO(authId)
 
-        const aggregation = await this.tStripeCustomerRepository.find(tx, vo)
+        const aggregation = await this.tStripeCustomerRepository.findByAuthId(tx, authId)
         if (aggregation === null) {
-          throw new Error('User not found')
+          throw new AppError('ユーザーが見つかりません', 401)
         }
         if (aggregation.stripeCustomerId === null) {
-          throw new Error('Stripe customer not found')
+          throw new AppError('Stripeカスタマーが見つかりません', 400)
         }
 
         // 所有権の確認: 該当ユーザーのCustomerに紐づくPayment Methodか検証
-        const paymentMethods = await this.stripeRepository.getPaymentMethods(
-          aggregation.stripeCustomerId
-        )
+        const paymentMethods = await this.stripe.getPaymentMethods(aggregation.stripeCustomerId)
         const owns = paymentMethods.some((pm) => pm.id === paymentMethodId)
         if (!owns) {
-          throw new Error('Payment method not found')
+          throw new AppError('支払い方法が見つかりません', 400)
         }
 
-        await this.stripeRepository.detachPaymentMethod(paymentMethodId)
+        await this.stripe.detachPaymentMethod(paymentMethodId)
       })
 
       return new DeletePaymentMethodResponseDTO()

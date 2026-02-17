@@ -1,4 +1,5 @@
 import type { HonoContext } from '..'
+import { AppError } from '../lib/error'
 import { ChangePlanRequestDTO } from '../service/dto/request/setting/changePlan'
 import { CreateCheckoutSessionRequestDTO } from '../service/dto/request/setting/createCheckoutSession'
 import { DeletePaymentMethodRequestDTO } from '../service/dto/request/setting/deletePaymentMethod'
@@ -20,7 +21,9 @@ export class SettingController {
     this.settingService = settingService
   }
 
-  // プラン一覧取得
+  /**
+   * プラン一覧取得
+   */
   async getPlans(c: HonoContext) {
     try {
       const requestDTO = toRequestDTO(c, GetPlansRequestDTO)
@@ -34,11 +37,13 @@ export class SettingController {
     }
   }
 
-  // Checkout Session作成
+  /**
+   * Checkout Session作成
+   */
   async createCheckoutSession(c: HonoContext) {
     try {
       const authId = c.get('authId')
-      const body = createCheckoutSessionBodySchema.parse(await c.req.json().catch(() => ({})))
+      const body = createCheckoutSessionBodySchema.parse(await c.req.json())
       const requestDTO = new CreateCheckoutSessionRequestDTO(
         authId,
         body.successUrl,
@@ -48,10 +53,8 @@ export class SettingController {
 
       return c.json(new CreateCheckoutSessionResponse(responseDTO), 200)
     } catch (error) {
-      if (
-        error instanceof Error &&
-        (error as Error & { code?: string }).code === 'PAYMENT_METHOD_LIMIT_EXCEEDED'
-      ) {
+      if (error instanceof AppError) {
+        if (error.statusCode === 401) return c.json({ error: error.message }, 401)
         return c.json({ error: error.message }, 400)
       }
       console.error('Error in SettingController.createCheckoutSession:', error)
@@ -68,6 +71,10 @@ export class SettingController {
 
       return c.json(response, 200)
     } catch (error) {
+      if (error instanceof AppError) {
+        if (error.statusCode === 401) return c.json({ error: error.message }, 401)
+        return c.json({ error: error.message }, 400)
+      }
       console.error('Error in SettingController.getPaymentMethods:', error)
       return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }
@@ -83,6 +90,10 @@ export class SettingController {
 
       return c.json(new ChangePlanResponse(), 200)
     } catch (error) {
+      if (error instanceof AppError) {
+        if (error.statusCode === 401) return c.json({ error: error.message }, 401)
+        return c.json({ error: error.message }, 400)
+      }
       console.error('Error in SettingController.changePlan:', error)
       return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }
@@ -98,6 +109,10 @@ export class SettingController {
 
       return c.body(null, 204)
     } catch (error) {
+      if (error instanceof AppError) {
+        if (error.statusCode === 401) return c.json({ error: error.message }, 401)
+        return c.json({ error: error.message }, 400)
+      }
       console.error('Error in SettingController.deletePaymentMethod:', error)
       return c.json({ error: '予期せぬエラーが発生しました' }, 500)
     }

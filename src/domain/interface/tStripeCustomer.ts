@@ -2,14 +2,12 @@ import type { Prisma } from '@prisma/client'
 import type {
   CreateTStripeCustomerVO,
   TStripeCustomerAggregation,
-  TStripeCustomerEntity,
-  TStripeCustomerVO,
 } from '../../domain/model/tStripeCustomer'
 
 export interface ITStripeCustomerRepository {
-  find(
+  findByAuthId(
     tx: Prisma.TransactionClient,
-    vo: TStripeCustomerVO
+    authId: string
   ): Promise<TStripeCustomerAggregation | null>
-  create(tx: Prisma.TransactionClient, vo: CreateTStripeCustomerVO): Promise<TStripeCustomerEntity>
+  create(tx: Prisma.TransactionClient, vo: CreateTStripeCustomerVO): Promise<void>
 }

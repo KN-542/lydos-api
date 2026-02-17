@@ -3,8 +3,6 @@ import type { ITStripeCustomerRepository } from '../domain/interface/tStripeCust
 import {
   type CreateTStripeCustomerVO,
   TStripeCustomerAggregation,
-  TStripeCustomerEntity,
-  type TStripeCustomerVO,
 } from '../domain/model/tStripeCustomer'
 
 export class TStripeCustomerRepository implements ITStripeCustomerRepository {
@@ -14,12 +12,13 @@ export class TStripeCustomerRepository implements ITStripeCustomerRepository {
     this.prisma = prisma
   }
 
-  async find(
+  // Stripe顧客取得
+  async findByAuthId(
     tx: Prisma.TransactionClient,
-    vo: TStripeCustomerVO
+    authId: string
   ): Promise<TStripeCustomerAggregation | null> {
     const user = await tx.tUser.findUnique({
-      where: { authId: vo.authId },
+      where: { authId },
       select: {
         id: true,
         email: true,
@@ -41,18 +40,13 @@ export class TStripeCustomerRepository implements ITStripeCustomerRepository {
     )
   }
 
-  async create(
-    tx: Prisma.TransactionClient,
-    vo: CreateTStripeCustomerVO
-  ): Promise<TStripeCustomerEntity> {
-    const result = await tx.tStripeCustomer.create({
+  // Stripe顧客作成
+  async create(tx: Prisma.TransactionClient, vo: CreateTStripeCustomerVO): Promise<void> {
+    await tx.tStripeCustomer.create({
       data: {
         userId: vo.userId,
         stripeCustomerId: vo.stripeCustomerId,
       },
-      select: { id: true, stripeCustomerId: true },
     })
-
-    return new TStripeCustomerEntity(result.id, result.stripeCustomerId)
   }
 }

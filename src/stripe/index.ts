@@ -1,8 +1,8 @@
-import type Stripe from 'stripe'
-import type { IStripeRepository } from '../domain/interface/stripe'
+import type StripeSDK from 'stripe'
+import type { IStripe } from '../domain/interface/stripe'
 import { stripe } from './client'
 
-export class StripeRepository implements IStripeRepository {
+export class Stripe implements IStripe {
   /**
    * Stripe Customerを作成
    * @param email ユーザーのメールアドレス
@@ -10,7 +10,7 @@ export class StripeRepository implements IStripeRepository {
    * @returns Stripe Customer ID (cus_xxx)
    */
   async createCustomer(email: string, name: string): Promise<string> {
-    const customer: Stripe.Customer = await stripe.customers.create({
+    const customer: StripeSDK.Customer = await stripe.customers.create({
       email,
       name,
     })
@@ -29,7 +29,7 @@ export class StripeRepository implements IStripeRepository {
     successUrl: string,
     cancelUrl: string
   ): Promise<string> {
-    const session: Stripe.Checkout.Session = await stripe.checkout.sessions.create({
+    const session: StripeSDK.Checkout.Session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'setup',
       payment_method_types: ['card'],
@@ -66,8 +66,8 @@ export class StripeRepository implements IStripeRepository {
 
     const defaultPmId =
       customer.deleted !== true &&
-      typeof (customer as Stripe.Customer).invoice_settings?.default_payment_method === 'string'
-        ? ((customer as Stripe.Customer).invoice_settings?.default_payment_method as string)
+      typeof (customer as StripeSDK.Customer).invoice_settings?.default_payment_method === 'string'
+        ? ((customer as StripeSDK.Customer).invoice_settings?.default_payment_method as string)
         : null
 
     return paymentMethods.data.map((pm) => ({

@@ -87,6 +87,14 @@ export class SettingRouter {
               },
             },
           },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
           500: {
             description: '予期せぬエラーが発生しました',
             content: {
@@ -118,6 +126,22 @@ export class SettingRouter {
               },
             },
           },
+          400: {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
           500: {
             description: '予期せぬエラーが発生しました',
             content: {
@@ -146,6 +170,22 @@ export class SettingRouter {
         responses: {
           204: {
             description: 'No Content',
+          },
+          400: {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
           },
           500: {
             description: '予期せぬエラーが発生しました',
@@ -184,6 +224,22 @@ export class SettingRouter {
             content: {
               'application/json': {
                 schema: changePlanResponseSchema,
+              },
+            },
+          },
+          400: {
+            description: 'Bad Request',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
               },
             },
           },

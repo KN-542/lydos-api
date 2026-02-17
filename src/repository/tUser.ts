@@ -75,19 +75,5 @@ export class TUserRepository implements ITUserRepository {
       where: { id: vo.userId },
       data: { planId: vo.planId, stripeSubscriptionId: vo.stripeSubscriptionId },
     })
-
-    if (vo.stripeCustomerInternalId !== null) {
-      await tx.tPaymentMethod.updateMany({
-        where: { stripeCustomerId: vo.stripeCustomerInternalId },
-        data: { isDefault: false },
-      })
-      await tx.tPaymentMethod.updateMany({
-        where: {
-          stripeCustomerId: vo.stripeCustomerInternalId,
-          stripePaymentMethodId: vo.stripePaymentMethodId,
-        },
-        data: { isDefault: true },
-      })
-    }
   }
 }
