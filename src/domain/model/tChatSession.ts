@@ -54,12 +54,26 @@ export class CreateSessionVO {
   }
 }
 
-const deleteSessionVOSchema = z.object({ authId: required(), sessionId: required() })
-export class DeleteSessionVO {
+const updateSessionVOSchema = z.object({
+  sessionId: required(),
+  title: z.string().min(1).max(255).optional(),
+})
+export class UpdateSessionVO {
+  readonly sessionId: string
+  readonly title?: string
+  constructor(sessionId: string, fields: { title?: string } = {}) {
+    const v = updateSessionVOSchema.parse({ sessionId, ...fields })
+    this.sessionId = v.sessionId
+    this.title = v.title
+  }
+}
+
+const sessionVOSchema = z.object({ authId: required(), sessionId: required() })
+export class SessionVO {
   readonly authId: string
   readonly sessionId: string
   constructor(authId: string, sessionId: string) {
-    const v = deleteSessionVOSchema.parse({ authId, sessionId })
+    const v = sessionVOSchema.parse({ authId, sessionId })
     this.authId = v.authId
     this.sessionId = v.sessionId
   }

@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
-import type { ITChatSessionRepository, TChatSessionWithModel } from '../domain/interface/chat'
+import type { ITChatSessionRepository, TChatSessionAggregation } from '../domain/interface/chat'
 import { MModelEntity } from '../domain/model/mModel'
-import type { CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
+import type { CreateSessionVO, SessionVO, UpdateSessionVO } from '../domain/model/tChatSession'
 import { CreateTChatSessionEntity, TChatSessionEntity } from '../domain/model/tChatSession'
 
 export class TChatSessionRepository implements ITChatSessionRepository {
@@ -23,6 +23,7 @@ export class TChatSessionRepository implements ITChatSessionRepository {
     return new CreateTChatSessionEntity(s.id)
   }
 
+  // 全取得
   async findAllByAuthId(
     tx: Prisma.TransactionClient,
     authId: string
@@ -48,10 +49,10 @@ export class TChatSessionRepository implements ITChatSessionRepository {
     )
   }
 
-  async findWithModel(
-    tx: Prisma.TransactionClient,
-    vo: DeleteSessionVO
-  ): Promise<TChatSessionWithModel | null> {
+  // 取得
+  async find(tx: Prisma.TransactionClient, vo: SessionVO): Promise<TChatSessionAggregation | null> {
+    // id は @id で一意だが、Prisma の findUnique はリレーションフィルタ（user.authId）と
+    // 組み合わせられないため findFirst を使用
     const s = await tx.tChatSession.findFirst({
       where: { id: vo.sessionId, user: { authId: vo.authId } },
       select: {
@@ -75,15 +76,19 @@ export class TChatSessionRepository implements ITChatSessionRepository {
     return { session, model }
   }
 
-  async touchUpdatedAt(tx: Prisma.TransactionClient, sessionId: string): Promise<void> {
+  // 更新
+  async update(tx: Prisma.TransactionClient, vo: UpdateSessionVO): Promise<void> {
     await tx.tChatSession.update({
-      where: { id: sessionId },
-      data: { updatedAt: new Date() },
+      where: { id: vo.sessionId },
+      data: {
+        updatedAt: new Date(),
+        ...(vo.title !== undefined && { title: vo.title }),
+      },
     })
   }
 
   // 削除
-  async delete(tx: Prisma.TransactionClient, vo: DeleteSessionVO): Promise<void> {
+  async delete(tx: Prisma.TransactionClient, vo: SessionVO): Promise<void> {
     await tx.tChatSession.deleteMany({
       where: { id: vo.sessionId, user: { authId: vo.authId } },
     })

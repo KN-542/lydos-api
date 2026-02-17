@@ -9,7 +9,7 @@ import { GetMessagesRequestDTO } from '../service/dto/request/chat/getMessages'
 import { GetSessionsRequestDTO } from '../service/dto/request/chat/getSessions'
 import { StreamMessageRequestDTO } from '../service/dto/request/chat/streamMessage'
 import { createSessionBodySchema } from './request/chat/createSession'
-import { streamMessageBodySchema } from './request/chat/streamMessage'
+import { streamMessageBodySchema, streamMessageParamsSchema } from './request/chat/streamMessage'
 import { CreateSessionResponse } from './response/chat/createSession'
 import { GetMessagesResponse } from './response/chat/getMessages'
 import { GetModelsResponse } from './response/chat/getModels'
@@ -102,12 +102,14 @@ export class ChatController {
     }
   }
 
-  // メッセージ送信 (SSEストリーミング)
+  /**
+   * メッセージ送信 (SSEストリーミング)
+   */
   async streamMessage(c: HonoContext) {
     const authId = c.get('authId')
-    const { sessionId } = c.req.param()
+    // zod-openapi 非対応のため手動バリデーション
+    const { sessionId } = streamMessageParamsSchema.parse(c.req.param())
     const { content } = streamMessageBodySchema.parse(await c.req.json())
-
     const requestDTO = new StreamMessageRequestDTO(authId, sessionId, content)
 
     return streamSSE(c, async (stream) => {

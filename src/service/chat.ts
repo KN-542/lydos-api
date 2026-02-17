@@ -5,8 +5,8 @@ import type {
   ITChatSessionRepository,
 } from '../domain/interface/chat'
 import type { ITUserRepository } from '../domain/interface/tUser'
-import { CreateMessageVO, FindBySessionVO } from '../domain/model/tChatHistory'
-import { CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
+import { CreateMessageVO } from '../domain/model/tChatHistory'
+import { CreateSessionVO, SessionVO, UpdateSessionVO } from '../domain/model/tChatSession'
 import { AppError } from '../lib/error'
 import { streamChat } from '../lib/llm'
 import type { CreateSessionRequestDTO } from './dto/request/chat/createSession'
@@ -77,8 +77,8 @@ export class ChatService {
   async getMessages(dto: GetMessagesRequestDTO): Promise<GetMessagesResponseDTO> {
     try {
       const entities = await this.prisma.$transaction(async (tx) => {
-        const vo = new FindBySessionVO(dto.authId, dto.sessionId)
-        return await this.chatHistoryRepository.findBySession(tx, vo)
+        const vo = new SessionVO(dto.authId, dto.sessionId)
+        return await this.chatHistoryRepository.findMany(tx, vo)
       })
       return new GetMessagesResponseDTO(entities)
     } catch (error) {
@@ -118,7 +118,7 @@ export class ChatService {
   async deleteSession(dto: DeleteSessionRequestDTO): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
-        const vo = new DeleteSessionVO(dto.authId, dto.sessionId)
+        const vo = new SessionVO(dto.authId, dto.sessionId)
         await this.chatSessionRepository.delete(tx, vo)
       })
     } catch (error) {
@@ -127,29 +127,33 @@ export class ChatService {
     }
   }
 
+  /**
+   * メッセージ送信 (SSEストリーミング)
+   */
   async streamMessage(
     dto: StreamMessageRequestDTO,
     onToken: (token: string) => Promise<void>
   ): Promise<StreamMessageResponseDTO> {
     try {
-      const sessionVO = new DeleteSessionVO(dto.authId, dto.sessionId)
+      const sessionVO = new SessionVO(dto.authId, dto.sessionId)
 
-      // 1. セッション + モデル情報 + 会話履歴を取得
+      // 1. セッション取得 + 会話履歴取得 + ユーザーメッセージ保存
+      // モデルはセッション作成時に DB へ固定されるため、UI 上でモデルを変更しても
+      // 既存セッションの使用モデルには影響しない（新規セッション作成時のみ反映）
       const { model, history } = await this.prisma.$transaction(async (tx) => {
-        const sessionWithModel = await this.chatSessionRepository.findWithModel(tx, sessionVO)
-        if (sessionWithModel === null) throw new Error('Session not found')
+        const session = await this.chatSessionRepository.find(tx, sessionVO)
+        if (session === null) throw new Error('Session not found')
 
-        const historyEntities = await this.chatHistoryRepository.findBySession(tx, sessionVO)
-        return { model: sessionWithModel.model, history: historyEntities }
-      })
+        // 保存前に取得することで、LLM へ渡す履歴に今回のユーザーメッセージが混入しないようにする
+        const historyEntities = await this.chatHistoryRepository.findMany(tx, sessionVO)
 
-      // 2. ユーザーメッセージを保存
-      await this.prisma.$transaction(async (tx) => {
         const vo = new CreateMessageVO(dto.sessionId, 'user', dto.content)
         await this.chatHistoryRepository.create(tx, vo)
+
+        return { model: session.model, history: historyEntities }
       })
 
-      // 3. LLM ストリーミング (トランザクション外)
+      // 2. LLM ストリーミング
       const chatMessages = [
         ...history.map((h) => ({ role: h.role, content: h.content })),
         { role: 'user' as const, content: dto.content },
@@ -161,7 +165,7 @@ export class ChatService {
         onToken
       )
 
-      // 4. アシスタントメッセージを保存
+      // 3. アシスタントメッセージ保存
       const assistantMessage = await this.prisma.$transaction(async (tx) => {
         const vo = new CreateMessageVO(
           dto.sessionId,
@@ -170,12 +174,9 @@ export class ChatService {
           inputTokens,
           outputTokens
         )
-        return await this.chatHistoryRepository.create(tx, vo)
-      })
-
-      // 5. セッションの updatedAt を更新
-      await this.prisma.$transaction(async (tx) => {
-        await this.chatSessionRepository.touchUpdatedAt(tx, dto.sessionId)
+        const message = await this.chatHistoryRepository.create(tx, vo)
+        await this.chatSessionRepository.update(tx, new UpdateSessionVO(dto.sessionId))
+        return message
       })
 
       return new StreamMessageResponseDTO(assistantMessage.id, inputTokens, outputTokens)

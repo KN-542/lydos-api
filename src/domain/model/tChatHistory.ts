@@ -43,17 +43,6 @@ export class TChatHistoryEntity {
   }
 }
 
-const findBySessionVOSchema = z.object({ authId: required(), sessionId: required() })
-export class FindBySessionVO {
-  readonly authId: string
-  readonly sessionId: string
-  constructor(authId: string, sessionId: string) {
-    const v = findBySessionVOSchema.parse({ authId, sessionId })
-    this.authId = v.authId
-    this.sessionId = v.sessionId
-  }
-}
-
 const createMessageVOSchema = z.object({
   sessionId: required(),
   role: z.enum(['user', 'assistant']),
