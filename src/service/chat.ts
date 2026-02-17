@@ -5,14 +5,13 @@ import type {
   ITChatSessionRepository,
 } from '../domain/interface/chat'
 import type { ITUserRepository } from '../domain/interface/tUser'
-import { CreateMessageVO } from '../domain/model/tChatHistory'
-import { ChatAuthVO, CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
+import { CreateMessageVO, FindBySessionVO } from '../domain/model/tChatHistory'
+import { CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
 import { AppError } from '../lib/error'
 import { streamChat } from '../lib/llm'
 import type { CreateSessionRequestDTO } from './dto/request/chat/createSession'
 import type { DeleteSessionRequestDTO } from './dto/request/chat/deleteSession'
 import type { GetMessagesRequestDTO } from './dto/request/chat/getMessages'
-import type { GetModelsRequestDTO } from './dto/request/chat/getModels'
 import type { GetSessionsRequestDTO } from './dto/request/chat/getSessions'
 import type { StreamMessageRequestDTO } from './dto/request/chat/streamMessage'
 import { CreateSessionResponseDTO } from './dto/response/chat/createSession'
@@ -42,7 +41,10 @@ export class ChatService {
     this.prisma = prisma
   }
 
-  async getModels(_dto: GetModelsRequestDTO): Promise<GetModelsResponseDTO> {
+  /**
+   * モデル一覧取得
+   */
+  async getModels(): Promise<GetModelsResponseDTO> {
     try {
       const entities = await this.prisma.$transaction(async (tx) => {
         return await this.modelRepository.findAll(tx)
@@ -54,11 +56,13 @@ export class ChatService {
     }
   }
 
+  /**
+   * セッション一覧取得
+   */
   async getSessions(dto: GetSessionsRequestDTO): Promise<GetSessionsResponseDTO> {
     try {
       const entities = await this.prisma.$transaction(async (tx) => {
-        const vo = new ChatAuthVO(dto.authId)
-        return await this.chatSessionRepository.findAll(tx, vo)
+        return await this.chatSessionRepository.findAllByAuthId(tx, dto.authId)
       })
       return new GetSessionsResponseDTO(entities)
     } catch (error) {
@@ -67,10 +71,13 @@ export class ChatService {
     }
   }
 
+  /**
+   * メッセージ一覧取得
+   */
   async getMessages(dto: GetMessagesRequestDTO): Promise<GetMessagesResponseDTO> {
     try {
       const entities = await this.prisma.$transaction(async (tx) => {
-        const vo = new DeleteSessionVO(dto.authId, dto.sessionId)
+        const vo = new FindBySessionVO(dto.authId, dto.sessionId)
         return await this.chatHistoryRepository.findBySession(tx, vo)
       })
       return new GetMessagesResponseDTO(entities)

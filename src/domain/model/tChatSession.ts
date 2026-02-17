@@ -19,8 +19,6 @@ const tChatSessionEntitySchema = z.object({
   title: z.string().min(1),
   modelId: z.number().int().positive(),
   modelName: z.string().min(1),
-  createdAt: z.date(),
-  updatedAt: z.date(),
 })
 
 export class TChatSessionEntity {
@@ -28,40 +26,13 @@ export class TChatSessionEntity {
   readonly title: string
   readonly modelId: number
   readonly modelName: string
-  readonly createdAt: Date
-  readonly updatedAt: Date
 
-  constructor(
-    id: string,
-    title: string,
-    modelId: number,
-    modelName: string,
-    createdAt: Date,
-    updatedAt: Date
-  ) {
-    const v = tChatSessionEntitySchema.parse({
-      id,
-      title,
-      modelId,
-      modelName,
-      createdAt,
-      updatedAt,
-    })
+  constructor(id: string, title: string, modelId: number, modelName: string) {
+    const v = tChatSessionEntitySchema.parse({ id, title, modelId, modelName })
     this.id = v.id
     this.title = v.title
     this.modelId = v.modelId
     this.modelName = v.modelName
-    this.createdAt = v.createdAt
-    this.updatedAt = v.updatedAt
-  }
-}
-
-const chatAuthVOSchema = z.object({ authId: required() })
-export class ChatAuthVO {
-  readonly authId: string
-  constructor(authId: string) {
-    const v = chatAuthVOSchema.parse({ authId })
-    this.authId = v.authId
   }
 }
 

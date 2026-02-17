@@ -6,8 +6,6 @@ const sessionSchema = z.object({
   title: z.string().openapi({ example: '新しいチャット' }),
   modelId: z.number().openapi({ example: 1 }),
   modelName: z.string().openapi({ example: 'Gemini 2.0 Flash' }),
-  createdAt: z.string().datetime().openapi({ example: '2026-01-01T00:00:00.000Z' }),
-  updatedAt: z.string().datetime().openapi({ example: '2026-01-01T00:00:00.000Z' }),
 })
 
 export const getSessionsResponseSchema = z.object({
@@ -20,15 +18,9 @@ export class GetSessionsResponse {
     title: string
     modelId: number
     modelName: string
-    createdAt: string
-    updatedAt: string
   }>
 
   constructor(dto: GetSessionsResponseDTO) {
-    this.sessions = dto.sessions.map((s) => ({
-      ...s,
-      createdAt: s.createdAt.toISOString(),
-      updatedAt: s.updatedAt.toISOString(),
-    }))
+    this.sessions = dto.sessions.map((s) => ({ ...s }))
   }
 }

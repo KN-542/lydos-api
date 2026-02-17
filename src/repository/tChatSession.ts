@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { ITChatSessionRepository, TChatSessionWithModel } from '../domain/interface/chat'
 import { MModelEntity } from '../domain/model/mModel'
-import type { ChatAuthVO, CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
+import type { CreateSessionVO, DeleteSessionVO } from '../domain/model/tChatSession'
 import { CreateTChatSessionEntity, TChatSessionEntity } from '../domain/model/tChatSession'
 
 export class TChatSessionRepository implements ITChatSessionRepository {
@@ -23,9 +23,12 @@ export class TChatSessionRepository implements ITChatSessionRepository {
     return new CreateTChatSessionEntity(s.id)
   }
 
-  async findAll(tx: Prisma.TransactionClient, vo: ChatAuthVO): Promise<TChatSessionEntity[]> {
+  async findAllByAuthId(
+    tx: Prisma.TransactionClient,
+    authId: string
+  ): Promise<TChatSessionEntity[]> {
     const user = await tx.tUser.findUnique({
-      where: { authId: vo.authId },
+      where: { authId },
       select: {
         chatSessions: {
           orderBy: { updatedAt: 'desc' },
@@ -33,8 +36,6 @@ export class TChatSessionRepository implements ITChatSessionRepository {
             id: true,
             title: true,
             modelId: true,
-            createdAt: true,
-            updatedAt: true,
             model: { select: { name: true } },
           },
         },
@@ -43,8 +44,7 @@ export class TChatSessionRepository implements ITChatSessionRepository {
     if (user === null) return []
 
     return user.chatSessions.map(
-      (s) =>
-        new TChatSessionEntity(s.id, s.title, s.modelId, s.model.name, s.createdAt, s.updatedAt)
+      (s) => new TChatSessionEntity(s.id, s.title, s.modelId, s.model.name)
     )
   }
 
@@ -58,21 +58,12 @@ export class TChatSessionRepository implements ITChatSessionRepository {
         id: true,
         title: true,
         modelId: true,
-        createdAt: true,
-        updatedAt: true,
         model: true,
       },
     })
     if (s === null) return null
 
-    const session = new TChatSessionEntity(
-      s.id,
-      s.title,
-      s.modelId,
-      s.model.name,
-      s.createdAt,
-      s.updatedAt
-    )
+    const session = new TChatSessionEntity(s.id, s.title, s.modelId, s.model.name)
     const model = new MModelEntity(
       s.model.id,
       s.model.name,

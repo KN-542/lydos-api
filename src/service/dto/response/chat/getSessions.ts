@@ -6,8 +6,6 @@ export class GetSessionsResponseDTO {
     title: string
     modelId: number
     modelName: string
-    createdAt: Date
-    updatedAt: Date
   }>
 
   constructor(entities: TChatSessionEntity[]) {

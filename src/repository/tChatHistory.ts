@@ -1,8 +1,10 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { ITChatHistoryRepository } from '../domain/interface/chat'
-import type { CreateMessageVO } from '../domain/model/tChatHistory'
-import { TChatHistoryEntity } from '../domain/model/tChatHistory'
-import type { DeleteSessionVO } from '../domain/model/tChatSession'
+import {
+  type CreateMessageVO,
+  type FindBySessionVO,
+  TChatHistoryEntity,
+} from '../domain/model/tChatHistory'
 
 export class TChatHistoryRepository implements ITChatHistoryRepository {
   readonly prisma: PrismaClient
@@ -13,7 +15,7 @@ export class TChatHistoryRepository implements ITChatHistoryRepository {
 
   async findBySession(
     tx: Prisma.TransactionClient,
-    vo: DeleteSessionVO
+    vo: FindBySessionVO
   ): Promise<TChatHistoryEntity[]> {
     const messages = await tx.tChatHistory.findMany({
       where: { session: { id: vo.sessionId, user: { authId: vo.authId } } },

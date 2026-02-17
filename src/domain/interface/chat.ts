@@ -1,8 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import type { MModelEntity } from '../model/mModel'
-import type { CreateMessageVO, TChatHistoryEntity } from '../model/tChatHistory'
+import type { CreateMessageVO, FindBySessionVO, TChatHistoryEntity } from '../model/tChatHistory'
 import type {
-  ChatAuthVO,
   CreateSessionVO,
   CreateTChatSessionEntity,
   DeleteSessionVO,
@@ -20,7 +19,7 @@ export interface IMModelRepository {
 }
 
 export interface ITChatSessionRepository {
-  findAll(tx: Prisma.TransactionClient, vo: ChatAuthVO): Promise<TChatSessionEntity[]>
+  findAllByAuthId(tx: Prisma.TransactionClient, authId: string): Promise<TChatSessionEntity[]>
   create(tx: Prisma.TransactionClient, vo: CreateSessionVO): Promise<CreateTChatSessionEntity>
   findWithModel(
     tx: Prisma.TransactionClient,
@@ -31,6 +30,6 @@ export interface ITChatSessionRepository {
 }
 
 export interface ITChatHistoryRepository {
-  findBySession(tx: Prisma.TransactionClient, vo: DeleteSessionVO): Promise<TChatHistoryEntity[]>
+  findBySession(tx: Prisma.TransactionClient, vo: FindBySessionVO): Promise<TChatHistoryEntity[]>
   create(tx: Prisma.TransactionClient, vo: CreateMessageVO): Promise<TChatHistoryEntity>
 }

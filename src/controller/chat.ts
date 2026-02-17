@@ -6,7 +6,6 @@ import type { ChatService } from '../service/chat'
 import { CreateSessionRequestDTO } from '../service/dto/request/chat/createSession'
 import { DeleteSessionRequestDTO } from '../service/dto/request/chat/deleteSession'
 import { GetMessagesRequestDTO } from '../service/dto/request/chat/getMessages'
-import { GetModelsRequestDTO } from '../service/dto/request/chat/getModels'
 import { GetSessionsRequestDTO } from '../service/dto/request/chat/getSessions'
 import { StreamMessageRequestDTO } from '../service/dto/request/chat/streamMessage'
 import { createSessionBodySchema } from './request/chat/createSession'
@@ -23,12 +22,12 @@ export class ChatController {
     this.chatService = chatService
   }
 
-  // モデル一覧取得
+  /**
+   * モデル一覧取得
+   */
   async getModels(c: HonoContext) {
     try {
-      const authId = c.get('authId')
-      const requestDTO = new GetModelsRequestDTO(authId)
-      const responseDTO = await this.chatService.getModels(requestDTO)
+      const responseDTO = await this.chatService.getModels()
       return c.json(new GetModelsResponse(responseDTO), 200)
     } catch (error) {
       console.error('Error in ChatController.getModels:', error)
@@ -36,7 +35,9 @@ export class ChatController {
     }
   }
 
-  // セッション一覧取得
+  /**
+   * セッション一覧取得
+   */
   async getSessions(c: HonoContext) {
     try {
       const authId = c.get('authId')
@@ -49,7 +50,9 @@ export class ChatController {
     }
   }
 
-  // メッセージ一覧取得
+  /**
+   * メッセージ一覧取得
+   */
   async getMessages(c: HonoContext) {
     try {
       const authId = c.get('authId')
