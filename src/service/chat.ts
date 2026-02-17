@@ -1,9 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
-import type {
-  IMModelRepository,
-  ITChatHistoryRepository,
-  ITChatSessionRepository,
-} from '../domain/interface/chat'
+import type { IMModelRepository } from '../domain/interface/mModel'
+import type { ITChatHistoryRepository } from '../domain/interface/tChatHistory'
+import type { ITChatSessionRepository } from '../domain/interface/tChatSession'
 import type { ITUserRepository } from '../domain/interface/tUser'
 import { CreateMessageVO } from '../domain/model/tChatHistory'
 import { CreateSessionVO, SessionVO, UpdateSessionVO } from '../domain/model/tChatSession'

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// ユーザープランEntity
+// Entity: ユーザープランマスタ（name, description, price, isSelected）
 const mPlanSchema = z.object({
   id: z.number().int().positive(),
   name: z.string().min(1).max(25),
@@ -28,14 +28,5 @@ export class MPlanEntity {
     this.description = validated.description
     this.price = validated.price
     this.isSelected = isSelected
-  }
-}
-
-// authId VO 消す予定
-export class TAuthIdVO {
-  readonly authId: string
-
-  constructor(authId: string) {
-    this.authId = authId
   }
 }

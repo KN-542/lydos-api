@@ -1,6 +1,37 @@
 import { z } from 'zod'
 import { required } from '../../lib/zod'
 
+// VO: メッセージ作成用（role, content, トークン数）
+const createMessageVOSchema = z.object({
+  sessionId: required(),
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1),
+  inputTokens: z.number().int().nonnegative().nullable(),
+  outputTokens: z.number().int().nonnegative().nullable(),
+})
+export class CreateMessageVO {
+  readonly sessionId: string
+  readonly role: 'user' | 'assistant'
+  readonly content: string
+  readonly inputTokens: number | null
+  readonly outputTokens: number | null
+  constructor(
+    sessionId: string,
+    role: 'user' | 'assistant',
+    content: string,
+    inputTokens: number | null = null,
+    outputTokens: number | null = null
+  ) {
+    const v = createMessageVOSchema.parse({ sessionId, role, content, inputTokens, outputTokens })
+    this.sessionId = v.sessionId
+    this.role = v.role
+    this.content = v.content
+    this.inputTokens = v.inputTokens
+    this.outputTokens = v.outputTokens
+  }
+}
+
+// Entity: チャット履歴（role, content, トークン数, 作成日時）
 const tChatHistoryEntitySchema = z.object({
   id: z.number().int().positive(),
   role: z.enum(['user', 'assistant']),
@@ -40,34 +71,5 @@ export class TChatHistoryEntity {
     this.inputTokens = v.inputTokens
     this.outputTokens = v.outputTokens
     this.createdAt = v.createdAt
-  }
-}
-
-const createMessageVOSchema = z.object({
-  sessionId: required(),
-  role: z.enum(['user', 'assistant']),
-  content: z.string().min(1),
-  inputTokens: z.number().int().nonnegative().nullable(),
-  outputTokens: z.number().int().nonnegative().nullable(),
-})
-export class CreateMessageVO {
-  readonly sessionId: string
-  readonly role: 'user' | 'assistant'
-  readonly content: string
-  readonly inputTokens: number | null
-  readonly outputTokens: number | null
-  constructor(
-    sessionId: string,
-    role: 'user' | 'assistant',
-    content: string,
-    inputTokens: number | null = null,
-    outputTokens: number | null = null
-  ) {
-    const v = createMessageVOSchema.parse({ sessionId, role, content, inputTokens, outputTokens })
-    this.sessionId = v.sessionId
-    this.role = v.role
-    this.content = v.content
-    this.inputTokens = v.inputTokens
-    this.outputTokens = v.outputTokens
   }
 }

@@ -1,7 +1,12 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
-import type { ITChatSessionRepository, TChatSessionAggregation } from '../domain/interface/chat'
+import type { ITChatSessionRepository } from '../domain/interface/tChatSession'
 import { MModelEntity } from '../domain/model/mModel'
-import type { CreateSessionVO, SessionVO, UpdateSessionVO } from '../domain/model/tChatSession'
+import type {
+  CreateSessionVO,
+  SessionVO,
+  TChatSessionAggregation,
+  UpdateSessionVO,
+} from '../domain/model/tChatSession'
 import { CreateTChatSessionEntity, TChatSessionEntity } from '../domain/model/tChatSession'
 
 export class TChatSessionRepository implements ITChatSessionRepository {

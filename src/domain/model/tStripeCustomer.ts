@@ -3,7 +3,7 @@ import { required } from '../../lib/zod'
 
 const stripeCustomerIdSchema = z.string().min(1).startsWith('cus_')
 
-// Stripe Customer作成用VO
+// VO: Stripe Customer 作成用（userId + stripeCustomerId）
 const createTStripeCustomerVOSchema = z.object({
   userId: z.number().int().positive(),
   stripeCustomerId: stripeCustomerIdSchema,
@@ -23,7 +23,7 @@ export class CreateTStripeCustomerVO {
   }
 }
 
-// ユーザーとStripe顧客情報Aggregation
+// Aggregation: ユーザー基本情報 + Stripe 顧客 ID
 const tStripeCustomerAggregationSchema = z.object({
   userId: z.number().int().positive(),
   email: required(),

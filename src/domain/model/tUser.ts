@@ -1,7 +1,35 @@
 import { z } from 'zod'
 import { required } from '../../lib/zod'
 
-// Aggregation: ユーザー情報
+// VO: ユーザー情報更新用（任意フィールドを指定して部分更新）
+export class UpdateUserVO {
+  readonly userId: number
+  readonly planId?: number
+  readonly stripeSubscriptionId?: string | null
+  readonly name?: string
+  readonly email?: string
+  readonly imageUrl?: string | null
+
+  constructor(
+    userId: number,
+    fields: {
+      planId?: number
+      stripeSubscriptionId?: string | null
+      name?: string
+      email?: string
+      imageUrl?: string | null
+    }
+  ) {
+    this.userId = userId
+    this.planId = fields.planId
+    this.stripeSubscriptionId = fields.stripeSubscriptionId
+    this.name = fields.name
+    this.email = fields.email
+    this.imageUrl = fields.imageUrl
+  }
+}
+
+// Aggregation: ユーザー全情報（プラン・Stripe 連携情報を含む）
 const tUserAggregationSchema = z.object({
   userId: z.number().int().positive(),
   authId: required(),
@@ -65,33 +93,5 @@ export class TUserAggregation {
     this.stripeSubscriptionId = v.stripeSubscriptionId
     this.createdAt = v.createdAt
     this.updatedAt = v.updatedAt
-  }
-}
-
-// VO: ユーザー更新用
-export class UpdateUserVO {
-  readonly userId: number
-  readonly planId?: number
-  readonly stripeSubscriptionId?: string | null
-  readonly name?: string
-  readonly email?: string
-  readonly imageUrl?: string | null
-
-  constructor(
-    userId: number,
-    fields: {
-      planId?: number
-      stripeSubscriptionId?: string | null
-      name?: string
-      email?: string
-      imageUrl?: string | null
-    }
-  ) {
-    this.userId = userId
-    this.planId = fields.planId
-    this.stripeSubscriptionId = fields.stripeSubscriptionId
-    this.name = fields.name
-    this.email = fields.email
-    this.imageUrl = fields.imageUrl
   }
 }

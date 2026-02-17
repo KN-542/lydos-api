@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// モデルEntity
+// Entity: AIモデルマスタ（name, modelId, provider, color, isDefault）
 const mModelEntitySchema = z.object({
   id: z.number().int().positive(),
   name: z.string().min(1).max(100),

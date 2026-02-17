@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
-import type { IMModelRepository } from '../domain/interface/chat'
+import type { IMModelRepository } from '../domain/interface/mModel'
 import { MModelEntity } from '../domain/model/mModel'
 
 export class MModelRepository implements IMModelRepository {
