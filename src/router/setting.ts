@@ -126,14 +126,6 @@ export class SettingRouter {
               },
             },
           },
-          400: {
-            description: 'Bad Request',
-            content: {
-              'application/json': {
-                schema: errorResponseSchema,
-              },
-            },
-          },
           401: {
             description: 'Unauthorized',
             content: {

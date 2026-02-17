@@ -62,7 +62,9 @@ export class SettingController {
     }
   }
 
-  // 支払い方法一覧取得
+  /**
+   * 支払い方法一覧取得
+   */
   async getPaymentMethods(c: HonoContext) {
     try {
       const requestDTO = toRequestDTO(c, GetPaymentMethodsRequestDTO)
@@ -72,8 +74,7 @@ export class SettingController {
       return c.json(response, 200)
     } catch (error) {
       if (error instanceof AppError) {
-        if (error.statusCode === 401) return c.json({ error: error.message }, 401)
-        return c.json({ error: error.message }, 400)
+        return c.json({ error: error.message }, 401)
       }
       console.error('Error in SettingController.getPaymentMethods:', error)
       return c.json({ error: '予期せぬエラーが発生しました' }, 500)

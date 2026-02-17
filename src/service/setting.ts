@@ -113,6 +113,9 @@ export class SettingService {
     }
   }
 
+  /**
+   * 支払い方法一覧取得
+   */
   async getPaymentMethods(dto: GetPaymentMethodsRequestDTO): Promise<GetPaymentMethodsResponseDTO> {
     try {
       const paymentMethods = await this.prisma.$transaction(async (tx) => {
