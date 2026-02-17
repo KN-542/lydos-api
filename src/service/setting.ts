@@ -13,7 +13,6 @@ import type { GetPaymentMethodsRequestDTO } from './dto/request/setting/getPayme
 import type { GetPlansRequestDTO } from './dto/request/setting/getPlans'
 import { ChangePlanResponseDTO } from './dto/response/setting/changePlan'
 import { CreateCheckoutSessionResponseDTO } from './dto/response/setting/createCheckoutSession'
-import { DeletePaymentMethodResponseDTO } from './dto/response/setting/deletePaymentMethod'
 import { GetPaymentMethodsResponseDTO } from './dto/response/setting/getPaymentMethods'
 import { GetPlansResponseDTO } from './dto/response/setting/getPlans'
 
@@ -217,9 +216,7 @@ export class SettingService {
     }
   }
 
-  async deletePaymentMethod(
-    dto: DeletePaymentMethodRequestDTO
-  ): Promise<DeletePaymentMethodResponseDTO> {
+  async deletePaymentMethod(dto: DeletePaymentMethodRequestDTO): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
         const { authId, paymentMethodId } = dto
@@ -232,17 +229,14 @@ export class SettingService {
           throw new AppError('Stripeカスタマーが見つかりません', 400)
         }
 
-        // 所有権の確認: 該当ユーザーのCustomerに紐づくPayment Methodか検証
         const paymentMethods = await this.stripe.getPaymentMethods(aggregation.stripeCustomerId)
-        const owns = paymentMethods.some((pm) => pm.id === paymentMethodId)
-        if (!owns) {
+        const isExist = paymentMethods.some((pm) => pm.id === paymentMethodId)
+        if (!isExist) {
           throw new AppError('支払い方法が見つかりません', 400)
         }
 
         await this.stripe.detachPaymentMethod(paymentMethodId)
       })
-
-      return new DeletePaymentMethodResponseDTO()
     } catch (error) {
       console.error('Error in SettingService.deletePaymentMethod:', error)
       throw error

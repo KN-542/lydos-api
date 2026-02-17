@@ -7,7 +7,6 @@ import { GetPaymentMethodsRequestDTO } from '../service/dto/request/setting/getP
 import { GetPlansRequestDTO } from '../service/dto/request/setting/getPlans'
 import type { SettingService } from '../service/setting'
 import { changePlanBodySchema } from './request/setting/changePlan'
-import { toRequestDTO } from './request/setting/context'
 import { createCheckoutSessionBodySchema } from './request/setting/createCheckoutSession'
 import { ChangePlanResponse } from './response/setting/changePlan'
 import { CreateCheckoutSessionResponse } from './response/setting/createCheckoutSession'
@@ -26,7 +25,8 @@ export class SettingController {
    */
   async getPlans(c: HonoContext) {
     try {
-      const requestDTO = toRequestDTO(c, GetPlansRequestDTO)
+      const authId = c.get('authId')
+      const requestDTO = new GetPlansRequestDTO(authId)
       const responseDTO = await this.settingService.getPlans(requestDTO)
       const response = new GetPlansResponse(responseDTO)
 
@@ -67,7 +67,8 @@ export class SettingController {
    */
   async getPaymentMethods(c: HonoContext) {
     try {
-      const requestDTO = toRequestDTO(c, GetPaymentMethodsRequestDTO)
+      const authId = c.get('authId')
+      const requestDTO = new GetPaymentMethodsRequestDTO(authId)
       const responseDTO = await this.settingService.getPaymentMethods(requestDTO)
       const response = new GetPaymentMethodsResponse(responseDTO)
 
@@ -100,7 +101,9 @@ export class SettingController {
     }
   }
 
-  // 支払い方法削除
+  /**
+   * 支払い方法削除
+   */
   async deletePaymentMethod(c: HonoContext) {
     try {
       const authId = c.get('authId')
