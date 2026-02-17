@@ -9,6 +9,7 @@ export class MModelRepository implements IMModelRepository {
     this.prisma = prisma
   }
 
+  // 一覧取得
   async findAll(tx: Prisma.TransactionClient): Promise<MModelEntity[]> {
     const models = await tx.mModel.findMany({ orderBy: { id: 'asc' } })
     return models.map(
@@ -16,7 +17,8 @@ export class MModelRepository implements IMModelRepository {
     )
   }
 
-  async findById(tx: Prisma.TransactionClient, id: number): Promise<MModelEntity | null> {
+  // 取得
+  async find(tx: Prisma.TransactionClient, id: number): Promise<MModelEntity | null> {
     const m = await tx.mModel.findUnique({ where: { id } })
     if (m === null) return null
     return new MModelEntity(m.id, m.name, m.modelId, m.provider, m.color, m.isDefault)

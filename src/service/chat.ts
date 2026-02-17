@@ -96,7 +96,7 @@ export class ChatService {
         if (user === null) throw new AppError('ユーザーが見つかりません', 401)
 
         // モデル取得
-        const model = await this.modelRepository.findById(tx, dto.modelId)
+        const model = await this.modelRepository.find(tx, dto.modelId)
         if (model === null) throw new AppError('指定されたモデルが見つかりません', 400)
 
         // セッション作成

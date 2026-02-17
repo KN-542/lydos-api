@@ -13,6 +13,9 @@
     "db:reset": "prisma migrate reset --schema=./schema.prisma",
     "db:studio": "prisma studio --schema=./schema.prisma",
     "db:seed": "bun run seed.ts",
+    "db:migrate:test": "bash -c 'set -a && source .env && set +a && DATABASE_URL=$DATABASE_TEST_URL prisma migrate deploy --schema=./schema.prisma'",
+    "db:seed:test": "bun run seed.test.ts",
+    "db:setup:test": "bun run db:migrate:test && bun run db:seed:test",
     "test": "bun test"
   },
   "dependencies": {
