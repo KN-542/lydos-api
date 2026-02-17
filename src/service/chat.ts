@@ -95,7 +95,7 @@ export class ChatService {
         if (model === null) throw new AppError('指定されたモデルが見つかりません', 400)
 
         // セッション作成
-        const vo = new CreateSessionVO(user.id, dto.modelId, dto.title)
+        const vo = new CreateSessionVO(user.userId, dto.modelId, dto.title)
         return await this.chatSessionRepository.create(tx, vo)
       })
       return new CreateSessionResponseDTO(entity)

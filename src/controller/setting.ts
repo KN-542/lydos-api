@@ -8,7 +8,6 @@ import { GetPlansRequestDTO } from '../service/dto/request/setting/getPlans'
 import type { SettingService } from '../service/setting'
 import { changePlanBodySchema } from './request/setting/changePlan'
 import { createCheckoutSessionBodySchema } from './request/setting/createCheckoutSession'
-import { ChangePlanResponse } from './response/setting/changePlan'
 import { CreateCheckoutSessionResponse } from './response/setting/createCheckoutSession'
 import { GetPaymentMethodsResponse } from './response/setting/getPaymentMethods'
 import { GetPlansResponse } from './response/setting/getPlans'
@@ -82,7 +81,9 @@ export class SettingController {
     }
   }
 
-  // プラン変更
+  /**
+   * プラン変更
+   */
   async changePlan(c: HonoContext) {
     try {
       const authId = c.get('authId')
@@ -90,10 +91,11 @@ export class SettingController {
       const requestDTO = new ChangePlanRequestDTO(authId, planId, paymentMethodId)
       await this.settingService.changePlan(requestDTO)
 
-      return c.json(new ChangePlanResponse(), 200)
+      return c.json({}, 200)
     } catch (error) {
       if (error instanceof AppError) {
         if (error.statusCode === 401) return c.json({ error: error.message }, 401)
+        if (error.statusCode === 409) return c.json({ error: error.message }, 409)
         return c.json({ error: error.message }, 400)
       }
       console.error('Error in SettingController.changePlan:', error)

@@ -4,7 +4,6 @@ import type { AppEnv } from '..'
 import { changePlanBodySchema } from '../controller/request/setting/changePlan'
 import { createCheckoutSessionBodySchema } from '../controller/request/setting/createCheckoutSession'
 import { deletePaymentMethodParamsSchema } from '../controller/request/setting/deletePaymentMethod'
-import { changePlanResponseSchema } from '../controller/response/setting/changePlan'
 import { createCheckoutSessionResponseSchema } from '../controller/response/setting/createCheckoutSession'
 import { getPaymentMethodsResponseSchema } from '../controller/response/setting/getPaymentMethods'
 import { plansResponseSchema } from '../controller/response/setting/getPlans'
@@ -213,11 +212,6 @@ export class SettingRouter {
         responses: {
           200: {
             description: 'Success',
-            content: {
-              'application/json': {
-                schema: changePlanResponseSchema,
-              },
-            },
           },
           400: {
             description: 'Bad Request',
@@ -229,6 +223,14 @@ export class SettingRouter {
           },
           401: {
             description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: errorResponseSchema,
+              },
+            },
+          },
+          409: {
+            description: 'Conflict',
             content: {
               'application/json': {
                 schema: errorResponseSchema,

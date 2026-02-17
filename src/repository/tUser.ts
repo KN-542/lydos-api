@@ -1,11 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { ITUserRepository } from '../domain/interface/tUser'
-import {
-  TUserEntity,
-  TUserPlanAggregation,
-  type TUserPlanChangeVO,
-  type UpdateUserPlanVO,
-} from '../domain/model/tUser'
+import { TUserAggregation, type UpdateUserVO } from '../domain/model/tUser'
 
 export class TUserRepository implements ITUserRepository {
   readonly prisma: PrismaClient
@@ -14,7 +9,11 @@ export class TUserRepository implements ITUserRepository {
     this.prisma = prisma
   }
 
-  async findByAuthId(tx: Prisma.TransactionClient, authId: string): Promise<TUserEntity | null> {
+  // 取得
+  async findByAuthId(
+    tx: Prisma.TransactionClient,
+    authId: string
+  ): Promise<TUserAggregation | null> {
     const user = await tx.tUser.findUnique({
       where: { authId },
       select: {
@@ -24,33 +23,9 @@ export class TUserRepository implements ITUserRepository {
         email: true,
         imageUrl: true,
         planId: true,
+        stripeSubscriptionId: true,
         createdAt: true,
         updatedAt: true,
-      },
-    })
-    if (user === null) return null
-    return new TUserEntity(
-      user.id,
-      user.authId,
-      user.name,
-      user.email,
-      user.imageUrl,
-      user.planId,
-      user.createdAt,
-      user.updatedAt
-    )
-  }
-
-  async findForPlanChange(
-    tx: Prisma.TransactionClient,
-    vo: TUserPlanChangeVO
-  ): Promise<TUserPlanAggregation | null> {
-    const user = await tx.tUser.findUnique({
-      where: { authId: vo.authId },
-      select: {
-        id: true,
-        planId: true,
-        stripeSubscriptionId: true,
         stripeCustomer: {
           select: {
             id: true,
@@ -61,19 +36,34 @@ export class TUserRepository implements ITUserRepository {
     })
     if (user === null) return null
 
-    return new TUserPlanAggregation(
+    return new TUserAggregation(
       user.id,
+      user.authId,
+      user.name,
+      user.email,
+      user.imageUrl,
       user.planId,
       user.stripeCustomer?.stripeCustomerId ?? null,
       user.stripeCustomer?.id ?? null,
-      user.stripeSubscriptionId ?? null
+      user.stripeSubscriptionId ?? null,
+      user.createdAt,
+      user.updatedAt
     )
   }
 
-  async updatePlan(tx: Prisma.TransactionClient, vo: UpdateUserPlanVO): Promise<void> {
+  // 更新
+  async update(tx: Prisma.TransactionClient, vo: UpdateUserVO): Promise<void> {
     await tx.tUser.update({
       where: { id: vo.userId },
-      data: { planId: vo.planId, stripeSubscriptionId: vo.stripeSubscriptionId },
+      data: {
+        ...(vo.planId !== undefined && { planId: vo.planId }),
+        ...(vo.stripeSubscriptionId !== undefined && {
+          stripeSubscriptionId: vo.stripeSubscriptionId,
+        }),
+        ...(vo.name !== undefined && { name: vo.name }),
+        ...(vo.email !== undefined && { email: vo.email }),
+        ...(vo.imageUrl !== undefined && { imageUrl: vo.imageUrl }),
+      },
     })
   }
 }

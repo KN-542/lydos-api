@@ -4,14 +4,13 @@ import type { IStripe } from '../domain/interface/stripe'
 import type { ITStripeCustomerRepository } from '../domain/interface/tStripeCustomer'
 import type { ITUserRepository } from '../domain/interface/tUser'
 import { CreateTStripeCustomerVO } from '../domain/model/tStripeCustomer'
-import { TUserPlanChangeVO, UpdateUserPlanVO } from '../domain/model/tUser'
+import { UpdateUserVO } from '../domain/model/tUser'
 import { AppError } from '../lib/error'
 import type { ChangePlanRequestDTO } from './dto/request/setting/changePlan'
 import type { CreateCheckoutSessionRequestDTO } from './dto/request/setting/createCheckoutSession'
 import type { DeletePaymentMethodRequestDTO } from './dto/request/setting/deletePaymentMethod'
 import type { GetPaymentMethodsRequestDTO } from './dto/request/setting/getPaymentMethods'
 import type { GetPlansRequestDTO } from './dto/request/setting/getPlans'
-import { ChangePlanResponseDTO } from './dto/response/setting/changePlan'
 import { CreateCheckoutSessionResponseDTO } from './dto/response/setting/createCheckoutSession'
 import { GetPaymentMethodsResponseDTO } from './dto/response/setting/getPaymentMethods'
 import { GetPlansResponseDTO } from './dto/response/setting/getPlans'
@@ -140,27 +139,29 @@ export class SettingService {
     }
   }
 
-  async changePlan(dto: ChangePlanRequestDTO): Promise<ChangePlanResponseDTO> {
+  /**
+   * プラン変更
+   */
+  async changePlan(dto: ChangePlanRequestDTO): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
         const { authId, planId, paymentMethodId } = dto
-        const vo = new TUserPlanChangeVO(authId)
 
-        const userAgg = await this.tUserRepository.findForPlanChange(tx, vo)
-        if (userAgg === null) {
+        // ユーザー、プラン取得
+        const user = await this.tUserRepository.findByAuthId(tx, authId)
+        if (user === null) {
           throw new AppError('ユーザーが見つかりません', 401)
         }
-        if (userAgg.currentPlanId === planId) {
-          throw new AppError('すでにこのプランに加入しています', 400)
-        }
-        if (userAgg.stripeCustomerId === null) {
+        if (user.stripeCustomerId === null) {
           throw new AppError('Stripeカスタマーが見つかりません', 400)
         }
+        if (user.planId === planId) {
+          throw new AppError('すでにこのプランに加入しています', 409)
+        }
 
-        // 支払い方法の所有権確認
-        const paymentMethods = await this.stripe.getPaymentMethods(userAgg.stripeCustomerId)
-        const owns = paymentMethods.some((pm) => pm.id === paymentMethodId)
-        if (!owns) {
+        const paymentMethods = await this.stripe.getPaymentMethods(user.stripeCustomerId)
+        const isExist = paymentMethods.some((pm) => pm.id === paymentMethodId)
+        if (!isExist) {
           throw new AppError('支払い方法が見つかりません', 400)
         }
 
@@ -171,51 +172,48 @@ export class SettingService {
         }
 
         // Stripe: デフォルト支払い方法を設定
-        await this.stripe.setDefaultPaymentMethod(userAgg.stripeCustomerId, paymentMethodId)
+        await this.stripe.setDefaultPaymentMethod(user.stripeCustomerId, paymentMethodId)
 
         // Stripe: サブスクリプション操作
-        let newSubscriptionId: string | null = userAgg.stripeSubscriptionId
-
+        let newSubscriptionId: string | null = user.stripeSubscriptionId
         if (targetPlan.stripePriceId !== null) {
           // 有料プランへの変更
-          if (userAgg.stripeSubscriptionId === null) {
+          if (user.stripeSubscriptionId === null) {
             newSubscriptionId = await this.stripe.createSubscription(
-              userAgg.stripeCustomerId,
+              user.stripeCustomerId,
               targetPlan.stripePriceId,
               paymentMethodId
             )
           } else {
             await this.stripe.updateSubscription(
-              userAgg.stripeSubscriptionId,
+              user.stripeSubscriptionId,
               targetPlan.stripePriceId
             )
           }
         } else {
           // 無料プランへのダウングレード
-          if (userAgg.stripeSubscriptionId !== null) {
-            await this.stripe.cancelSubscription(userAgg.stripeSubscriptionId)
+          if (user.stripeSubscriptionId !== null) {
+            await this.stripe.cancelSubscription(user.stripeSubscriptionId)
             newSubscriptionId = null
           }
         }
 
         // DB 更新
-        const updateVO = new UpdateUserPlanVO(
-          userAgg.userId,
+        const updateVO = new UpdateUserVO(user.userId, {
           planId,
-          newSubscriptionId,
-          userAgg.stripeCustomerInternalId,
-          paymentMethodId
-        )
-        await this.tUserRepository.updatePlan(tx, updateVO)
+          stripeSubscriptionId: newSubscriptionId,
+        })
+        await this.tUserRepository.update(tx, updateVO)
       })
-
-      return new ChangePlanResponseDTO()
     } catch (error) {
       console.error('Error in SettingService.changePlan:', error)
       throw error
     }
   }
 
+  /**
+   * 支払い方法削除
+   */
   async deletePaymentMethod(dto: DeletePaymentMethodRequestDTO): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
