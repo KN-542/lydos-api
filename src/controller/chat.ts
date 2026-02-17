@@ -1,5 +1,6 @@
 import { streamSSE } from 'hono/streaming'
 import type { HonoContext } from '..'
+import { extractErrorMessage } from '../lib/llm'
 import type { ChatService } from '../service/chat'
 import { CreateSessionRequestDTO } from '../service/dto/request/chat/createSession'
 import { DeleteSessionRequestDTO } from '../service/dto/request/chat/deleteSession'
@@ -11,26 +12,6 @@ import { CreateSessionResponse } from './response/chat/createSession'
 import { GetMessagesResponse } from './response/chat/getMessages'
 import { GetModelsResponse } from './response/chat/getModels'
 import { GetSessionsResponse } from './response/chat/getSessions'
-
-// @google/genai の ApiError は message が JSON 文字列のため、人間が読める形に変換する
-function extractErrorMessage(error: unknown): string {
-  if (!(error instanceof Error)) return 'Stream failed'
-  try {
-    // outer: {"error":{"message":"...","code":429,...}}
-    const outer = JSON.parse(error.message) as { error?: { message?: string; code?: number } }
-    const outerMsg = outer?.error?.message
-    if (!outerMsg) return error.message
-    try {
-      // inner message がさらに JSON の場合
-      const inner = JSON.parse(outerMsg) as { error?: { message?: string } }
-      return inner?.error?.message ?? outerMsg
-    } catch {
-      return outerMsg
-    }
-  } catch {
-    return error.message
-  }
-}
 
 export class ChatController {
   readonly chatService: ChatService
@@ -117,7 +98,9 @@ export class ChatController {
       } catch (error) {
         console.error('Error in ChatController.streamMessage:', error)
         await stream.writeSSE({
-          data: JSON.stringify({ error: extractErrorMessage(error) }),
+          data: JSON.stringify({
+            error: error instanceof Error ? extractErrorMessage(error) : 'Stream failed',
+          }),
           event: 'error',
         })
       }

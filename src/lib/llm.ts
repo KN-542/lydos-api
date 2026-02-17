@@ -90,6 +90,25 @@ async function streamGroq(
   return { content: accumulated, inputTokens, outputTokens }
 }
 
+// @google/genai の ApiError は message が JSON 文字列のため、人間が読める形に変換する
+export function extractErrorMessage(error: Error): string {
+  try {
+    // outer: {"error":{"message":"...","code":429,...}}
+    const outer = JSON.parse(error.message) as { error?: { message?: string; code?: number } }
+    const outerMsg = outer?.error?.message
+    if (!outerMsg) return error.message
+    try {
+      // inner message がさらに JSON の場合
+      const inner = JSON.parse(outerMsg) as { error?: { message?: string } }
+      return inner?.error?.message ?? outerMsg
+    } catch {
+      return outerMsg
+    }
+  } catch {
+    return error.message
+  }
+}
+
 export async function streamChat(
   messages: ChatMessage[],
   modelId: string,
