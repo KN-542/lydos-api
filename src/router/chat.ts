@@ -82,6 +82,14 @@ export class ChatRouter {
             description: 'Created',
             content: { 'application/json': { schema: createSessionResponseSchema } },
           },
+          400: {
+            description: 'Bad Request',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
           500: {
             description: 'Internal Server Error',
             content: { 'application/json': { schema: errorResponseSchema } },

@@ -1,13 +1,24 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { ITChatSessionRepository, TChatSessionWithModel } from '../domain/interface/chat'
 import type { ChatAuthVO, CreateSessionVO, SessionOwnerVO } from '../domain/model/chat'
-import { MModelEntity, TChatSessionEntity } from '../domain/model/chat'
+import { MModelEntity, TChatSessionCreateEntity, TChatSessionEntity } from '../domain/model/chat'
 
 export class TChatSessionRepository implements ITChatSessionRepository {
   readonly prisma: PrismaClient
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma
+  }
+
+  async create(
+    tx: Prisma.TransactionClient,
+    vo: CreateSessionVO
+  ): Promise<TChatSessionCreateEntity> {
+    const s = await tx.tChatSession.create({
+      data: { userId: vo.userId, modelId: vo.modelId, title: vo.title },
+      select: { id: true },
+    })
+    return new TChatSessionCreateEntity(s.id)
   }
 
   async findAll(tx: Prisma.TransactionClient, vo: ChatAuthVO): Promise<TChatSessionEntity[]> {
@@ -33,21 +44,6 @@ export class TChatSessionRepository implements ITChatSessionRepository {
       (s) =>
         new TChatSessionEntity(s.id, s.title, s.modelId, s.model.name, s.createdAt, s.updatedAt)
     )
-  }
-
-  async create(tx: Prisma.TransactionClient, vo: CreateSessionVO): Promise<TChatSessionEntity> {
-    const s = await tx.tChatSession.create({
-      data: { userId: vo.userId, modelId: vo.modelId, title: vo.title },
-      select: {
-        id: true,
-        title: true,
-        modelId: true,
-        createdAt: true,
-        updatedAt: true,
-        model: { select: { name: true } },
-      },
-    })
-    return new TChatSessionEntity(s.id, s.title, s.modelId, s.model.name, s.createdAt, s.updatedAt)
   }
 
   async findWithModel(
@@ -84,6 +80,13 @@ export class TChatSessionRepository implements ITChatSessionRepository {
       s.model.isDefault
     )
     return { session, model }
+  }
+
+  async touchUpdatedAt(tx: Prisma.TransactionClient, sessionId: string): Promise<void> {
+    await tx.tChatSession.update({
+      where: { id: sessionId },
+      data: { updatedAt: new Date() },
+    })
   }
 
   async delete(tx: Prisma.TransactionClient, vo: SessionOwnerVO): Promise<void> {

@@ -5,7 +5,9 @@ import { DeletePaymentMethodRequestDTO } from '../service/dto/request/setting/de
 import { GetPaymentMethodsRequestDTO } from '../service/dto/request/setting/getPaymentMethods'
 import { GetPlansRequestDTO } from '../service/dto/request/setting/getPlans'
 import type { SettingService } from '../service/setting'
+import { changePlanBodySchema } from './request/setting/changePlan'
 import { toRequestDTO } from './request/setting/context'
+import { createCheckoutSessionBodySchema } from './request/setting/createCheckoutSession'
 import { ChangePlanResponse } from './response/setting/changePlan'
 import { CreateCheckoutSessionResponse } from './response/setting/createCheckoutSession'
 import { GetPaymentMethodsResponse } from './response/setting/getPaymentMethods'
@@ -36,7 +38,7 @@ export class SettingController {
   async createCheckoutSession(c: HonoContext) {
     try {
       const authId = c.get('authId')
-      const body = await c.req.json().catch(() => ({}))
+      const body = createCheckoutSessionBodySchema.parse(await c.req.json().catch(() => ({})))
       const requestDTO = new CreateCheckoutSessionRequestDTO(
         authId,
         body.successUrl,
@@ -75,7 +77,7 @@ export class SettingController {
   async changePlan(c: HonoContext) {
     try {
       const authId = c.get('authId')
-      const { planId, paymentMethodId } = await c.req.json()
+      const { planId, paymentMethodId } = changePlanBodySchema.parse(await c.req.json())
       const requestDTO = new ChangePlanRequestDTO(authId, planId, paymentMethodId)
       await this.settingService.changePlan(requestDTO)
 

@@ -12,8 +12,8 @@ import { TChatHistoryRepository } from './repository/tChatHistory'
 import { TChatSessionRepository } from './repository/tChatSession'
 import { TStripeCustomerRepository } from './repository/tStripeCustomer'
 import { TUserRepository } from './repository/tUser'
-import { SettingRouter } from './router'
-import { ChatRouter } from './router/chatRouter'
+import { ChatRouter } from './router/chat'
+import { SettingRouter } from './router/setting'
 import { ChatService } from './service/chat'
 import { SettingService } from './service/setting'
 import { StripeRepository } from './stripe'
@@ -52,6 +52,7 @@ const chatService = new ChatService(
   modelRepository,
   chatSessionRepository,
   chatHistoryRepository,
+  tUserRepository,
   prisma
 )
 const chatController = new ChatController(chatService)

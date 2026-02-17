@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { ITUserRepository } from '../domain/interface/tUser'
 import {
+  TUserEntity,
   TUserPlanAggregation,
   type TUserPlanChangeVO,
   type UpdateUserPlanVO,
@@ -11,6 +12,33 @@ export class TUserRepository implements ITUserRepository {
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma
+  }
+
+  async findByAuthId(tx: Prisma.TransactionClient, authId: string): Promise<TUserEntity | null> {
+    const user = await tx.tUser.findUnique({
+      where: { authId },
+      select: {
+        id: true,
+        authId: true,
+        name: true,
+        email: true,
+        imageUrl: true,
+        planId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+    if (user === null) return null
+    return new TUserEntity(
+      user.id,
+      user.authId,
+      user.name,
+      user.email,
+      user.imageUrl,
+      user.planId,
+      user.createdAt,
+      user.updatedAt
+    )
   }
 
   async findForPlanChange(

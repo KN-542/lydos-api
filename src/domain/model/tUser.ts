@@ -1,6 +1,58 @@
 import { z } from 'zod'
 import { required } from '../../lib/zod'
 
+// Entity: ユーザー基本情報
+const tUserEntitySchema = z.object({
+  id: z.number().int().positive(),
+  authId: required(),
+  name: z.string().min(1).max(100),
+  email: z.email(),
+  imageUrl: z.string().nullable(),
+  planId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+export class TUserEntity {
+  readonly id: number
+  readonly authId: string
+  readonly name: string
+  readonly email: string
+  readonly imageUrl: string | null
+  readonly planId: number
+  readonly createdAt: Date
+  readonly updatedAt: Date
+
+  constructor(
+    id: number,
+    authId: string,
+    name: string,
+    email: string,
+    imageUrl: string | null,
+    planId: number,
+    createdAt: Date,
+    updatedAt: Date
+  ) {
+    const v = tUserEntitySchema.parse({
+      id,
+      authId,
+      name,
+      email,
+      imageUrl,
+      planId,
+      createdAt,
+      updatedAt,
+    })
+    this.id = v.id
+    this.authId = v.authId
+    this.name = v.name
+    this.email = v.email
+    this.imageUrl = v.imageUrl
+    this.planId = v.planId
+    this.createdAt = v.createdAt
+    this.updatedAt = v.updatedAt
+  }
+}
+
 // Aggregation: プラン変更に必要なユーザー情報
 const tUserPlanAggregationSchema = z.object({
   userId: z.number().int().positive(),

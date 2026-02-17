@@ -40,6 +40,22 @@ export class MModelEntity {
 }
 
 // ---------------------------------------------------------------------------
+// TChatSessionCreate Entity
+// ---------------------------------------------------------------------------
+const tChatSessionCreateEntitySchema = z.object({
+  id: z.string().min(1),
+})
+
+export class TChatSessionCreateEntity {
+  readonly id: string
+
+  constructor(id: string) {
+    const v = tChatSessionCreateEntitySchema.parse({ id })
+    this.id = v.id
+  }
+}
+
+// ---------------------------------------------------------------------------
 // TChatSession Entity
 // ---------------------------------------------------------------------------
 const tChatSessionEntitySchema = z.object({

@@ -4,7 +4,9 @@ import type {
   ITChatHistoryRepository,
   ITChatSessionRepository,
 } from '../domain/interface/chat'
+import type { ITUserRepository } from '../domain/interface/tUser'
 import { ChatAuthVO, CreateMessageVO, CreateSessionVO, SessionOwnerVO } from '../domain/model/chat'
+import { AppError } from '../lib/error'
 import { streamChat } from '../lib/llm'
 import type { CreateSessionRequestDTO } from './dto/request/chat/createSession'
 import type { DeleteSessionRequestDTO } from './dto/request/chat/deleteSession'
@@ -23,17 +25,20 @@ export class ChatService {
   readonly modelRepository: IMModelRepository
   readonly chatSessionRepository: ITChatSessionRepository
   readonly chatHistoryRepository: ITChatHistoryRepository
+  readonly userRepository: ITUserRepository
   readonly prisma: PrismaClient
 
   constructor(
     modelRepository: IMModelRepository,
     chatSessionRepository: ITChatSessionRepository,
     chatHistoryRepository: ITChatHistoryRepository,
+    userRepository: ITUserRepository,
     prisma: PrismaClient
   ) {
     this.modelRepository = modelRepository
     this.chatSessionRepository = chatSessionRepository
     this.chatHistoryRepository = chatHistoryRepository
+    this.userRepository = userRepository
     this.prisma = prisma
   }
 
@@ -62,20 +67,21 @@ export class ChatService {
     }
   }
 
+  /**
+   * チャットセッション作成
+   */
   async createSession(dto: CreateSessionRequestDTO): Promise<CreateSessionResponseDTO> {
     try {
       const entity = await this.prisma.$transaction(async (tx) => {
-        // userId をauthIdから取得
-        const user = await tx.tUser.findUnique({
-          where: { authId: dto.authId },
-          select: { id: true },
-        })
-        if (user === null) throw new Error('User not found')
+        // ユーザー取得
+        const user = await this.userRepository.findByAuthId(tx, dto.authId)
+        if (user === null) throw new AppError('ユーザーが見つかりません', 401)
 
-        // modelが存在するか確認
+        // モデル取得
         const model = await this.modelRepository.findById(tx, dto.modelId)
-        if (model === null) throw new Error('Model not found')
+        if (model === null) throw new AppError('指定されたモデルが見つかりません', 400)
 
+        // セッション作成
         const vo = new CreateSessionVO(user.id, dto.modelId, dto.title)
         return await this.chatSessionRepository.create(tx, vo)
       })
@@ -146,9 +152,8 @@ export class ChatService {
       })
 
       // 5. セッションの updatedAt を更新
-      await this.prisma.tChatSession.update({
-        where: { id: dto.sessionId },
-        data: { updatedAt: new Date() },
+      await this.prisma.$transaction(async (tx) => {
+        await this.chatSessionRepository.touchUpdatedAt(tx, dto.sessionId)
       })
 
       return new StreamMessageResponseDTO(assistantMessage.id, inputTokens, outputTokens)
