@@ -1,8 +1,10 @@
 import type { PrismaClient } from '@prisma/client'
 import type { IMModelRepository } from '../domain/interface/mModel'
+import type { IMPlanModelRepository } from '../domain/interface/mPlanModel'
 import type { ITChatHistoryRepository } from '../domain/interface/tChatHistory'
 import type { ITChatSessionRepository } from '../domain/interface/tChatSession'
 import type { ITUserRepository } from '../domain/interface/tUser'
+import { PlanModelVO } from '../domain/model/mPlanModel'
 import { CreateMessageVO } from '../domain/model/tChatHistory'
 import { CreateSessionVO, SessionVO, UpdateSessionVO } from '../domain/model/tChatSession'
 import { AppError } from '../lib/error'
@@ -10,6 +12,7 @@ import { streamChat } from '../lib/llm'
 import type { CreateSessionRequestDTO } from './dto/request/chat/createSession'
 import type { DeleteSessionRequestDTO } from './dto/request/chat/deleteSession'
 import type { GetMessagesRequestDTO } from './dto/request/chat/getMessages'
+import type { GetModelsRequestDTO } from './dto/request/chat/getModels'
 import type { GetSessionsRequestDTO } from './dto/request/chat/getSessions'
 import type { StreamMessageRequestDTO } from './dto/request/chat/streamMessage'
 import { CreateSessionResponseDTO } from './dto/response/chat/createSession'
@@ -20,6 +23,7 @@ import { StreamMessageResponseDTO } from './dto/response/chat/streamMessage'
 
 export class ChatService {
   readonly modelRepository: IMModelRepository
+  readonly planModelRepository: IMPlanModelRepository
   readonly chatSessionRepository: ITChatSessionRepository
   readonly chatHistoryRepository: ITChatHistoryRepository
   readonly userRepository: ITUserRepository
@@ -27,12 +31,14 @@ export class ChatService {
 
   constructor(
     modelRepository: IMModelRepository,
+    planModelRepository: IMPlanModelRepository,
     chatSessionRepository: ITChatSessionRepository,
     chatHistoryRepository: ITChatHistoryRepository,
     userRepository: ITUserRepository,
     prisma: PrismaClient
   ) {
     this.modelRepository = modelRepository
+    this.planModelRepository = planModelRepository
     this.chatSessionRepository = chatSessionRepository
     this.chatHistoryRepository = chatHistoryRepository
     this.userRepository = userRepository
@@ -40,12 +46,12 @@ export class ChatService {
   }
 
   /**
-   * モデル一覧取得
+   * モデル一覧取得（ユーザーのプランで利用可能なモデルのみ）
    */
-  async getModels(): Promise<GetModelsResponseDTO> {
+  async getModels(dto: GetModelsRequestDTO): Promise<GetModelsResponseDTO> {
     try {
       const entities = await this.prisma.$transaction(async (tx) => {
-        return await this.modelRepository.findAll(tx)
+        return await this.modelRepository.findAllByAuthId(tx, dto.authId)
       })
       return new GetModelsResponseDTO(entities)
     } catch (error) {
@@ -98,6 +104,13 @@ export class ChatService {
         // モデル取得
         const model = await this.modelRepository.find(tx, dto.modelId)
         if (model === null) throw new AppError('指定されたモデルが見つかりません', 400)
+
+        // プランでの利用可否チェック
+        const planModel = await this.planModelRepository.find(
+          tx,
+          new PlanModelVO(user.planId, dto.modelId)
+        )
+        if (planModel === null) throw new AppError('このプランでは使用できないモデルです', 403)
 
         // セッション作成
         const vo = new CreateSessionVO(user.userId, dto.modelId, dto.title)

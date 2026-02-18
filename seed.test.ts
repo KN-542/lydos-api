@@ -96,6 +96,43 @@ async function main() {
       })
       console.log(`Created/Updated model: ${model.name}`)
     }
+    // m_plan_model のマスタデータ（プランごとの利用可能モデル）
+    // 無料プラン: Gemini のみ / 有料プラン: 全モデル
+    const planModels = [
+      {
+        planId: MASTER.getPlanId(MASTER.PLAN.FREE),
+        modelId: MASTER.getModelId(MASTER.MODEL.GEMINI_2_0_FLASH),
+      },
+      {
+        planId: MASTER.getPlanId(MASTER.PLAN.FREE),
+        modelId: MASTER.getModelId(MASTER.MODEL.GEMINI_2_5_FLASH),
+      },
+      {
+        planId: MASTER.getPlanId(MASTER.PLAN.PAID),
+        modelId: MASTER.getModelId(MASTER.MODEL.GEMINI_2_0_FLASH),
+      },
+      {
+        planId: MASTER.getPlanId(MASTER.PLAN.PAID),
+        modelId: MASTER.getModelId(MASTER.MODEL.GEMINI_2_5_FLASH),
+      },
+      {
+        planId: MASTER.getPlanId(MASTER.PLAN.PAID),
+        modelId: MASTER.getModelId(MASTER.MODEL.GROQ_LLAMA_3_3_70B),
+      },
+      {
+        planId: MASTER.getPlanId(MASTER.PLAN.PAID),
+        modelId: MASTER.getModelId(MASTER.MODEL.GROQ_LLAMA_3_1_8B),
+      },
+    ]
+
+    for (const pm of planModels) {
+      await tx.mPlanModel.upsert({
+        where: { planId_modelId: { planId: pm.planId, modelId: pm.modelId } },
+        update: {},
+        create: pm,
+      })
+    }
+    console.log(`Created/Updated ${planModels.length} plan-model mappings`)
   })
 
   console.log('Test DB seeding finished.')

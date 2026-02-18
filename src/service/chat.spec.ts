@@ -8,6 +8,7 @@ import { ChatService } from './chat'
 import { CreateSessionRequestDTO } from './dto/request/chat/createSession'
 import { DeleteSessionRequestDTO } from './dto/request/chat/deleteSession'
 import { GetMessagesRequestDTO } from './dto/request/chat/getMessages'
+import { GetModelsRequestDTO } from './dto/request/chat/getModels'
 import { GetSessionsRequestDTO } from './dto/request/chat/getSessions'
 import { StreamMessageRequestDTO } from './dto/request/chat/streamMessage'
 
@@ -40,14 +41,14 @@ const makeSessionAgg = (sessionId = 'session-1') => ({
 const makeHistoryEntity = (id: number, role: 'user' | 'assistant' = 'user') =>
   new TChatHistoryEntity(id, role, 'メッセージ内容', null, null, new Date('2024-01-01'))
 
-const makeUser = (userId = 1, authId = 'auth-1') =>
+const makeUser = (userId = 1, authId = 'auth-1', planId = 1) =>
   new TUserAggregation(
     userId,
     authId,
     'Test User',
     'test@example.com',
     null,
-    1,
+    planId,
     null,
     null,
     null,
@@ -57,9 +58,12 @@ const makeUser = (userId = 1, authId = 'auth-1') =>
 
 // --- サービスファクトリ ---
 
+import { MPlanModelEntity } from '../domain/model/mPlanModel'
+
 type Repos = {
-  findAllModels?: () => Promise<MModelEntity[]>
+  findAllByAuthId?: () => Promise<MModelEntity[]>
   findModel?: (tx: never, id: number) => Promise<MModelEntity | null>
+  findPlanModel?: () => Promise<MPlanModelEntity | null>
   findAllSessions?: () => Promise<TChatSessionEntity[]>
   findSession?: () => Promise<ReturnType<typeof makeSessionAgg> | null>
   updateSession?: () => Promise<void>
@@ -73,8 +77,11 @@ type Repos = {
 const makeService = (repos: Repos = {}) =>
   new ChatService(
     {
-      findAll: mock(repos.findAllModels ?? (() => Promise.resolve([]))),
+      findAllByAuthId: mock(repos.findAllByAuthId ?? (() => Promise.resolve([]))),
       find: mock(repos.findModel ?? ((_tx, _id) => Promise.resolve(null))),
+    },
+    {
+      find: mock(repos.findPlanModel ?? (() => Promise.resolve(new MPlanModelEntity(1, 1)))),
     },
     {
       findAllByAuthId: mock(repos.findAllSessions ?? (() => Promise.resolve([]))),
@@ -103,9 +110,9 @@ const makeService = (repos: Repos = {}) =>
 describe('ChatService.getModels', () => {
   it('モデル一覧を GetModelsResponseDTO として返す', async () => {
     const entities = [makeModelEntity(1), makeModelEntity(2)]
-    const service = makeService({ findAllModels: () => Promise.resolve(entities) })
+    const service = makeService({ findAllByAuthId: () => Promise.resolve(entities) })
 
-    const result = await service.getModels()
+    const result = await service.getModels(new GetModelsRequestDTO('auth-1'))
 
     expect(result.models).toHaveLength(2)
     expect(result.models[0].id).toBe(1)
@@ -113,14 +120,14 @@ describe('ChatService.getModels', () => {
   })
 
   it('モデルが存在しない場合は空配列を返す', async () => {
-    const service = makeService({ findAllModels: () => Promise.resolve([]) })
-    const result = await service.getModels()
+    const service = makeService({ findAllByAuthId: () => Promise.resolve([]) })
+    const result = await service.getModels(new GetModelsRequestDTO('auth-1'))
     expect(result.models).toEqual([])
   })
 
   it('repository が throw した場合はそのまま再スローする', async () => {
-    const service = makeService({ findAllModels: () => Promise.reject(new Error('DB error')) })
-    expect(service.getModels()).rejects.toThrow('DB error')
+    const service = makeService({ findAllByAuthId: () => Promise.reject(new Error('DB error')) })
+    expect(service.getModels(new GetModelsRequestDTO('auth-1'))).rejects.toThrow('DB error')
   })
 })
 
@@ -207,6 +214,21 @@ describe('ChatService.createSession', () => {
 
     expect(error).toBeInstanceOf(AppError)
     expect((error as AppError).statusCode).toBe(400)
+  })
+
+  it('プランで許可されていないモデルは AppError(403) を投げる', async () => {
+    const service = makeService({
+      findUser: () => Promise.resolve(makeUser()),
+      findModel: (_tx, _id) => Promise.resolve(makeModelEntity(3)),
+      findPlanModel: () => Promise.resolve(null), // プラン外
+    })
+
+    const error = await service
+      .createSession(new CreateSessionRequestDTO('auth-1', 3))
+      .catch((e) => e)
+
+    expect(error).toBeInstanceOf(AppError)
+    expect((error as AppError).statusCode).toBe(403)
   })
 })
 

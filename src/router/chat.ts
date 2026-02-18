@@ -90,6 +90,10 @@ export class ChatRouter {
             description: 'Unauthorized',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
+          403: {
+            description: 'このプランでは使用できないモデルです',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
           500: {
             description: '予期せぬエラーが発生しました',
             content: { 'application/json': { schema: errorResponseSchema } },

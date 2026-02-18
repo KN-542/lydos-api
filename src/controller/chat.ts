@@ -6,6 +6,7 @@ import type { ChatService } from '../service/chat'
 import { CreateSessionRequestDTO } from '../service/dto/request/chat/createSession'
 import { DeleteSessionRequestDTO } from '../service/dto/request/chat/deleteSession'
 import { GetMessagesRequestDTO } from '../service/dto/request/chat/getMessages'
+import { GetModelsRequestDTO } from '../service/dto/request/chat/getModels'
 import { GetSessionsRequestDTO } from '../service/dto/request/chat/getSessions'
 import { StreamMessageRequestDTO } from '../service/dto/request/chat/streamMessage'
 import { createSessionBodySchema } from './request/chat/createSession'
@@ -27,7 +28,9 @@ export class ChatController {
    */
   async getModels(c: HonoContext) {
     try {
-      const responseDTO = await this.chatService.getModels()
+      const authId = c.get('authId')
+      const requestDTO = new GetModelsRequestDTO(authId)
+      const responseDTO = await this.chatService.getModels(requestDTO)
       return c.json(new GetModelsResponse(responseDTO), 200)
     } catch (error) {
       console.error('Error in ChatController.getModels:', error)
@@ -79,6 +82,7 @@ export class ChatController {
     } catch (error) {
       if (error instanceof AppError) {
         if (error.statusCode === 401) return c.json({ error: error.message }, 401)
+        if (error.statusCode === 403) return c.json({ error: error.message }, 403)
         return c.json({ error: error.message }, 400)
       }
       console.error('Error in ChatController.createSession:', error)

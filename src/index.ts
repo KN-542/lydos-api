@@ -8,6 +8,7 @@ import { SettingController } from './controller/setting'
 import { createMiddleware } from './middleware'
 import { MModelRepository } from './repository/mModel'
 import { MPlanRepository } from './repository/mPlan'
+import { MPlanModelRepository } from './repository/mPlanModel'
 import { TChatHistoryRepository } from './repository/tChatHistory'
 import { TChatSessionRepository } from './repository/tChatSession'
 import { TStripeCustomerRepository } from './repository/tStripeCustomer'
@@ -46,10 +47,12 @@ const settingController = new SettingController(settingService)
 const settingRouter = new SettingRouter(settingController)
 
 const modelRepository = new MModelRepository(prisma)
+const planModelRepository = new MPlanModelRepository(prisma)
 const chatSessionRepository = new TChatSessionRepository(prisma)
 const chatHistoryRepository = new TChatHistoryRepository(prisma)
 const chatService = new ChatService(
   modelRepository,
+  planModelRepository,
   chatSessionRepository,
   chatHistoryRepository,
   tUserRepository,

@@ -9,9 +9,20 @@ export class MModelRepository implements IMModelRepository {
     this.prisma = prisma
   }
 
-  // 一覧取得
-  async findAll(tx: Prisma.TransactionClient): Promise<MModelEntity[]> {
-    const models = await tx.mModel.findMany({ orderBy: { id: 'asc' } })
+  // ユーザーのプランで利用可能なモデル一覧取得
+  async findAllByAuthId(tx: Prisma.TransactionClient, authId: string): Promise<MModelEntity[]> {
+    const models = await tx.mModel.findMany({
+      where: {
+        planModels: {
+          some: {
+            plan: {
+              users: { some: { authId } },
+            },
+          },
+        },
+      },
+      orderBy: { id: 'asc' },
+    })
     return models.map(
       (m) => new MModelEntity(m.id, m.name, m.modelId, m.provider, m.color, m.isDefault)
     )
