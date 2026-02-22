@@ -20,25 +20,6 @@ Honoフレームワークのプロジェクト。
 
 オニオンアーキテクチャを採用:
 
-```
-src/
-├── controller/     # コントローラー層
-├── service/        # サービス層（ビジネスロジック）
-├── repository/     # リポジトリ層（データアクセス）
-├── router/         # ルーティング
-├── middleware/     # ミドルウェア（認証など）
-├── domain/model/   # ドメインモデル
-├── lib/            # ユーティリティ（Redis、Zodなど）
-└── stripe/         # Stripe関連
-```
-
-## データベーススキーマ
-
-- `MPlan` - プランマスタ（無料版/有料版）
-- `TUser` - ユーザー情報
-- `TStripeCustomer` - Stripe顧客情報
-- `TPaymentMethod` - 支払い方法
-
 ## セットアップ
 
 ```bash
