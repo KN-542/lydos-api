@@ -37,8 +37,8 @@ FROM oven/bun:1.3.6-slim AS production
 WORKDIR /app
 
 # セキュリティ: 非rootユーザーで実行
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 bunuser
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs bunuser
 
 # 必要なファイルのみコピー
 COPY --from=builder --chown=bunuser:nodejs /app/node_modules ./node_modules
