@@ -1,7 +1,12 @@
 # ===================================
 # ビルドステージ
 # ===================================
-FROM public.ecr.aws/oven-sh/bun:1.3.6-slim AS builder
+FROM public.ecr.aws/debian/debian:bookworm-slim AS builder
+
+# Bun インストール
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /app
 
@@ -33,7 +38,12 @@ RUN bun run build
 # ===================================
 # 本番ステージ
 # ===================================
-FROM public.ecr.aws/oven-sh/bun:1.3.6-slim AS production
+FROM public.ecr.aws/debian/debian:bookworm-slim AS production
+
+# Bun インストール
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /app
 
