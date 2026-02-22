@@ -19,6 +19,7 @@ RUN bunx prisma generate --schema=./schema.prisma
 COPY src ./src
 COPY tsconfig.json ./
 COPY biome.json ./
+COPY .gitignore ./
 
 # 型チェック
 RUN bun run typecheck
