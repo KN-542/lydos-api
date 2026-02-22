@@ -1,7 +1,7 @@
 # ===================================
 # ビルドステージ
 # ===================================
-FROM oven/bun:1.3.6-slim AS builder
+FROM public.ecr.aws/oven-sh/bun:1.3.6-slim AS builder
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ RUN bun run build
 # ===================================
 # 本番ステージ
 # ===================================
-FROM oven/bun:1.3.6-slim AS production
+FROM public.ecr.aws/oven-sh/bun:1.3.6-slim AS production
 
 WORKDIR /app
 
