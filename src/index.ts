@@ -19,6 +19,16 @@ import { ChatService } from './service/chat'
 import { SettingService } from './service/setting'
 import { Stripe } from './stripe'
 
+// テスト以降環境では DATABASE_URL を個別コンポーネントから動的構築
+if (!process.env.DATABASE_URL && process.env.DATABASE_HOST) {
+  const user = process.env.DATABASE_USER
+  const password = encodeURIComponent(process.env.DATABASE_PASSWORD ?? '')
+  const host = process.env.DATABASE_HOST
+  const port = process.env.DATABASE_PORT
+  const name = process.env.DATABASE_NAME
+  process.env.DATABASE_URL = `postgresql://${user}:${password}@${host}:${port}/${name}`
+}
+
 const prisma = new PrismaClient()
 
 // Contextに保存する変数の型を定義
