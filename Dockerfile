@@ -10,7 +10,7 @@ COPY package.json bun.lock ./
 COPY schema.prisma ./
 
 # 依存関係をインストール
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile
 
 # Prisma Clientを生成
 RUN bunx prisma generate --schema=./schema.prisma
