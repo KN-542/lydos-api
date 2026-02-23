@@ -42,7 +42,7 @@ export class SettingController {
   async createCheckoutSession(c: HonoContext) {
     try {
       const authId = c.get('authId')
-      const body = createCheckoutSessionBodySchema.parse(await c.req.json())
+      const body = createCheckoutSessionBodySchema.parse(await c.req.json().catch(() => ({})))
       const requestDTO = new CreateCheckoutSessionRequestDTO(
         authId,
         body.successUrl,
