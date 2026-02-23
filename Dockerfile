@@ -3,10 +3,10 @@
 # ===================================
 FROM public.ecr.aws/debian/debian:bookworm-slim AS builder
 
-# Bun インストール
+# Bun インストール（/usr/local に配置してすべてのユーザーから利用可能にする）
 RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+ENV BUN_INSTALL="/usr/local"
 RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /app
 
@@ -40,10 +40,10 @@ RUN bun run build
 # ===================================
 FROM public.ecr.aws/debian/debian:bookworm-slim AS production
 
-# Bun インストール
+# Bun インストール（/usr/local に配置してすべてのユーザーから利用可能にする）
 RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+ENV BUN_INSTALL="/usr/local"
 RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /app
 
